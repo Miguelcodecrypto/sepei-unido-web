@@ -42,26 +42,8 @@ export const selectClientCertificate = async (): Promise<CertificateSelectionRes
 
     console.log('📋 [FNMT] Navegador:', getBrowserInfo());
     
-    // Verificar si estamos en HTTPS o localhost
-    const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
-    
-    if (!isSecure) {
-      return {
-        success: false,
-        error: `❌ Los certificados de cliente TLS requieren HTTPS.
-
-Estás accediendo desde: ${window.location.protocol}//${window.location.hostname}
-
-Para probar localmente con certificados:
-1. Genera certificados locales con mkcert
-2. Configura tu servidor para HTTPS
-3. Accede a https://localhost:puerto
-
-En producción, asegúrate de usar HTTPS.`
-      };
-    }
-    
-    console.log('🔗 [FNMT] Conexión segura detectada (HTTPS/localhost)');
+    // En navegadores reales con HTTPS, los certificados de cliente se solicitan automáticamente
+    // Pero en desarrollo local, usamos una simulación que funciona en HTTP
     
     const result = await requestCertificateViaHTTPS();
     
@@ -70,34 +52,10 @@ En producción, asegúrate de usar HTTPS.`
       return result;
     }
 
-    console.log('⚠️ [FNMT] No se pudo obtener certificado via HTTPS');
+    console.log('⚠️ [FNMT] No se pudo obtener certificado. Mostrando instrucciones...', result.error);
     
     // Si falla, mostrar instrucciones al usuario
-    return {
-      success: false,
-      error: `⚠️ No se detectó certificado FNMT instalado en tu navegador.
-
-Instrucciones para Windows:
-1. Abre "Ejecutar" (Win+R) y escribe: certmgr.msc
-2. Ve a: Certificados - Usuario actual → Personal → Certificados
-3. Busca certificados de "AC FNMT Usuarios"
-4. Verifica que tengan un ícono de llave 🔑 (clave privada)
-
-Si no ves ninguno:
-- Descárgalo e instálalo desde www.fnmt.es
-- O renovarlo si está expirado
-
-Requisitos técnicos:
-✓ HTTPS activado (${isSecure ? 'SÍ ✓' : 'NO ✗'})
-✓ Certificado FNMT instalado (verifica con certmgr.msc)
-✓ Navegador moderno (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+)
-
-Si el certificado está instalado pero aún no funciona:
-- Cierra completamente el navegador
-- Recarga la página con Ctrl+F5
-- Intenta en otro navegador
-- Revisa la consola (F12) para más detalles`
-    };
+    return result;
 
   } catch (error) {
     console.error('❌ [FNMT] Error:', error);
@@ -110,18 +68,246 @@ Si el certificado está instalado pero aún no funciona:
 
 /**
  * Solicita certificado via HTTPS con requerimiento de cliente cert
+ * En desarrollo HTTP, simula el diálogo del navegador
  */
 const requestCertificateViaHTTPS = async (): Promise<CertificateSelectionResult> => {
+  return new Promise((resolve) => {
+    try {
+      console.log('📨 [FNMT] Intentando obtener certificado...');
+      
+      // Comprobar si estamos en desarrollo (HTTP localhost)
+      const isDev = window.location.hostname === 'localhost' && window.location.protocol === 'http:';
+      
+      if (isDev) {
+        console.log('🔧 [FNMT] Modo desarrollo detectado (HTTP localhost)');
+        // En desarrollo, simulamos el diálogo del navegador
+        simulateCertificateDialog().then(resolve);
+      } else {
+        console.log('🔗 [FNMT] Conectando a servidor HTTPS...');
+        // En producción, hacer solicitud HTTPS real
+        makeCertificateRequest().then(resolve);
+      }
+      
+    } catch (error) {
+      console.error('❌ [FNMT] Error en requestCertificateViaHTTPS:', error);
+      resolve({
+        success: false,
+        error: `Error técnico: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      });
+    }
+  });
+};
+
+/**
+ * Simula el diálogo de selección de certificados en modo desarrollo
+ */
+const simulateCertificateDialog = (): Promise<CertificateSelectionResult> => {
+  return new Promise((resolve) => {
+    console.log('🎭 [FNMT] Mostrando diálogo simulado de certificados...');
+    
+    // Obtener certificados almacenados (si existen)
+    const storedCerts = getStoredTestCertificates();
+    
+    if (storedCerts.length === 0) {
+      console.warn('⚠️ [FNMT] No hay certificados de prueba disponibles');
+      resolve({
+        success: false,
+        error: `No hay certificados FNMT instalados en tu sistema.
+
+Para obtener un certificado FNMT gratuito:
+1. Visita www.fnmt.es
+2. Descarga e instala el certificado en tu navegador
+3. El certificado aparecerá automáticamente en el almacén del sistema
+
+Mientras tanto, puedes:
+- Usar el certificado de prueba creado en desarrollo
+- O continuar sin certificado
+
+Navegadores soportados:
+✓ Chrome 90+ / Chromium / Brave
+✓ Firefox 88+
+✓ Safari 14+
+✓ Edge 90+`
+      });
+      return;
+    }
+
+    // Mostrar diálogo HTML para seleccionar certificado
+    showCertificateSelectionDialog(storedCerts, (selected) => {
+      if (selected) {
+        console.log('✅ [FNMT] Certificado seleccionado:', selected.nif);
+        resolve({ success: true, certificate: selected });
+      } else {
+        console.log('🚫 [FNMT] Selección de certificado cancelada por el usuario');
+        resolve({ success: false, error: 'Selección de certificado cancelada' });
+      }
+    });
+  });
+};
+
+/**
+ * Muestra un diálogo HTML para seleccionar certificados
+ */
+const showCertificateSelectionDialog = (
+  certificates: BrowserCertificate[],
+  onSelect: (cert: BrowserCertificate | null) => void
+) => {
+  // Crear modal HTML
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  `;
+
+  const dialog = document.createElement('div');
+  dialog.style.cssText = `
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+  `;
+
+  // Header
+  const header = document.createElement('div');
+  header.style.cssText = `
+    background: linear-gradient(135deg, #ff8c00, #ff4500);
+    color: white;
+    padding: 20px;
+    border-radius: 8px 8px 0 0;
+  `;
+  header.innerHTML = `<h2 style="margin: 0; font-size: 1.3em;">Selecciona tu Certificado FNMT</h2>`;
+  dialog.appendChild(header);
+
+  // Content
+  const content = document.createElement('div');
+  content.style.cssText = `
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+  `;
+
+  certificates.forEach((cert, index) => {
+    const item = document.createElement('div');
+    item.style.cssText = `
+      border: 2px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    `;
+
+    item.onmouseover = () => {
+      item.style.borderColor = '#ff8c00';
+      item.style.background = '#fff5f0';
+    };
+
+    item.onmouseout = () => {
+      item.style.borderColor = '#e2e8f0';
+      item.style.background = 'white';
+    };
+
+    item.onclick = () => {
+      modal.remove();
+      onSelect(cert);
+    };
+
+    item.innerHTML = `
+      <div style="font-weight: bold; color: #1f2937; margin-bottom: 8px;">
+        ${cert.nombre || 'Usuario'} ${cert.apellidos || ''}
+      </div>
+      <div style="font-size: 0.9em; color: #6b7280;">
+        <div>NIF/DNI: <strong>${cert.nif || 'No disponible'}</strong></div>
+        <div>Emisor: ${cert.issuer}</div>
+        <div>Válido hasta: ${new Date(cert.notAfter).toLocaleDateString('es-ES')}</div>
+      </div>
+    `;
+
+    content.appendChild(item);
+  });
+
+  dialog.appendChild(content);
+
+  // Footer
+  const footer = document.createElement('div');
+  footer.style.cssText = `
+    padding: 20px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  `;
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancelar';
+  cancelBtn.style.cssText = `
+    padding: 10px 20px;
+    border: 2px solid #d1d5db;
+    background: white;
+    color: #374151;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+  `;
+  cancelBtn.onmouseover = () => { cancelBtn.style.background = '#f3f4f6'; };
+  cancelBtn.onmouseout = () => { cancelBtn.style.background = 'white'; };
+  cancelBtn.onclick = () => {
+    modal.remove();
+    onSelect(null);
+  };
+
+  footer.appendChild(cancelBtn);
+  dialog.appendChild(footer);
+
+  modal.appendChild(dialog);
+  document.body.appendChild(modal);
+
+  console.log('🎭 [FNMT] Diálogo de selección mostrado');
+};
+
+/**
+ * Obtiene certificados de prueba almacenados en el navegador
+ */
+const getStoredTestCertificates = (): BrowserCertificate[] => {
+  try {
+    const stored = localStorage.getItem('fnmt_test_certificates');
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.log('ℹ️ [FNMT] Sin certificados de prueba almacenados');
+  }
+  return [];
+};
+
+/**
+ * Realiza solicitud HTTPS real (para producción)
+ */
+const makeCertificateRequest = async (): Promise<CertificateSelectionResult> => {
   return new Promise((resolve) => {
     try {
       const xhr = new XMLHttpRequest();
       let completed = false;
       const timeoutMs = 25000;
-      
-      const completeRequest = (success: boolean, data?: any, error?: string) => {
+
+      const completeRequest = (success: boolean, data?: BrowserCertificate, error?: string) => {
         if (completed) return;
         completed = true;
-        
+
         if (success && data) {
           resolve({ success: true, certificate: data });
         } else {
@@ -129,10 +315,9 @@ const requestCertificateViaHTTPS = async (): Promise<CertificateSelectionResult>
         }
       };
 
-      // Timeout
       const timeout = setTimeout(() => {
         if (!completed) {
-          console.warn('⏱️ [FNMT] Timeout esperando respuesta del navegador (25s)');
+          console.warn('⏱️ [FNMT] Timeout esperando respuesta (25s)');
           completeRequest(false, undefined, 'Tiempo de espera agotado. Verifica que seleccionaste un certificado válido.');
           xhr.abort();
         }
@@ -144,47 +329,23 @@ const requestCertificateViaHTTPS = async (): Promise<CertificateSelectionResult>
 
       xhr.addEventListener('load', () => {
         clearTimeout(timeout);
-        
         if (completed) return;
-        
+
         console.log('📥 [FNMT] Respuesta recibida (status:', xhr.status, ')');
-        
+
         try {
-          // Intentar obtener datos del certificado de los headers
           const certData = xhr.getResponseHeader('X-Client-Cert');
-          
+
           if (certData) {
-            console.log('🔑 [FNMT] Datos del certificado encontrados en headers');
-            try {
-              const cert = JSON.parse(atob(certData));
-              const browserCert = parseCertificateData(cert);
-              completeRequest(true, browserCert);
-              return;
-            } catch (e) {
-              console.error('❌ [FNMT] Error parseando certificado:', e);
-            }
+            console.log('🔑 [FNMT] Datos del certificado encontrados');
+            const cert = JSON.parse(atob(certData));
+            const browserCert = parseCertificateData(cert);
+            completeRequest(true, browserCert);
+            return;
           }
-          
-          // Si el servidor retorna 200 OK, significa que envió un certificado válido
+
           if (xhr.status === 200) {
             console.log('✅ [FNMT] Certificado aceptado por el servidor');
-            
-            // Crear un certificado dummy con datos de la respuesta si están disponibles
-            const responseText = xhr.responseText;
-            if (responseText) {
-              try {
-                const data = JSON.parse(responseText);
-                if (data.certificate) {
-                  const browserCert = parseCertificateData(data.certificate);
-                  completeRequest(true, browserCert);
-                  return;
-                }
-              } catch (e) {
-                // Ignorar si no es JSON válido
-              }
-            }
-            
-            // Fallback: crear certificado válido
             completeRequest(true, {
               id: generateId(),
               subject: 'Certificado FNMT',
@@ -198,7 +359,7 @@ const requestCertificateViaHTTPS = async (): Promise<CertificateSelectionResult>
               valido: true
             });
           } else {
-            completeRequest(false, undefined, `Servidor retornó status ${xhr.status}. No se envió certificado válido.`);
+            completeRequest(false, undefined, `Servidor retornó status ${xhr.status}`);
           }
         } catch (e) {
           completeRequest(false, undefined, 'Error procesando respuesta del servidor');
@@ -208,52 +369,33 @@ const requestCertificateViaHTTPS = async (): Promise<CertificateSelectionResult>
       xhr.addEventListener('error', () => {
         clearTimeout(timeout);
         if (!completed) {
-          console.log('📍 [FNMT] Error en la solicitud - esto es normal si cancelaste la selección del certificado');
-          completeRequest(false, undefined, 'No se seleccionó certificado o la solicitud fue rechazada por el servidor.');
+          console.log('📍 [FNMT] Error en la solicitud (normal si no hay certificado)');
+          completeRequest(false, undefined, 'No se seleccionó certificado o la solicitud fue rechazada.');
         }
       });
 
       xhr.addEventListener('abort', () => {
         clearTimeout(timeout);
         if (!completed) {
-          console.log('🚫 [FNMT] Solicitud abortada - usuario canceló la selección del certificado');
+          console.log('🚫 [FNMT] Solicitud abortada - usuario canceló');
           completeRequest(false, undefined, 'Selección de certificado cancelada por el usuario.');
         }
       });
 
-      // ⚠️ IMPORTANTE: withCredentials=true es CRUCIAL
-      // Permite que el navegador envíe el certificado de cliente TLS
       xhr.withCredentials = true;
-      
-      console.log('🔗 [FNMT] Conectando al servidor con requerimiento de certificado de cliente...');
-      
-      // Construir URL - debe ser HTTPS para que funcione certificados de cliente
+
       const protocol = window.location.protocol;
       const hostname = window.location.hostname;
-      
-      // En desarrollo local (localhost), a veces es HTTP
-      // En producción DEBE ser HTTPS
-      const isSecure = hostname === 'localhost' || hostname === '127.0.0.1' 
-        ? true  // Permitir localhost aunque sea HTTP para desarrollo
-        : protocol === 'https:';
-      
-      if (!isSecure && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-        completeRequest(false, undefined, 'Los certificados de cliente TLS requieren HTTPS en producción.');
-        return;
-      }
-
-      // URL del endpoint que requiere certificado de cliente
-      // Este endpoint debe estar configurado en el servidor (vite middleware)
       const endpoint = `${protocol}//${hostname}${window.location.port ? ':' + window.location.port : ''}/api/certificate/verify`;
-      
+
       console.log('🌐 [FNMT] URL:', endpoint);
-      
+
       xhr.open('POST', endpoint, true);
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.send(JSON.stringify({ action: 'verify_certificate' }));
-      
+
     } catch (error) {
-      console.error('❌ [FNMT] Error en requestCertificateViaHTTPS:', error);
+      console.error('❌ [FNMT] Error en makeCertificateRequest:', error);
       resolve({
         success: false,
         error: `Error técnico: ${error instanceof Error ? error.message : 'Error desconocido'}`

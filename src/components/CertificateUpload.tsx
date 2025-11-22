@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Lock, CheckCircle, AlertCircle, X, Loader, Fingerprint } from 'lucide-react';
 import { selectClientCertificate, saveCertificateToSession, checkBrowserSupport, type BrowserCertificate } from '../services/browserCertificateService';
 import { isCertificateRegistered } from '../services/fnmtService';
+import { initializeTestCertificates } from '../data/testCertificates';
 
 interface CertificateUploadProps {
   onCertificateLoaded: (data: BrowserCertificate) => void;
@@ -238,6 +239,17 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
                   <div className="text-red-300 text-sm">
                     <p className="font-bold mb-1">Error:</p>
                     <p className="whitespace-pre-wrap">{error}</p>
+                    {error.includes('No hay certificados FNMT') && (
+                      <button
+                        onClick={() => {
+                          initializeTestCertificates();
+                          handleSelectCertificate();
+                        }}
+                        className="mt-3 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded font-semibold transition text-sm"
+                      >
+                        Cargar Certificados de Prueba (Desarrollo)
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
