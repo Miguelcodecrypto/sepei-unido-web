@@ -166,9 +166,19 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
                 <p className="text-gray-300 mb-6 leading-relaxed">
                   Para registrarte en SEPEI UNIDO, necesitamos validar tu identidad mediante tu certificado digital de la FNMT (Fábrica Nacional de Moneda y Timbre).
                 </p>
-                <p className="text-gray-400 text-sm">
-                  Al hacer clic en el botón de abajo, tu navegador te mostrará un diálogo para seleccionar tu certificado digital instalado en el sistema.
+                <p className="text-gray-400 text-sm mb-4">
+                  Al hacer clic en el botón de abajo, tu navegador te mostrará un diálogo para seleccionar tu certificado digital instalado en el sistema operativo.
                 </p>
+              </div>
+
+              <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 space-y-2">
+                <p className="text-purple-300 text-sm font-bold">📋 Instrucciones:</p>
+                <ol className="text-purple-300 text-sm space-y-1 ml-4">
+                  <li>1. Haz clic en "Seleccionar Certificado Digital"</li>
+                  <li>2. En el diálogo que aparece, selecciona tu certificado FNMT</li>
+                  <li>3. Confirma la selección</li>
+                  <li>4. El certificado será validado automáticamente</li>
+                </ol>
               </div>
 
               <button
@@ -197,14 +207,17 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
 
               <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
                 <p className="text-green-300 text-sm">
-                  <span className="font-bold">Privacidad y Seguridad:</span> Todos los datos del certificado se procesan solo en tu navegador. Nunca se envían a nuestros servidores.
+                  <span className="font-bold">✓ Privacidad y Seguridad:</span> Todos los datos del certificado se procesan solo en tu navegador. Nunca se envían a nuestros servidores.
                 </p>
               </div>
 
               {error && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                  <p className="text-red-300">{error}</p>
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-red-300 text-sm">
+                    <p className="font-bold mb-1">Error:</p>
+                    <p className="whitespace-pre-wrap">{error}</p>
+                  </div>
                 </div>
               )}
             </div>
