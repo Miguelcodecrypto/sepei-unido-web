@@ -121,17 +121,26 @@ La aplicación está completamente optimizada para:
 
 El sitio se despliega automáticamente en GitHub Pages cuando se hace push a la rama `main`.
 
-**URL del sitio**: https://miguelcodecrypto.github.io/sepei-unido-web/
+**Configuración para dominio personalizado**:
+El proyecto está configurado para usar un dominio personalizado sin referencias al nombre de usuario. 
+
+Para usar tu propio dominio (ej: www.sepei-unido.com):
+1. Ve a **Settings** → **Pages** en el repositorio
+2. En **Source**, selecciona **GitHub Actions**
+3. En **Custom domain**, ingresa tu dominio (ej: www.sepei-unido.com)
+4. Configura los registros DNS de tu dominio:
+   - Para subdomain (www): Agrega un registro CNAME apuntando a `miguelcodecrypto.github.io`
+   - Para apex domain: Agrega registros A con las IPs de GitHub Pages
+5. El sitio estará disponible en tu dominio personalizado
+
+Si prefieres usar la URL de GitHub Pages predeterminada:
+- El sitio estará en: https://miguelcodecrypto.github.io/sepei-unido-web/
+- En ese caso, cambia `base: '/'` a `base: '/sepei-unido-web/'` en `vite.config.mjs`
 
 El workflow de GitHub Actions:
 - ✅ Se ejecuta automáticamente en cada push a `main`
 - ✅ Construye el proyecto con Vite
 - ✅ Despliega los archivos estáticos a GitHub Pages
-
-Para activar GitHub Pages por primera vez:
-1. Ve a **Settings** → **Pages** en el repositorio
-2. En **Source**, selecciona **GitHub Actions**
-3. El próximo push a `main` desplegará el sitio automáticamente
 
 ### Otras Opciones:
 - **Vercel**: `vercel deploy`
