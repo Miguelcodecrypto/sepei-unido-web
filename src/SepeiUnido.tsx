@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Flame, Users, Shield, Target, Mail, Phone, Instagram, Facebook, Twitter, Linkedin, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X } from 'lucide-react';
+import { addUser } from './services/userDatabase';
 
 export default function SepeiUnido() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -29,21 +30,38 @@ export default function SepeiUnido() {
       return;
     }
 
-    console.log('Datos del formulario:', formData);
-    
-    setFormStatus({ type: 'success', message: '¡Bienvenido a SEPEI UNIDO! Nos pondremos en contacto contigo pronto.' });
-    
-    setFormData({
-      nombre: '',
-      email: '',
-      telefono: '',
-      instagram: '',
-      facebook: '',
-      twitter: '',
-      linkedin: ''
-    });
-    
-    setTimeout(() => setFormStatus(null), 5000);
+    // Guardar en base de datos
+    try {
+      addUser({
+        nombre: formData.nombre,
+        email: formData.email,
+        telefono: formData.telefono || undefined,
+        instagram: formData.instagram || undefined,
+        facebook: formData.facebook || undefined,
+        twitter: formData.twitter || undefined,
+        linkedin: formData.linkedin || undefined,
+      });
+
+      console.log('Datos del formulario guardados:', formData);
+      
+      setFormStatus({ type: 'success', message: '¡Bienvenido a SEPEI UNIDO! Nos pondremos en contacto contigo pronto.' });
+      
+      setFormData({
+        nombre: '',
+        email: '',
+        telefono: '',
+        instagram: '',
+        facebook: '',
+        twitter: '',
+        linkedin: ''
+      });
+      
+      setTimeout(() => setFormStatus(null), 5000);
+    } catch (error) {
+      console.error('Error al guardar:', error);
+      setFormStatus({ type: 'error', message: 'Hubo un error al registrarte. Intenta nuevamente.' });
+      setTimeout(() => setFormStatus(null), 4000);
+    }
   };
 
   const handleChange = (e: any) => {
