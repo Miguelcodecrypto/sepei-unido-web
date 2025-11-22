@@ -1,83 +1,73 @@
 // filepath: src/components/CertificateUpload.tsx
-import React, { useState, useRef } from 'react';
-import { Upload, Lock, CheckCircle, AlertCircle, X, FileText } from 'lucide-react';
-import { processCertificate, saveCertificateToSession, isCertificateRegistered, type CertificateData } from '../services/fnmtService';
+import React, { useState, useEffect } from 'react';
+import { Lock, CheckCircle, AlertCircle, X, Loader, Fingerprint } from 'lucide-react';
+import { selectClientCertificate, saveCertificateToSession, checkBrowserSupport, type BrowserCertificate } from '../services/browserCertificateService';
+import { isCertificateRegistered } from '../services/fnmtService';
 
 interface CertificateUploadProps {
-  onCertificateLoaded: (data: CertificateData) => void;
+  onCertificateLoaded: (data: BrowserCertificate) => void;
   onClose?: () => void;
 }
 
 export default function CertificateUpload({ onCertificateLoaded, onClose }: CertificateUploadProps) {
-  const [step, setStep] = useState<'upload' | 'password' | 'verification'>('upload');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState<'browser-check' | 'selection' | 'verification'>('browser-check');
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [certificateData, setCertificateData] = useState<CertificateData | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [certificateData, setCertificateData] = useState<BrowserCertificate | null>(null);
+  const [browserSupport, setBrowserSupport] = useState({ supported: false, message: '' });
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validar extensión
-    const validExtensions = ['.p12', '.pfx'];
-    const fileName = file.name.toLowerCase();
-    const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
-
-    if (!hasValidExtension) {
-      setError('Por favor, selecciona un archivo .p12 o .pfx válido');
-      setSelectedFile(null);
-      return;
+  // Verificar compatibilidad del navegador al cargar
+  useEffect(() => {
+    const support = checkBrowserSupport();
+    setBrowserSupport(support);
+    
+    if (support.supported) {
+      setStep('selection');
     }
+    
+    setIsLoading(false);
+  }, []);
 
-    // Validar tamaño (máx 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('El archivo es demasiado grande (máx 5MB)');
-      setSelectedFile(null);
-      return;
-    }
-
-    setSelectedFile(file);
-    setError(null);
-    setStep('password');
-  };
-
-  const handleProcessCertificate = async () => {
-    if (!selectedFile || !password) {
-      setError('Por favor completa todos los campos');
-      return;
-    }
-
+  const handleSelectCertificate = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const result = await processCertificate(selectedFile, password);
+      const result = await selectClientCertificate();
 
-      if (!result.valido) {
-        setError(result.error || 'Error al procesar el certificado');
+      if (!result.success) {
+        setError(result.error || 'Error al seleccionar certificado');
         setIsLoading(false);
         return;
       }
 
-      if (!result.data) {
-        setError('No se pudieron extraer los datos del certificado');
+      if (!result.certificate) {
+        setError('No se encontraron datos de certificado');
         setIsLoading(false);
         return;
       }
 
-      // Verificar si el certificado ya está registrado
-      if (isCertificateRegistered(result.data.thumbprint)) {
-        setError('Este certificado ya está registrado en el sistema. Por favor, usa otro certificado.');
+      // Validar certificado
+      if (!result.certificate.valido) {
+        setError('El certificado está expirado o no es válido');
         setIsLoading(false);
         return;
       }
 
-      // Guardar en sesión y pasar al siguiente paso
-      setCertificateData(result.data);
-      saveCertificateToSession(result.data);
+      if (!result.certificate.nif) {
+        setError('No se encontró NIF/DNI en el certificado');
+        setIsLoading(false);
+        return;
+      }
+
+      // Verificar si ya está registrado
+      if (isCertificateRegistered(result.certificate.thumbprint)) {
+        setError('Este certificado ya está registrado en el sistema');
+        setIsLoading(false);
+        return;
+      }
+
+      setCertificateData(result.certificate);
       setStep('verification');
     } catch (err) {
       setError(`Error inesperado: ${err instanceof Error ? err.message : 'Error desconocido'}`);
@@ -88,19 +78,15 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
 
   const handleConfirm = () => {
     if (certificateData) {
+      saveCertificateToSession(certificateData);
       onCertificateLoaded(certificateData);
     }
   };
 
   const handleReset = () => {
-    setStep('upload');
-    setSelectedFile(null);
-    setPassword('');
-    setError(null);
+    setStep('selection');
     setCertificateData(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    setError(null);
   };
 
   return (
@@ -129,36 +115,79 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
 
         {/* Content */}
         <div className="p-8">
-          {/* Step 1: Upload */}
-          {step === 'upload' && (
+          {/* Step 1: Browser Check */}
+          {step === 'browser-check' && (
+            <div className="space-y-6">
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6 text-center">
+                <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+                <p className="text-white font-bold text-lg mb-2">Navegador No Compatible</p>
+                <p className="text-gray-300">{browserSupport.message}</p>
+              </div>
+
+              <div className="bg-slate-900/50 rounded-xl p-6 space-y-4">
+                <p className="text-gray-300 mb-4">
+                  Tu navegador no soporta la extracción automática de certificados. Por favor, utiliza uno de los siguientes navegadores:
+                </p>
+                <ul className="space-y-2 text-gray-400">
+                  <li className="flex items-center gap-2">
+                    <span className="w-2 h-2 bg-orange-400 rounded-full"></span>
+                    Google Chrome 90+
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-2 h-2 bg-orange-400 rounded-full"></span>
+                    Mozilla Firefox 88+
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-2 h-2 bg-orange-400 rounded-full"></span>
+                    Safari 14+
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-2 h-2 bg-orange-400 rounded-full"></span>
+                    Microsoft Edge 90+
+                  </li>
+                </ul>
+              </div>
+
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition"
+                >
+                  Cerrar
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Step 2: Selection */}
+          {step === 'selection' && (
             <div className="space-y-6">
               <div>
                 <p className="text-gray-300 mb-6 leading-relaxed">
                   Para registrarte en SEPEI UNIDO, necesitamos validar tu identidad mediante tu certificado digital de la FNMT (Fábrica Nacional de Moneda y Timbre).
                 </p>
+                <p className="text-gray-400 text-sm">
+                  Al hacer clic en el botón de abajo, tu navegador te mostrará un diálogo para seleccionar tu certificado digital instalado en el sistema.
+                </p>
               </div>
 
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="border-3 border-dashed border-orange-500/50 rounded-2xl p-12 text-center cursor-pointer hover:bg-orange-500/10 transition"
+              <button
+                onClick={handleSelectCertificate}
+                disabled={isLoading}
+                className="w-full py-6 bg-gradient-to-r from-orange-500 to-red-600 hover:shadow-lg text-white rounded-xl font-bold text-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
               >
-                <Upload className="w-16 h-16 text-orange-400 mx-auto mb-4" />
-                <p className="text-white font-bold text-lg mb-2">Carga tu Certificado Digital</p>
-                <p className="text-gray-400 text-sm mb-4">Arrastra tu archivo .p12 o .pfx aquí, o haz clic para seleccionar</p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".p12,.pfx"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-                {selectedFile && (
-                  <p className="text-orange-300 font-semibold mt-4 flex items-center justify-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    {selectedFile.name}
-                  </p>
+                {isLoading ? (
+                  <>
+                    <Loader className="w-6 h-6 animate-spin" />
+                    Cargando...
+                  </>
+                ) : (
+                  <>
+                    <Fingerprint className="w-6 h-6" />
+                    Seleccionar Certificado Digital
+                  </>
                 )}
-              </div>
+              </button>
 
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
                 <p className="text-blue-300 text-sm">
@@ -166,45 +195,9 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
                 </p>
               </div>
 
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                  <p className="text-red-300">{error}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 2: Password */}
-          {step === 'password' && (
-            <div className="space-y-6">
-              <div>
-                <p className="text-gray-300 mb-6">
-                  Se ha cargado el certificado <span className="font-semibold text-orange-400">{selectedFile?.name}</span>
-                </p>
-                <p className="text-gray-400 text-sm mb-4">Ahora necesitamos la contraseña para desencriptar tu certificado.</p>
-              </div>
-
-              <div>
-                <label className="block text-white font-semibold mb-3">Contraseña del Certificado</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Ingresa tu contraseña"
-                  className="w-full px-5 py-4 bg-slate-900/80 border-2 border-slate-700 rounded-xl text-white placeholder-gray-500 focus:border-orange-500 outline-none transition"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && password) {
-                      handleProcessCertificate();
-                    }
-                  }}
-                  autoFocus
-                />
-              </div>
-
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-                <p className="text-yellow-300 text-sm">
-                  <span className="font-bold">Privacidad:</span> La contraseña y el certificado se procesan solo en tu navegador. Nunca se envían a nuestros servidores.
+              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                <p className="text-green-300 text-sm">
+                  <span className="font-bold">Privacidad y Seguridad:</span> Todos los datos del certificado se procesan solo en tu navegador. Nunca se envían a nuestros servidores.
                 </p>
               </div>
 
@@ -214,22 +207,6 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
                   <p className="text-red-300">{error}</p>
                 </div>
               )}
-
-              <div className="flex gap-4">
-                <button
-                  onClick={handleReset}
-                  className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition"
-                >
-                  Cambiar Archivo
-                </button>
-                <button
-                  onClick={handleProcessCertificate}
-                  disabled={!password || isLoading}
-                  className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
-                >
-                  {isLoading ? 'Procesando...' : 'Verificar Certificado'}
-                </button>
-              </div>
             </div>
           )}
 
@@ -269,13 +246,20 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
 
                 <div className="border-t border-slate-700 pt-4 mt-4">
                   <p className="text-gray-400 text-sm mb-1">Válido hasta</p>
-                  <p className="text-white">{new Date(certificateData.fechaExpiracion).toLocaleDateString('es-ES')}</p>
+                  <p className="text-white">{new Date(certificateData.notAfter).toLocaleDateString('es-ES')}</p>
                 </div>
 
                 <div className="border-t border-slate-700 pt-4">
                   <p className="text-gray-400 text-sm mb-1">Autoridad Emisora</p>
                   <p className="text-white text-sm">{certificateData.issuer}</p>
                 </div>
+
+                {certificateData.serialNumber && (
+                  <div className="border-t border-slate-700 pt-4">
+                    <p className="text-gray-400 text-sm mb-1">Serie del Certificado</p>
+                    <p className="text-white text-xs font-mono break-all">{certificateData.serialNumber}</p>
+                  </div>
+                )}
               </div>
 
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
@@ -283,6 +267,13 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
                   Al confirmar, aceptas registrarte con tu identidad verificada. Esta información se tratará de conformidad con la legislación de protección de datos vigente.
                 </p>
               </div>
+
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                  <p className="text-red-300">{error}</p>
+                </div>
+              )}
 
               <div className="flex gap-4">
                 <button

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Flame, Users, Shield, Target, Mail, Phone, Instagram, Facebook, Twitter, Linkedin, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, Lightbulb } from 'lucide-react';
 import { addUser } from './services/userDatabase';
-import { getCertificateFromSession, clearCertificateSession, type CertificateData } from './services/fnmtService';
+import { getCertificateFromSession, clearCertificateSession, type BrowserCertificate } from './services/browserCertificateService';
 import TermsModal from './components/TermsModal';
 import SuggestionsForm from './components/SuggestionsForm';
 import CertificateUpload from './components/CertificateUpload';
@@ -12,7 +12,7 @@ export default function SepeiUnido() {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showSuggestionsForm, setShowSuggestionsForm] = useState(false);
   const [showCertificateUpload, setShowCertificateUpload] = useState(false);
-  const [certificateData, setCertificateData] = useState<CertificateData | null>(null);
+  const [certificateData, setCertificateData] = useState<BrowserCertificate | null>(null);
   const [pendingUserData, setPendingUserData] = useState(null as any);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -74,7 +74,7 @@ export default function SepeiUnido() {
         // Datos del certificado FNMT
         certificado_nif: certificateData.nif,
         certificado_thumbprint: certificateData.thumbprint,
-        certificado_fecha_validacion: certificateData.fechaValidacion,
+        certificado_fecha_validacion: new Date(certificateData.notAfter).toISOString().split('T')[0],
         certificado_valido: true,
       });
 
@@ -110,7 +110,7 @@ export default function SepeiUnido() {
     setPendingUserData(null);
   };
 
-  const handleCertificateLoaded = (data: CertificateData) => {
+  const handleCertificateLoaded = (data: BrowserCertificate) => {
     setCertificateData(data);
     setShowCertificateUpload(false);
     // Mostrar modal de términos después de cargar certificado
