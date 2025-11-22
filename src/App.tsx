@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import SepeiUnido from './SepeiUnido';
 import AdminPanel from './components/AdminPanel';
 import LoginPanel from './components/LoginPanel';
-import { Settings } from 'lucide-react';
+import SuggestionsForm from './components/SuggestionsForm';
+import { Settings, Lightbulb } from 'lucide-react';
 import { isAuthenticated } from './services/authService';
 
 export default function App() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     // Solo verificar si hay sesión válida (pero mantener isAuth false hasta que se haga login)
@@ -48,8 +50,26 @@ export default function App() {
     return <AdminPanel onLogout={handleLogout} />;
   }
 
+  // Si hace clic en sugerencias, mostrar formulario
+  if (showSuggestions) {
+    return (
+      <div className="min-h-screen bg-slate-950 py-12 px-4">
+        <SuggestionsForm onClose={() => setShowSuggestions(false)} />
+      </div>
+    );
+  }
+
   return (
     <div>
+      {/* Botón flotante para sugerencias */}
+      <button
+        onClick={() => setShowSuggestions(true)}
+        className="fixed bottom-24 right-8 z-40 p-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-full shadow-2xl hover:shadow-blue-500/50 transform hover:scale-110 transition-all flex items-center gap-2"
+        title="Enviar sugerencia o propuesta"
+      >
+        <Lightbulb className="w-6 h-6" />
+      </button>
+
       {/* Botón flotante para acceder al admin */}
       <button
         onClick={() => setShowAdmin(true)}

@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Flame, Users, Shield, Target, Mail, Phone, Instagram, Facebook, Twitter, Linkedin, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X } from 'lucide-react';
+import { Flame, Users, Shield, Target, Mail, Phone, Instagram, Facebook, Twitter, Linkedin, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, Lightbulb } from 'lucide-react';
 import { addUser } from './services/userDatabase';
+import TermsModal from './components/TermsModal';
+import SuggestionsForm from './components/SuggestionsForm';
 
 export default function SepeiUnido() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showSuggestionsForm, setShowSuggestionsForm] = useState(false);
+  const [pendingUserData, setPendingUserData] = useState(null as any);
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -30,19 +35,27 @@ export default function SepeiUnido() {
       return;
     }
 
-    // Guardar en base de datos
+    // Guardar datos pendientes y mostrar modal de términos
+    setPendingUserData(formData);
+    setShowTermsModal(true);
+  };
+
+  const handleAcceptTerms = () => {
+    if (!pendingUserData) return;
+
     try {
       addUser({
-        nombre: formData.nombre,
-        email: formData.email,
-        telefono: formData.telefono || undefined,
-        instagram: formData.instagram || undefined,
-        facebook: formData.facebook || undefined,
-        twitter: formData.twitter || undefined,
-        linkedin: formData.linkedin || undefined,
+        nombre: pendingUserData.nombre,
+        email: pendingUserData.email,
+        telefono: pendingUserData.telefono || undefined,
+        instagram: pendingUserData.instagram || undefined,
+        facebook: pendingUserData.facebook || undefined,
+        twitter: pendingUserData.twitter || undefined,
+        linkedin: pendingUserData.linkedin || undefined,
+        terminos_aceptados: true,
       });
 
-      console.log('Datos del formulario guardados:', formData);
+      console.log('Datos del formulario guardados con consentimiento:', pendingUserData);
       
       setFormStatus({ type: 'success', message: '¡Bienvenido a SEPEI UNIDO! Nos pondremos en contacto contigo pronto.' });
       
@@ -56,12 +69,19 @@ export default function SepeiUnido() {
         linkedin: ''
       });
       
+      setShowTermsModal(false);
+      setPendingUserData(null);
       setTimeout(() => setFormStatus(null), 5000);
     } catch (error) {
       console.error('Error al guardar:', error);
       setFormStatus({ type: 'error', message: 'Hubo un error al registrarte. Intenta nuevamente.' });
       setTimeout(() => setFormStatus(null), 4000);
     }
+  };
+
+  const handleRejectTerms = () => {
+    setShowTermsModal(false);
+    setPendingUserData(null);
   };
 
   const handleChange = (e: any) => {
@@ -497,6 +517,14 @@ export default function SepeiUnido() {
           <p className="text-gray-500 text-sm mt-2">Unidos por nuestros derechos</p>
         </div>
       </footer>
+
+      {/* Terms and Conditions Modal */}
+      {showTermsModal && (
+        <TermsModal
+          onAccept={handleAcceptTerms}
+          onReject={handleRejectTerms}
+        />
+      )}
     </div>
   );
 }

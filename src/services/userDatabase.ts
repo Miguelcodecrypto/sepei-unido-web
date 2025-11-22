@@ -11,6 +11,9 @@ interface User {
   twitter?: string;
   linkedin?: string;
   fechaRegistro: string;
+  terminos_aceptados: boolean;
+  fecha_aceptacion_terminos: string;
+  version_terminos: string;
 }
 
 const DB_KEY = 'sepei_unido_users';
@@ -22,12 +25,14 @@ export const getAllUsers = (): User[] => {
 };
 
 // Agregar nuevo usuario
-export const addUser = (userData: Omit<User, 'id' | 'fechaRegistro'>): User => {
+export const addUser = (userData: Omit<User, 'id' | 'fechaRegistro' | 'fecha_aceptacion_terminos' | 'version_terminos'> & { terminos_aceptados: boolean }): User => {
   const users = getAllUsers();
   const newUser: User = {
     ...userData,
-    id: Date.now().toString(), // ID simple basado en timestamp
+    id: Date.now().toString(),
     fechaRegistro: new Date().toISOString(),
+    fecha_aceptacion_terminos: new Date().toISOString(),
+    version_terminos: '1.0',
   };
   
   users.push(newUser);
