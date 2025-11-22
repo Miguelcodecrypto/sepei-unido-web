@@ -33,28 +33,45 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
     setError(null);
 
     try {
+      console.log('🔐 Iniciando selección de certificado FNMT...');
+      console.log('📋 Navegador detectado:', browserSupport.message);
+      
       const result = await selectClientCertificate();
 
+      console.log('✅ Resultado de selección:', result);
+
       if (!result.success) {
-        setError(result.error || 'Error al seleccionar certificado');
+        const errorMsg = result.error || 'Error al seleccionar certificado';
+        console.error('❌ Error:', errorMsg);
+        setError(errorMsg);
         setIsLoading(false);
         return;
       }
 
       if (!result.certificate) {
+        console.error('❌ No certificate data received');
         setError('No se encontraron datos de certificado');
         setIsLoading(false);
         return;
       }
 
+      console.log('📄 Certificado recibido:', {
+        nif: result.certificate.nif,
+        nombre: result.certificate.nombre,
+        valido: result.certificate.valido,
+        notAfter: result.certificate.notAfter
+      });
+
       // Validar certificado
       if (!result.certificate.valido) {
+        console.warn('⚠️ Certificado expirado o inválido');
         setError('El certificado está expirado o no es válido');
         setIsLoading(false);
         return;
       }
 
       if (!result.certificate.nif) {
+        console.warn('⚠️ No NIF/DNI found in certificate');
         setError('No se encontró NIF/DNI en el certificado');
         setIsLoading(false);
         return;
@@ -62,15 +79,19 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
 
       // Verificar si ya está registrado
       if (isCertificateRegistered(result.certificate.thumbprint)) {
+        console.warn('⚠️ Certificado ya registrado');
         setError('Este certificado ya está registrado en el sistema');
         setIsLoading(false);
         return;
       }
 
+      console.log('✅ Certificado válido y aceptado');
       setCertificateData(result.certificate);
       setStep('verification');
     } catch (err) {
-      setError(`Error inesperado: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+      const errorMsg = `Error inesperado: ${err instanceof Error ? err.message : 'Error desconocido'}`;
+      console.error('❌ Error catch:', err);
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
