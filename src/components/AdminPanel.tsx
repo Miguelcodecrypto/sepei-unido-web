@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Download, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock } from 'lucide-react';
 import { getAllUsers, deleteUser, clearDatabase, exportUsersToCSV } from '../services/userDatabase';
+import { logout, getSessionTimeRemaining } from '../services/authService';
 
 interface User {
   id: string;
@@ -14,13 +15,28 @@ interface User {
   fechaRegistro: string;
 }
 
-export default function AdminPanel() {
+interface AdminPanelProps {
+  onLogout: () => void;
+}
+
+export default function AdminPanel({ onLogout }: AdminPanelProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
   const [totalUsers, setTotalUsers] = useState(0);
+  const [sessionTime, setSessionTime] = useState(0);
 
   useEffect(() => {
     loadUsers();
+    
+    // Actualizar tiempo de sesión cada minuto
+    const interval = setInterval(() => {
+      setSessionTime(getSessionTimeRemaining());
+    }, 60000);
+    
+    // Mostrar tiempo inicial
+    setSessionTime(getSessionTimeRemaining());
+    
+    return () => clearInterval(interval);
   }, []);
 
   const loadUsers = () => {
@@ -36,9 +52,9 @@ export default function AdminPanel() {
     }
   };
 
-  const handleClearDatabase = () => {
-    clearDatabase();
-    loadUsers();
+  const handleLogout = () => {
+    logout();
+    onLogout();
   };
 
   const handleExport = () => {
@@ -55,13 +71,30 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-slate-950 py-12 px-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Users className="w-8 h-8 text-orange-500" />
-            <h1 className="text-4xl font-black text-white">Panel de Administración</h1>
+        {/* Header con info de sesión */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <Users className="w-8 h-8 text-orange-500" />
+              <h1 className="text-4xl font-black text-white">Panel de Administración</h1>
+            </div>
+            <p className="text-gray-400">Gestión de usuarios registrados en SEPEI UNIDO</p>
           </div>
-          <p className="text-gray-400">Gestión de usuarios registrados en SEPEI UNIDO</p>
+          
+          {/* Sesión info */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <Clock className="w-4 h-4 text-blue-400" />
+              <span className="text-blue-300 text-sm font-semibold">{sessionTime}m</span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600/80 hover:bg-red-700 text-white rounded-lg font-semibold transition"
+            >
+              <LogOut className="w-5 h-5" />
+              Cerrar Sesión
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
