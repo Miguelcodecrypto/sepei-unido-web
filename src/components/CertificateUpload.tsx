@@ -211,7 +211,10 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
                 {isLoading ? (
                   <>
                     <Loader className="w-6 h-6 animate-spin" />
-                    Cargando...
+                    <div className="flex flex-col items-start">
+                      <span>Buscando certificados...</span>
+                      <span className="text-sm text-orange-100">Esto puede tomar unos segundos</span>
+                    </div>
                   </>
                 ) : (
                   <>
