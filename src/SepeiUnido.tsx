@@ -117,6 +117,16 @@ export default function SepeiUnido() {
     setShowTermsModal(true);
   };
 
+  const handleOpenSuggestionsForm = () => {
+    // Si no tiene certificado, mostrar modal de carga primero
+    if (!certificateData) {
+      setShowCertificateUpload(true);
+      return;
+    }
+    // Si ya tiene certificado, abrir formulario de propuestas
+    setShowSuggestionsForm(true);
+  };
+
   const handleChange = (e: any) => {
     setFormData({
       ...formData,
@@ -210,6 +220,7 @@ export default function SepeiUnido() {
                 { name: 'Inicio', id: 'inicio' },
                 { name: 'Manifiesto', id: 'manifiesto-section' },
                 { name: 'Objetivos', id: 'hoja-ruta-section' },
+                { name: 'Compartir Ideas', id: 'ideas-section' },
                 { name: 'Únete', id: 'contacto-section' }
               ].map((item) => (
                 <button
@@ -238,6 +249,7 @@ export default function SepeiUnido() {
                 { name: 'Inicio', id: 'inicio' },
                 { name: 'Manifiesto', id: 'manifiesto-section' },
                 { name: 'Objetivos', id: 'hoja-ruta-section' },
+                { name: 'Compartir Ideas', id: 'ideas-section' },
                 { name: 'Únete', id: 'contacto-section' }
               ].map((item) => (
                 <button
@@ -427,6 +439,71 @@ export default function SepeiUnido() {
         </div>
       </section>
 
+      <section id="ideas-section" className="py-24 px-4 bg-gradient-to-b from-slate-900 to-slate-950">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <Lightbulb className="w-12 h-12 text-yellow-400" />
+              <h2 className="text-5xl font-black text-white">Compartir Ideas</h2>
+            </div>
+            <p className="text-xl text-gray-400">Expresa tus propuestas y contribuye al futuro de SEPEI UNIDO</p>
+            <div className="h-1.5 w-40 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full mt-6"></div>
+          </div>
+
+          {certificateData ? (
+            // Usuario registrado: mostrar botón para acceder
+            <div className="bg-slate-800/90 p-12 rounded-3xl border-2 border-green-500/30 text-center space-y-6">
+              <div className="bg-green-500/10 border-2 border-green-500/30 rounded-xl p-4 inline-block">
+                <CheckCircle className="w-8 h-8 text-green-400 mx-auto" />
+              </div>
+              <div>
+                <p className="text-green-300 font-bold text-lg mb-2">✓ Verificación completada</p>
+                <p className="text-gray-300 mb-4">Bienvenido {certificateData.nombre}. Ya puedes compartir tus ideas y propuestas.</p>
+              </div>
+              <button
+                onClick={() => setShowSuggestionsForm(true)}
+                className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-slate-900 text-lg font-bold rounded-xl shadow-2xl hover:shadow-yellow-500/50 transform hover:scale-105 transition-all"
+              >
+                <Lightbulb className="w-6 h-6" />
+                Compartir mi Idea
+              </button>
+            </div>
+          ) : (
+            // Usuario no registrado: mostrar instrucciones y botón
+            <div className="bg-slate-800/90 p-12 rounded-3xl border-2 border-blue-500/30 space-y-6">
+              <div className="flex items-start gap-4">
+                <AlertCircle className="w-8 h-8 text-blue-400 flex-shrink-0 mt-1" />
+                <div>
+                  <p className="text-blue-300 font-bold text-lg mb-2">Requiere Verificación FNMT</p>
+                  <p className="text-gray-300 mb-4">Para compartir ideas y propuestas, necesitas registrarte y verificar tu identidad con un certificado digital FNMT.</p>
+                  <ul className="text-gray-300 space-y-2 mb-6">
+                    <li className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                      Protege la seguridad de nuestro movimiento
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                      Garantiza autenticidad de participantes
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                      Cumple con regulaciones legales
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <button
+                onClick={handleOpenSuggestionsForm}
+                className="w-full py-5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-lg font-bold rounded-xl shadow-2xl hover:shadow-blue-500/50 transform hover:scale-105 transition-all flex items-center justify-center gap-3"
+              >
+                <Shield className="w-6 h-6" />
+                Registrarse y Verificar Identidad
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
       <section id="contacto-section" className="py-24 px-4 bg-slate-950">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
@@ -575,6 +652,14 @@ export default function SepeiUnido() {
         <TermsModal
           onAccept={handleAcceptTerms}
           onReject={handleRejectTerms}
+        />
+      )}
+
+      {/* Suggestions Form Modal */}
+      {showSuggestionsForm && certificateData && (
+        <SuggestionsForm
+          certificateData={certificateData}
+          onClose={() => setShowSuggestionsForm(false)}
         />
       )}
     </div>

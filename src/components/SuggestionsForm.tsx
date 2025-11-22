@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { Send, AlertCircle, CheckCircle, Lightbulb, X } from 'lucide-react';
 import { addSuggestion } from '../services/suggestionDatabase';
+import type { BrowserCertificate } from '../services/browserCertificateService';
 
 interface SuggestionsFormProps {
   onClose?: () => void;
   onSuccess?: () => void;
+  certificateData?: BrowserCertificate;
 }
 
-export default function SuggestionsForm({ onClose, onSuccess }: SuggestionsFormProps) {
+export default function SuggestionsForm({ onClose, onSuccess, certificateData }: SuggestionsFormProps) {
   const [formData, setFormData] = useState({
-    nombre: '',
-    apellidos: '',
-    email: '',
+    nombre: certificateData?.nombre || '',
+    apellidos: certificateData?.apellidos || '',
+    email: certificateData?.email || '',
     telefono: '',
     categoria: 'bombero' as const,
     lugarTrabajo: 'Villarrobledo' as const,
@@ -122,6 +124,19 @@ export default function SuggestionsForm({ onClose, onSuccess }: SuggestionsFormP
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Verificación FNMT */}
+          {certificateData && (
+            <div className="bg-green-500/10 border-2 border-green-500/30 rounded-xl p-4 flex items-center gap-3">
+              <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0" />
+              <div>
+                <p className="text-green-300 font-bold text-sm">Identidad Verificada</p>
+                <p className="text-green-200 text-xs mt-1">
+                  ✓ {certificateData.nombre} {certificateData.apellidos} ({certificateData.nif})
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Row 1: Nombre y Apellidos */}
           <div className="grid md:grid-cols-2 gap-4">
             <div>
