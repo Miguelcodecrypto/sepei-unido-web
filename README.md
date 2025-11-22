@@ -117,10 +117,25 @@ La aplicación está completamente optimizada para:
 
 ## 🌐 Despliegue
 
-### Opciones recomendadas:
+### GitHub Pages (Configurado)
+
+El sitio se despliega automáticamente en GitHub Pages cuando se hace push a la rama `main`.
+
+**URL del sitio**: https://miguelcodecrypto.github.io/sepei-unido-web/
+
+El workflow de GitHub Actions:
+- ✅ Se ejecuta automáticamente en cada push a `main`
+- ✅ Construye el proyecto con Vite
+- ✅ Despliega los archivos estáticos a GitHub Pages
+
+Para activar GitHub Pages por primera vez:
+1. Ve a **Settings** → **Pages** en el repositorio
+2. En **Source**, selecciona **GitHub Actions**
+3. El próximo push a `main` desplegará el sitio automáticamente
+
+### Otras Opciones:
 - **Vercel**: `vercel deploy`
 - **Netlify**: `netlify deploy`
-- **GitHub Pages**: Configurar workflow de CI/CD
 
 ## 📄 Licencia
 
