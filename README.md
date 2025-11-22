@@ -117,10 +117,33 @@ La aplicación está completamente optimizada para:
 
 ## 🌐 Despliegue
 
-### Opciones recomendadas:
+### GitHub Pages (Configurado)
+
+El sitio se despliega automáticamente en GitHub Pages cuando se hace push a la rama `main`.
+
+**URL del sitio**: https://miguelcodecrypto.github.io/sepei-unido-web/
+
+**Para activar GitHub Pages:**
+1. Ve a **Settings** → **Pages** en el repositorio
+2. En **Source**, selecciona **GitHub Actions**
+3. Haz merge de este PR a la rama `main`
+4. El workflow se ejecutará automáticamente y desplegará el sitio
+
+El workflow de GitHub Actions:
+- ✅ Se ejecuta automáticamente en cada push a `main`
+- ✅ Construye el proyecto con Vite
+- ✅ Despliega los archivos estáticos a GitHub Pages
+
+**Dominio personalizado (opcional)**:
+Si quieres usar tu propio dominio (ej: www.sepei-unido.com) para eliminar la referencia "miguelcodecrypto":
+1. En **Settings** → **Pages** → **Custom domain**, ingresa tu dominio
+2. Configura un registro CNAME en tu proveedor de dominio apuntando a `miguelcodecrypto.github.io`
+3. Cambia `base: '/sepei-unido-web/'` a `base: '/'` en `vite.config.mjs`
+4. El sitio estará disponible en tu dominio personalizado
+
+### Otras Opciones:
 - **Vercel**: `vercel deploy`
 - **Netlify**: `netlify deploy`
-- **GitHub Pages**: Configurar workflow de CI/CD
 
 ## 📄 Licencia
 
