@@ -218,16 +218,33 @@
 
         <!-- Troubleshooting -->
         <div class="card error">
-            <h2><span class="icon">⚠️</span> Solución de Problemas</h2>
-            <p><strong>¿No se detecta el certificado?</strong></p>
+            <h2><span class="icon">⚠️</span> Información Importante</h2>
+            <p><strong>Los certificados de cliente TLS requieren HTTPS</strong></p>
             <ul>
-                <li>✓ Verifica que el certificado FNMT está instalado en el Sistema Operativo</li>
-                <li>✓ Asegúrate de que el certificado no está expirado</li>
-                <li>✓ Cierra completamente el navegador e intenta de nuevo</li>
-                <li>✓ Intenta en un navegador diferente (Chrome, Firefox, Safari, Edge)</li>
-                <li>✓ Recarga la página con Ctrl+F5 (caché completo)</li>
-                <li>✓ Si aún no funciona, revisa los logs en la consola más abajo</li>
+                <li>✓ En desarrollo local (http://localhost:5173): El diálogo NO aparecerá (es normal)</li>
+                <li>✓ En producción (https://...): El navegador mostrará el diálogo automáticamente</li>
+                <li>✓ Para probar en desarrollo local, necesitas HTTPS con certificado auto-firmado</li>
+                <li>✓ Los certificados FNMT se solicitan AUTOMÁTICAMENTE cuando haces una solicitud HTTPS</li>
             </ul>
+        </div>
+
+        <!-- Solution -->
+        <div class="card info">
+            <h2><span class="icon">✅</span> Solución para Desarrollo Local</h2>
+            <p>Para probar certificados de cliente en desarrollo local:</p>
+            <ol>
+                <li>Instala <code style="background: #0f172a; padding: 2px 6px; border-radius: 4px;">mkcert</code> desde https://github.com/FiloSottile/mkcert</li>
+                <li>Crea certificados locales: <code style="background: #0f172a; padding: 2px 6px;">mkcert localhost</code></li>
+                <li>Actualiza vite.config.js para usar HTTPS:
+                    <div class="code">server: {
+  https: {
+    key: fs.readFileSync('./localhost-key.pem'),
+    cert: fs.readFileSync('./localhost.pem')
+  }
+}</div>
+                </li>
+                <li>Reinicia el servidor: <code style="background: #0f172a; padding: 2px 6px;">npm run dev</code></li>
+            </ol>
         </div>
 
         <!-- Console Output -->

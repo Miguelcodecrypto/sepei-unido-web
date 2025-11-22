@@ -42,11 +42,26 @@ export const selectClientCertificate = async (): Promise<CertificateSelectionRes
 
     console.log('📋 [FNMT] Navegador:', getBrowserInfo());
     
-    // IMPORTANTE: En navegadores reales, los certificados de cliente se solicitan automáticamente
-    // cuando intentas acceder a un recurso HTTPS que requiere autenticación con certificado
+    // Verificar si estamos en HTTPS o localhost
+    const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
     
-    // Estrategia: Hacer una solicitud HTTPS a nuestro servidor que está configurado para
-    // requerir certificado de cliente. Esto dispara el diálogo nativo del navegador
+    if (!isSecure) {
+      return {
+        success: false,
+        error: `❌ Los certificados de cliente TLS requieren HTTPS.
+
+Estás accediendo desde: ${window.location.protocol}//${window.location.hostname}
+
+Para probar localmente con certificados:
+1. Genera certificados locales con mkcert
+2. Configura tu servidor para HTTPS
+3. Accede a https://localhost:puerto
+
+En producción, asegúrate de usar HTTPS.`
+      };
+    }
+    
+    console.log('🔗 [FNMT] Conexión segura detectada (HTTPS/localhost)');
     
     const result = await requestCertificateViaHTTPS();
     
@@ -55,31 +70,33 @@ export const selectClientCertificate = async (): Promise<CertificateSelectionRes
       return result;
     }
 
-    console.log('⚠️ [FNMT] No se pudo obtener certificado via HTTPS, intentando método alternativo...');
+    console.log('⚠️ [FNMT] No se pudo obtener certificado via HTTPS');
     
     // Si falla, mostrar instrucciones al usuario
     return {
       success: false,
-      error: `No se detectó certificado FNMT instalado en tu navegador.
+      error: `⚠️ No se detectó certificado FNMT instalado en tu navegador.
 
-Instrucciones:
-1. Asegúrate de tener un certificado FNMT instalado en tu sistema operativo
-2. En Windows: Abre "Ejecutar" (Win+R) y escribe: certmgr.msc
-3. Busca certificados emitidos por "AC FNMT Usuarios"
-4. Si no ves ninguno, descárgalo e instálalo desde www.fnmt.es
-5. Cierra completamente el navegador e intenta de nuevo
-6. Abre la consola (F12) y observa los logs [FNMT]
+Instrucciones para Windows:
+1. Abre "Ejecutar" (Win+R) y escribe: certmgr.msc
+2. Ve a: Certificados - Usuario actual → Personal → Certificados
+3. Busca certificados de "AC FNMT Usuarios"
+4. Verifica que tengan un ícono de llave 🔑 (clave privada)
 
-Navegadores soportados:
-✓ Chrome 90+ / Chromium
-✓ Firefox 88+
-✓ Safari 14+
-✓ Edge 90+
+Si no ves ninguno:
+- Descárgalo e instálalo desde www.fnmt.es
+- O renovarlo si está expirado
 
-Si tienes el certificado instalado pero aún no funciona:
-- Verifica que el certificado no esté expirado
-- Intenta en un navegador diferente
-- Recarga la página completamente (Ctrl+F5)`
+Requisitos técnicos:
+✓ HTTPS activado (${isSecure ? 'SÍ ✓' : 'NO ✗'})
+✓ Certificado FNMT instalado (verifica con certmgr.msc)
+✓ Navegador moderno (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+)
+
+Si el certificado está instalado pero aún no funciona:
+- Cierra completamente el navegador
+- Recarga la página con Ctrl+F5
+- Intenta en otro navegador
+- Revisa la consola (F12) para más detalles`
     };
 
   } catch (error) {
