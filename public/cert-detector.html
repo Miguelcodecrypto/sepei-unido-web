@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FNMT Certificate Detector - Debug Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ff8c00, #ff4500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #cbd5e1;
+            font-size: 1.1em;
+        }
+
+        .card {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .card.success {
+            border-color: #10b981;
+            background: #064e3b;
+        }
+
+        .card.error {
+            border-color: #ef4444;
+            background: #7c2d12;
+        }
+
+        .card.info {
+            border-color: #3b82f6;
+            background: #1e3a8a;
+        }
+
+        .card h2 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card p, .card li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .card ul {
+            margin-left: 20px;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #ff8c00, #ff4500);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 140, 0, 0.3);
+        }
+
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .code {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        .badge.supported {
+            background: #10b981;
+            color: #ecfdf5;
+        }
+
+        .badge.not-supported {
+            background: #ef4444;
+            color: #fef2f2;
+        }
+
+        .console {
+            background: #000;
+            color: #0f0;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .console-line {
+            margin: 4px 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .console-line.error {
+            color: #ff6b6b;
+        }
+
+        .console-line.success {
+            color: #51cf66;
+        }
+
+        .console-line.warning {
+            color: #ffd93d;
+        }
+
+        .console-line.info {
+            color: #74c0fc;
+        }
+
+        .icon {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            text-align: center;
+            line-height: 24px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 FNMT Certificate Detector</h1>
+            <p>Herramienta de diagnóstico para certificados digitales FNMT</p>
+        </div>
+
+        <!-- Browser Detection -->
+        <div class="card" id="browserCard">
+            <h2><span class="icon" id="browserIcon">?</span> Información del Navegador</h2>
+            <p id="browserInfo">Detectando...</p>
+            <p id="browserSupport">Comprobando compatibilidad...</p>
+        </div>
+
+        <!-- Certificate Status -->
+        <div class="card info" id="certCard">
+            <h2><span class="icon">📜</span> Estado del Certificado</h2>
+            <p id="certStatus">Comprobando...</p>
+            <button class="button" onclick="checkCertificate()" id="checkBtn">Verificar Certificado</button>
+        </div>
+
+        <!-- Instructions -->
+        <div class="card">
+            <h2><span class="icon">📋</span> Instrucciones para Windows</h2>
+            <ol>
+                <li>Abre "Ejecutar" presionando <strong>Win + R</strong></li>
+                <li>Escribe: <code style="background: #0f172a; padding: 2px 6px; border-radius: 4px;">certmgr.msc</code></li>
+                <li>Presiona Enter</li>
+                <li>Ve a: <strong>Certificados - Usuario actual</strong> → <strong>Personal</strong> → <strong>Certificados</strong></li>
+                <li>Busca certificados emitidos por <strong>"AC FNMT Usuarios"</strong> o <strong>"AC Raíz Servidores Seguros Estado"</strong></li>
+                <li>Verifica que tenga un ícono de llave 🔑 (indica que tiene clave privada)</li>
+            </ol>
+        </div>
+
+        <!-- Troubleshooting -->
+        <div class="card error">
+            <h2><span class="icon">⚠️</span> Solución de Problemas</h2>
+            <p><strong>¿No se detecta el certificado?</strong></p>
+            <ul>
+                <li>✓ Verifica que el certificado FNMT está instalado en el Sistema Operativo</li>
+                <li>✓ Asegúrate de que el certificado no está expirado</li>
+                <li>✓ Cierra completamente el navegador e intenta de nuevo</li>
+                <li>✓ Intenta en un navegador diferente (Chrome, Firefox, Safari, Edge)</li>
+                <li>✓ Recarga la página con Ctrl+F5 (caché completo)</li>
+                <li>✓ Si aún no funciona, revisa los logs en la consola más abajo</li>
+            </ul>
+        </div>
+
+        <!-- Console Output -->
+        <div class="card">
+            <h2><span class="icon">🖥️</span> Consola de Diagnóstico</h2>
+            <button class="button" onclick="clearConsole()">Limpiar Consola</button>
+            <div class="console" id="console"></div>
+        </div>
+
+        <!-- API Support -->
+        <div class="card info">
+            <h2><span class="icon">🌐</span> APIs Soportadas</h2>
+            <div id="apisSupported"></div>
+        </div>
+
+        <!-- Test Button -->
+        <div class="card">
+            <h2><span class="icon">🧪</span> Prueba Completa</h2>
+            <p>Realiza una prueba completa de detección de certificados</p>
+            <button class="button" onclick="runFullTest()">Ejecutar Prueba Completa</button>
+        </div>
+    </div>
+
+    <script>
+        const consoleEl = document.getElementById('console');
+
+        function log(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = `console-line ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            
+            let icon = '📌';
+            if (type === 'error') icon = '❌';
+            if (type === 'success') icon = '✅';
+            if (type === 'warning') icon = '⚠️';
+            if (type === 'info') icon = 'ℹ️';
+            
+            line.textContent = `[${timestamp}] ${icon} ${message}`;
+            consoleEl.appendChild(line);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function clearConsole() {
+            consoleEl.innerHTML = '';
+            log('Consola limpiada', 'info');
+        }
+
+        function detectBrowser() {
+            const ua = navigator.userAgent;
+            let browser = 'Desconocido';
+            let version = 'Desconocida';
+
+            if (ua.indexOf('Chrome') > -1 && ua.indexOf('Edg') === -1) {
+                browser = 'Chrome/Chromium';
+                version = ua.match(/Chrome\/(\d+)/)?.[1] || 'Desconocida';
+            } else if (ua.indexOf('Edg') > -1) {
+                browser = 'Microsoft Edge';
+                version = ua.match(/Edg\/(\d+)/)?.[1] || 'Desconocida';
+            } else if (ua.indexOf('Firefox') > -1) {
+                browser = 'Firefox';
+                version = ua.match(/Firefox\/(\d+)/)?.[1] || 'Desconocida';
+            } else if (ua.indexOf('Safari') > -1 && ua.indexOf('Chrome') === -1) {
+                browser = 'Safari';
+                version = ua.match(/Version\/(\d+)/)?.[1] || 'Desconocida';
+            }
+
+            return { browser, version };
+        }
+
+        function checkBrowserSupport() {
+            const { browser, version } = detectBrowser();
+            const versionNum = parseInt(version) || 0;
+
+            const supported = {
+                'Chrome/Chromium': versionNum >= 90,
+                'Microsoft Edge': versionNum >= 90,
+                'Firefox': versionNum >= 88,
+                'Safari': versionNum >= 14
+            };
+
+            return supported[browser] || false;
+        }
+
+        function checkAPIsupport() {
+            const support = {
+                'Web Crypto API': !!window.crypto?.subtle,
+                'XMLHttpRequest': !!window.XMLHttpRequest,
+                'Fetch API': !!window.fetch,
+                'Credential Management': !!navigator.credentials,
+                'WebSocket': !!window.WebSocket,
+                'HTTPS': window.location.protocol === 'https:' || window.location.hostname === 'localhost'
+            };
+
+            return support;
+        }
+
+        function updateUI() {
+            log('Inicializando detección del navegador...', 'info');
+            
+            const { browser, version } = detectBrowser();
+            const isSupported = checkBrowserSupport();
+
+            const browserCard = document.getElementById('browserCard');
+            browserCard.className = `card ${isSupported ? 'success' : 'error'}`;
+
+            document.getElementById('browserInfo').innerHTML = 
+                `<strong>${browser}</strong> v${version}`;
+
+            document.getElementById('browserSupport').innerHTML = 
+                isSupported 
+                    ? '✅ Este navegador soporta certificados FNMT' 
+                    : '❌ Este navegador podría no soportar certificados. Por favor, usa Chrome 90+, Firefox 88+, Safari 14+ o Edge 90+';
+
+            log(`Navegador detectado: ${browser} v${version}`, isSupported ? 'success' : 'error');
+
+            // APIs
+            const apisSupport = checkAPIsupport();
+            let apisHtml = '';
+            for (const [api, supported] of Object.entries(apisSupport)) {
+                apisHtml += `<span class="badge ${supported ? 'supported' : 'not-supported'}">${api}: ${supported ? '✓' : '✗'}</span>`;
+            }
+            document.getElementById('apisSupported').innerHTML = apisHtml;
+        }
+
+        function checkCertificate() {
+            log('Intentando detectar certificado del cliente...', 'info');
+
+            fetch('/api/certificate/verify', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action: 'verify' })
+            })
+            .then(res => {
+                log(`Respuesta del servidor: ${res.status}`, res.ok ? 'success' : 'warning');
+                if (res.ok) return res.json();
+                throw new Error(`HTTP ${res.status}`);
+            })
+            .then(data => {
+                log('✓ Certificado detectado exitosamente', 'success');
+                log(JSON.stringify(data, null, 2), 'success');
+            })
+            .catch(err => {
+                log(`Error: ${err.message}`, 'error');
+                log('Esto es normal si no hay certificado instalado o el navegador no lo soporta', 'info');
+            });
+        }
+
+        function runFullTest() {
+            log('=== INICIANDO PRUEBA COMPLETA ===', 'info');
+            
+            updateUI();
+            
+            log('', 'info');
+            log('Paso 1: Información del navegador', 'info');
+            const { browser, version } = detectBrowser();
+            log(`${browser} v${version}`, 'info');
+
+            log('', 'info');
+            log('Paso 2: Verificación de APIs', 'info');
+            const apis = checkAPIsupport();
+            for (const [api, supported] of Object.entries(apis)) {
+                log(`${api}: ${supported ? '✓' : '✗'}`, supported ? 'success' : 'warning');
+            }
+
+            log('', 'info');
+            log('Paso 3: Compatibilidad del navegador', 'info');
+            const isSupported = checkBrowserSupport();
+            log(`Soportado: ${isSupported ? 'SI' : 'NO'}`, isSupported ? 'success' : 'error');
+
+            log('', 'info');
+            log('Paso 4: Intento de detección de certificado', 'info');
+            checkCertificate();
+
+            log('', 'info');
+            log('=== PRUEBA COMPLETADA ===', 'success');
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            log('Página cargada', 'success');
+            updateUI();
+        });
+
+        // Log initial info
+        log('FNMT Certificate Detector iniciado', 'info');
+    </script>
+</body>
+</html>
