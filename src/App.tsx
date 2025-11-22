@@ -11,8 +11,8 @@ export default function App() {
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    // Verificar autenticación al cargar
-    setIsAuth(isAuthenticated());
+    // Solo verificar si hay sesión válida (pero mantener isAuth false hasta que se haga login)
+    // Esto evita que el panel se abra automáticamente
     setAuthChecked(true);
   }, []);
 
