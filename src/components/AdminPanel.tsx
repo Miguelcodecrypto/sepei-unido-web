@@ -57,6 +57,11 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     onLogout();
   };
 
+  const handleClearDatabase = () => {
+    clearDatabase();
+    loadUsers();
+  };
+
   const handleExport = () => {
     exportUsersToCSV();
   };
