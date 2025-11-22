@@ -6,11 +6,13 @@ Plataforma web moderna para el movimiento asindical **SEPEI UNIDO** de la Diputa
 
 - **Página Principal Profesional**: Manifiesto, objetivos y formulario de registro
 - **Base de Datos de Usuarios**: Almacenamiento de datos de usuarios registrados
+- **Verificación FNMT**: Validación de identidad con certificados digitales españoles (NUEVO)
 - **Panel de Administración**: Gestión completa de usuarios con autenticación
 - **Autenticación Segura**: Acceso protegido por contraseña con sesiones
 - **Exportación de Datos**: Descarga de usuarios en formato CSV
 - **Diseño Responsivo**: Totalmente adaptado para mobile, tablet y desktop
 - **Tailwind CSS**: Interfaz moderna con gradientes y animaciones
+- **Compliance RGPD/LOPDGDD**: Términos de privacidad y consentimiento obligatorio
 
 ## 🚀 Inicio Rápido
 
@@ -71,6 +73,29 @@ El formulario recoge:
 - **Opcional**: Teléfono, Instagram, Facebook, Twitter, LinkedIn
 
 Todos los datos se guardan automáticamente en localStorage.
+
+## 🔐 Verificación de Identidad FNMT
+
+**NUEVO**: Para garantizar la autenticidad de los usuarios, ahora se requiere la verificación mediante certificado digital de la **FNMT (Fábrica Nacional de Moneda y Timbre)**.
+
+### Flujo de Verificación:
+1. Usuario inicia registro
+2. Carga su certificado digital (.p12 o .pfx)
+3. Ingresa contraseña del certificado
+4. Sistema valida NIF/DNI y datos
+5. Usuario confirma información
+6. Acepta términos RGPD
+7. Registro completado con identidad verificada
+
+### Obtener Certificado FNMT:
+- Accede a https://www.fnmt.es
+- Solicita "Certificado de Persona Física"
+- Disponible de forma gratuita
+- Proceso rápido en línea (inmediato)
+
+**Nota:** La contraseña y certificado se procesan solo en tu navegador. Nunca se envían a nuestros servidores.
+
+Para más información: Ver `FNMT_DOCUMENTATION.md`
 
 ## 🛠️ Tecnologías
 

@@ -14,6 +14,11 @@ interface User {
   terminos_aceptados: boolean;
   fecha_aceptacion_terminos: string;
   version_terminos: string;
+  // Datos de certificado FNMT
+  certificado_nif?: string;
+  certificado_thumbprint?: string;
+  certificado_fecha_validacion?: string;
+  certificado_valido?: boolean;
 }
 
 const DB_KEY = 'sepei_unido_users';

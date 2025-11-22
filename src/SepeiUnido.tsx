@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Flame, Users, Shield, Target, Mail, Phone, Instagram, Facebook, Twitter, Linkedin, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, Lightbulb } from 'lucide-react';
 import { addUser } from './services/userDatabase';
+import { getCertificateFromSession, clearCertificateSession, type CertificateData } from './services/fnmtService';
 import TermsModal from './components/TermsModal';
 import SuggestionsForm from './components/SuggestionsForm';
+import CertificateUpload from './components/CertificateUpload';
 
 export default function SepeiUnido() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showSuggestionsForm, setShowSuggestionsForm] = useState(false);
+  const [showCertificateUpload, setShowCertificateUpload] = useState(false);
+  const [certificateData, setCertificateData] = useState<CertificateData | null>(null);
   const [pendingUserData, setPendingUserData] = useState(null as any);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -25,6 +29,13 @@ export default function SepeiUnido() {
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
+    
+    // Verificar si hay certificado en sesión
+    const cert = getCertificateFromSession();
+    if (cert) {
+      setCertificateData(cert);
+    }
+    
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -35,13 +46,20 @@ export default function SepeiUnido() {
       return;
     }
 
-    // Guardar datos pendientes y mostrar modal de términos
+    // Si no tiene certificado validado, mostrar modal de carga
+    if (!certificateData) {
+      setShowCertificateUpload(true);
+      setPendingUserData(formData);
+      return;
+    }
+
+    // Si tiene certificado, mostrar modal de términos
     setPendingUserData(formData);
     setShowTermsModal(true);
   };
 
   const handleAcceptTerms = () => {
-    if (!pendingUserData) return;
+    if (!pendingUserData || !certificateData) return;
 
     try {
       addUser({
@@ -53,11 +71,16 @@ export default function SepeiUnido() {
         twitter: pendingUserData.twitter || undefined,
         linkedin: pendingUserData.linkedin || undefined,
         terminos_aceptados: true,
+        // Datos del certificado FNMT
+        certificado_nif: certificateData.nif,
+        certificado_thumbprint: certificateData.thumbprint,
+        certificado_fecha_validacion: certificateData.fechaValidacion,
+        certificado_valido: true,
       });
 
-      console.log('Datos del formulario guardados con consentimiento:', pendingUserData);
+      console.log('Usuario registrado con certificado FNMT validado:', certificateData.nif);
       
-      setFormStatus({ type: 'success', message: '¡Bienvenido a SEPEI UNIDO! Nos pondremos en contacto contigo pronto.' });
+      setFormStatus({ type: 'success', message: '¡Bienvenido a SEPEI UNIDO! Tu identidad ha sido verificada y registrada correctamente.' });
       
       setFormData({
         nombre: '',
@@ -71,6 +94,9 @@ export default function SepeiUnido() {
       
       setShowTermsModal(false);
       setPendingUserData(null);
+      // Limpiar certificado después del registro exitoso
+      clearCertificateSession();
+      setCertificateData(null);
       setTimeout(() => setFormStatus(null), 5000);
     } catch (error) {
       console.error('Error al guardar:', error);
@@ -82,6 +108,13 @@ export default function SepeiUnido() {
   const handleRejectTerms = () => {
     setShowTermsModal(false);
     setPendingUserData(null);
+  };
+
+  const handleCertificateLoaded = (data: CertificateData) => {
+    setCertificateData(data);
+    setShowCertificateUpload(false);
+    // Mostrar modal de términos después de cargar certificado
+    setShowTermsModal(true);
   };
 
   const handleChange = (e: any) => {
@@ -404,6 +437,17 @@ export default function SepeiUnido() {
 
           <div className="bg-slate-800/90 p-10 md:p-12 rounded-3xl border-2 border-orange-500/30">
             <div className="space-y-6">
+              {/* Aviso de verificación FNMT */}
+              <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-xl p-4 flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-blue-400 flex-shrink-0" />
+                <div>
+                  <p className="text-blue-300 font-bold text-sm">Verificación FNMT Requerida</p>
+                  <p className="text-blue-200 text-xs mt-1">Tu identidad será verificada mediante certificado digital para garantizar seguridad.</p>
+                  {certificateData && (
+                    <p className="text-blue-300 font-semibold text-xs mt-2">✓ Verificado: {certificateData.nif}</p>
+                  )}
+                </div>
+              </div>
               <div>
                 <label className="block text-white font-semibold mb-3">
                   Nombre Completo <span className="text-red-500">*</span>
@@ -517,6 +561,14 @@ export default function SepeiUnido() {
           <p className="text-gray-500 text-sm mt-2">Unidos por nuestros derechos</p>
         </div>
       </footer>
+
+      {/* Certificate Upload Modal */}
+      {showCertificateUpload && (
+        <CertificateUpload
+          onCertificateLoaded={handleCertificateLoaded}
+          onClose={() => setShowCertificateUpload(false)}
+        />
+      )}
 
       {/* Terms and Conditions Modal */}
       {showTermsModal && (

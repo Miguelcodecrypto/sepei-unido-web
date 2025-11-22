@@ -17,6 +17,10 @@ interface User {
   terminos_aceptados: boolean;
   fecha_aceptacion_terminos: string;
   version_terminos: string;
+  certificado_nif?: string;
+  certificado_thumbprint?: string;
+  certificado_fecha_validacion?: string;
+  certificado_valido?: boolean;
 }
 
 interface Suggestion {
@@ -253,6 +257,34 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                         <tr className="bg-slate-900/50 border-b border-slate-700/50">
                           <td colSpan={5} className="px-6 py-4">
                             <div className="space-y-4">
+                              {/* Información FNMT */}
+                              {user.certificado_nif && (
+                                <div className="border border-green-500/30 bg-green-500/10 rounded-lg p-4 mb-4">
+                                  <h4 className="text-green-300 font-bold mb-3 flex items-center gap-2">
+                                    <CheckCircle className="w-5 h-5" />
+                                    Verificación FNMT
+                                  </h4>
+                                  <div className="space-y-2 text-sm">
+                                    <div>
+                                      <span className="text-gray-400">NIF Verificado: </span>
+                                      <span className="text-green-300 font-semibold">{user.certificado_nif}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-400">Fecha Verificación: </span>
+                                      <span className="text-white">
+                                        {user.certificado_fecha_validacion ? new Date(user.certificado_fecha_validacion).toLocaleDateString('es-ES') : 'N/A'}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-400">Estado: </span>
+                                      <span className={user.certificado_valido ? 'text-green-300 font-semibold' : 'text-red-300 font-semibold'}>
+                                        {user.certificado_valido ? '✓ Válido' : '✗ Inválido'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
                               {/* Redes Sociales */}
                               <div className="grid md:grid-cols-2 gap-4">
                                 {user.instagram && (
