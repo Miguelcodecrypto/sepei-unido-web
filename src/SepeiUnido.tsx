@@ -319,8 +319,7 @@ export default function SepeiUnido() {
                 { name: 'Inicio', id: 'inicio' },
                 { name: 'Manifiesto', id: 'manifiesto-section' },
                 { name: 'Objetivos', id: 'hoja-ruta-section' },
-                { name: 'Compartir Ideas', id: 'ideas-section' },
-                { name: 'Únete', id: 'contacto-section' }
+                { name: 'Compartir Ideas', id: 'ideas-section' }
               ].map((item) => (
                 <button
                   key={item.id}
@@ -330,6 +329,14 @@ export default function SepeiUnido() {
                   {item.name}
                 </button>
               ))}
+              
+              {/* Botón Únete - Abre modal de registro */}
+              <button
+                onClick={handleOpenRegistration}
+                className="text-gray-300 hover:text-orange-400 font-semibold transition-all duration-300"
+              >
+                Únete
+              </button>
               
               {/* Botón de Login/Usuario */}
               {loggedUser ? (
@@ -372,8 +379,7 @@ export default function SepeiUnido() {
                 { name: 'Inicio', id: 'inicio' },
                 { name: 'Manifiesto', id: 'manifiesto-section' },
                 { name: 'Objetivos', id: 'hoja-ruta-section' },
-                { name: 'Compartir Ideas', id: 'ideas-section' },
-                { name: 'Únete', id: 'contacto-section' }
+                { name: 'Compartir Ideas', id: 'ideas-section' }
               ].map((item) => (
                 <button
                   key={item.id}
@@ -383,6 +389,17 @@ export default function SepeiUnido() {
                   {item.name}
                 </button>
               ))}
+              
+              {/* Botón Únete móvil - Abre modal de registro */}
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleOpenRegistration();
+                }}
+                className="block w-full text-left text-gray-300 hover:text-orange-400 font-semibold py-2"
+              >
+                Únete
+              </button>
             </div>
           </div>
         )}
