@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Loader, Mail, Key, ArrowRight } from 'lucide-react';
 import type { UserData } from './TraditionalRegistration';
+import { addUser } from '../services/userDatabase';
 
 interface EmailVerificationProps {
   token?: string;
@@ -76,6 +77,14 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
       const usersIndex = JSON.parse(localStorage.getItem('users_index') || '[]');
       usersIndex.push(tempData.dni);
       localStorage.setItem('users_index', JSON.stringify(usersIndex));
+
+      // Guardar en la base de datos del panel admin
+      addUser({
+        nombre: tempData.nombre,
+        email: tempData.email,
+        telefono: tempData.telefono || '',
+        terminos_aceptados: true,
+      });
 
       // Limpiar datos temporales
       localStorage.removeItem(tempDataKey);
