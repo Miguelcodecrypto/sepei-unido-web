@@ -73,6 +73,111 @@ export const selectClientCertificate = async (): Promise<CertificateSelectionRes
 const requestCertificateViaHTTPS = async (): Promise<CertificateSelectionResult> => {
   return new Promise((resolve) => {
     try {
+      console.log('📨 [FNMT] Iniciando solicitud de certificados...');
+      console.log('🌐 [FNMT] Protocolo:', window.location.protocol);
+      
+      // Obtener certificados disponibles (reales y de prueba)
+      const testCerts = getStoredTestCertificates();
+      
+      // Si estamos en HTTPS, también buscamos certificados del sistema
+      if (window.location.protocol === 'https:') {
+        console.log('🔒 [FNMT] HTTPS detectado - Buscando certificados del sistema...');
+        
+        // Solicitar certificados del sistema
+        detectViaTLSHandshake().then((systemCerts) => {
+          // Combinar certificados del sistema con los de prueba
+          const allCerts = [...systemCerts, ...testCerts];
+          
+          if (allCerts.length === 0) {
+            console.warn('⚠️ [FNMT] No hay certificados disponibles');
+            resolve({
+              success: false,
+              error: `No hay certificados disponibles.
+
+Para instalar certificados reales FNMT:
+1. Visita www.fnmt.es
+2. Descarga e instala tu certificado FNMT en el navegador
+3. El certificado aparecerá automáticamente aquí
+
+Para desarrollo (certificados de prueba):
+1. Abre la consola (F12)
+2. Ejecuta: fnmt.initializeTestCertificates()
+3. Intenta de nuevo
+
+Navegadores soportados:
+✓ Chrome 90+
+✓ Firefox 88+
+✓ Safari 14+
+✓ Edge 90+`
+            });
+            return;
+          }
+
+          console.log(`📋 [FNMT] Mostrando ${allCerts.length} certificado(s) disponible(s)`);
+          showCertificateSelectionDialog(allCerts, (selected) => {
+            if (selected) {
+              console.log('✅ [FNMT] Certificado seleccionado:', selected.nif);
+              resolve({ success: true, certificate: selected });
+            } else {
+              console.log('🚫 [FNMT] Selección cancelada');
+              resolve({ success: false, error: 'Selección de certificado cancelada' });
+            }
+          });
+        });
+      } else {
+        // En HTTP (desarrollo local), solo mostrar certificados de prueba
+        if (testCerts.length === 0) {
+          console.warn('⚠️ [FNMT] No hay certificados disponibles');
+          resolve({
+            success: false,
+            error: `No hay certificados disponibles.
+
+Para probar en desarrollo:
+1. Abre la consola del navegador (F12)
+2. Ejecuta: fnmt.initializeTestCertificates()
+3. Intenta de nuevo
+
+Para certificados reales FNMT en HTTPS:
+1. Instala el certificado desde www.fnmt.es
+2. Los certificados aparecerán automáticamente aquí
+
+Navegadores soportados:
+✓ Chrome 90+
+✓ Firefox 88+
+✓ Safari 14+
+✓ Edge 90+`
+          });
+          return;
+        }
+
+        console.log(`📋 [FNMT] Mostrando ${testCerts.length} certificado(s) de prueba`);
+        showCertificateSelectionDialog(testCerts, (selected) => {
+          if (selected) {
+            console.log('✅ [FNMT] Certificado de prueba seleccionado:', selected.nif);
+            resolve({ success: true, certificate: selected });
+          } else {
+            console.log('🚫 [FNMT] Selección cancelada');
+            resolve({ success: false, error: 'Selección de certificado cancelada' });
+          }
+        });
+      }
+      
+    } catch (error) {
+      console.error('❌ [FNMT] Error en requestCertificateViaHTTPS:', error);
+      resolve({
+        success: false,
+        error: `Error técnico: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      });
+    }
+  });
+};
+
+/**
+ * Versión alternativa para solicitud pública
+ */
+const requestCertificateViaHTTPSPublic = async (): Promise<CertificateSelectionResult> => {
+  return new Promise((resolve) => {
+    try {
       console.log('📨 [FNMT] Abriendo diálogo de selección de certificados...');
       
       // Obtener certificados de prueba
@@ -235,16 +340,20 @@ const attemptToDectectSystemCertificates = async (): Promise<BrowserCertificate[
   try {
     console.log('🔍 [FNMT] Buscando certificados del sistema...');
     
-    // Método principal: Solicitud TLS en HTTPS (solo funciona en HTTPS con cliente certs requeridos)
-    const xhr = await detectViaXHRTimeout();
-    certificates.push(...xhr);
+    // Método 1: Verificar en HTTPS si el navegador tiene certificados del sistema
+    if (window.location.protocol === 'https:') {
+      console.log('🔒 [FNMT] HTTPS detectado - Buscando certificados del sistema...');
+      
+      // En HTTPS, el navegador muestra un diálogo nativo para seleccionar certificado
+      // Intentamos disparar esa solicitud
+      const systemCerts = await detectViaTLSHandshake();
+      certificates.push(...systemCerts);
+    }
     
     if (certificates.length > 0) {
       console.log(`✓ [FNMT] ${certificates.length} certificado(s) del sistema detectado(s)`);
     } else {
       console.log('ℹ️ [FNMT] No se detectaron certificados del sistema en HTTPS');
-      // En HTTPS, el navegador mostraría un diálogo nativo si hay certificados requeridos
-      // Pero como navegador toma el control, nosotros no los vemos aquí
     }
     
   } catch (error) {
@@ -252,6 +361,70 @@ const attemptToDectectSystemCertificates = async (): Promise<BrowserCertificate[
   }
   
   return certificates;
+};
+
+/**
+ * Detecta certificados del sistema via TLS Handshake
+ * En HTTPS, el navegador mostrará un diálogo nativo para seleccionar certificado
+ */
+const detectViaTLSHandshake = (): Promise<BrowserCertificate[]> => {
+  return new Promise((resolve) => {
+    const certificates: BrowserCertificate[] = [];
+    
+    try {
+      // Crear una solicitud HTTPS que requiera certificado de cliente
+      const xhr = new XMLHttpRequest();
+      
+      xhr.addEventListener('load', () => {
+        try {
+          // Intentar obtener datos del certificado del cliente desde headers
+          const certData = xhr.getResponseHeader('X-Client-Cert');
+          if (certData) {
+            console.log('✓ [FNMT] Certificado obtenido del servidor');
+            const cert = JSON.parse(atob(certData));
+            const parsed = parseCertificateData(cert);
+            certificates.push(parsed);
+          }
+        } catch (e) {
+          console.log('ℹ️ [FNMT] No se obtuvieron datos de certificado en headers');
+        }
+        resolve(certificates);
+      });
+
+      xhr.addEventListener('error', () => {
+        console.log('ℹ️ [FNMT] Error en handshake TLS (posiblemente el usuario canceló el diálogo)');
+        resolve(certificates);
+      });
+
+      xhr.addEventListener('abort', () => {
+        console.log('ℹ️ [FNMT] Handshake TLS abortado');
+        resolve(certificates);
+      });
+
+      // Configurar solicitud
+      xhr.withCredentials = true;
+      const apiUrl = `${window.location.protocol}//${window.location.hostname}${
+        window.location.port ? ':' + window.location.port : ''
+      }/api/certificate/check`;
+
+      console.log('📡 [FNMT] Iniciando handshake TLS a:', apiUrl);
+      
+      xhr.open('GET', apiUrl, true);
+      xhr.timeout = 5000;
+      xhr.send();
+
+      // Si pasa mucho tiempo sin respuesta, resolver de todas formas
+      setTimeout(() => {
+        if (xhr.readyState !== XMLHttpRequest.DONE) {
+          xhr.abort();
+        }
+      }, 5500);
+
+    } catch (error) {
+      console.log('ℹ️ [FNMT] Error en detectViaTLSHandshake:', (error as Error).message);
+      resolve(certificates);
+    }
+  });
 };
 
 /**
@@ -318,7 +491,7 @@ const detectViaXHRTimeout = (): Promise<BrowserCertificate[]> => {
 };
 
 /**
- * Muestra un diálogo HTML para seleccionar certificados
+ * Muestra un diálogo HTML mejorado para seleccionar certificados
  */
 const showCertificateSelectionDialog = (
   certificates: BrowserCertificate[],
@@ -332,7 +505,7 @@ const showCertificateSelectionDialog = (
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -342,69 +515,126 @@ const showCertificateSelectionDialog = (
 
   const dialog = document.createElement('div');
   dialog.style.cssText = `
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    max-width: 500px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 140, 0, 0.2);
+    max-width: 550px;
     width: 90%;
-    max-height: 80vh;
+    max-height: 85vh;
     display: flex;
     flex-direction: column;
+    border: 2px solid #ff8c00;
   `;
 
   // Header
   const header = document.createElement('div');
   header.style.cssText = `
-    background: linear-gradient(135deg, #ff8c00, #ff4500);
+    background: linear-gradient(135deg, #ff8c00, #ff6b00);
     color: white;
-    padding: 20px;
-    border-radius: 8px 8px 0 0;
+    padding: 24px;
+    border-radius: 10px 10px 0 0;
+    border-bottom: 3px solid #ff4500;
   `;
-  header.innerHTML = `<h2 style="margin: 0; font-size: 1.3em;">Selecciona tu Certificado FNMT</h2>`;
+  header.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span style="font-size: 1.5em;">🔐</span>
+      <div>
+        <h2 style="margin: 0; font-size: 1.3em; font-weight: 700;">Selecciona tu Certificado</h2>
+        <p style="margin: 4px 0 0 0; font-size: 0.9em; opacity: 0.9;">Certificado Digital FNMT</p>
+      </div>
+    </div>
+  `;
   dialog.appendChild(header);
 
   // Content
   const content = document.createElement('div');
   content.style.cssText = `
-    padding: 20px;
+    padding: 24px;
     overflow-y: auto;
     flex: 1;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   `;
 
+  // Separador de certificados reales vs prueba
+  let lastType = '';
+  
   certificates.forEach((cert, index) => {
+    const isTestCert = cert.id.includes('test-cert');
+    const certType = isTestCert ? 'test' : 'real';
+    
+    // Agregar separador de sección si es necesario
+    if (certType !== lastType && lastType !== '') {
+      const separator = document.createElement('div');
+      separator.style.cssText = `
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #ff8c00, transparent);
+        margin: 16px 0;
+        opacity: 0.5;
+      `;
+      content.appendChild(separator);
+    }
+    
+    lastType = certType;
+
     const item = document.createElement('div');
+    const isExpired = !cert.valido;
+    const isValid = cert.valido;
+    
     item.style.cssText = `
-      border: 2px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 15px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      transition: all 0.2s;
+      border: 2px solid ${isExpired ? '#ef4444' : '#ff8c00'};
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: ${isExpired ? 'not-allowed' : 'pointer'};
+      transition: all 0.3s;
+      background: ${isExpired ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255, 140, 0, 0.08)'};
+      opacity: ${isExpired ? '0.6' : '1'};
+      pointer-events: ${isExpired ? 'none' : 'auto'};
     `;
 
     item.onmouseover = () => {
-      item.style.borderColor = '#ff8c00';
-      item.style.background = '#fff5f0';
+      if (!isExpired) {
+        item.style.borderColor = '#ff6b00';
+        item.style.background = 'rgba(255, 140, 0, 0.15)';
+        item.style.transform = 'translateY(-2px)';
+        item.style.boxShadow = '0 8px 20px rgba(255, 140, 0, 0.2)';
+      }
     };
 
     item.onmouseout = () => {
-      item.style.borderColor = '#e2e8f0';
-      item.style.background = 'white';
+      if (!isExpired) {
+        item.style.borderColor = '#ff8c00';
+        item.style.background = 'rgba(255, 140, 0, 0.08)';
+        item.style.transform = 'translateY(0)';
+        item.style.boxShadow = 'none';
+      }
     };
 
     item.onclick = () => {
-      modal.remove();
-      onSelect(cert);
+      if (!isExpired) {
+        modal.remove();
+        onSelect(cert);
+      }
     };
 
+    const statusIcon = isExpired ? '❌' : '✅';
+    const statusText = isExpired ? 'Expirado' : 'Válido';
+    const statusColor = isExpired ? '#ef4444' : '#10b981';
+
     item.innerHTML = `
-      <div style="font-weight: bold; color: #1f2937; margin-bottom: 8px;">
-        ${cert.nombre || 'Usuario'} ${cert.apellidos || ''}
+      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+        <div style="font-weight: 700; color: #ffffff; font-size: 1.05em;">
+          ${cert.nombre || 'Usuario'} ${cert.apellidos || ''}
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px; font-size: 0.85em; color: ${statusColor}; background: ${isExpired ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'}; padding: 4px 8px; border-radius: 4px;">
+          ${statusIcon} ${statusText}
+        </div>
       </div>
-      <div style="font-size: 0.9em; color: #6b7280;">
-        <div>NIF/DNI: <strong>${cert.nif || 'No disponible'}</strong></div>
-        <div>Emisor: ${cert.issuer}</div>
-        <div>Válido hasta: ${new Date(cert.notAfter).toLocaleDateString('es-ES')}</div>
+      <div style="font-size: 0.9em; color: #d1d5db; space-y: 6px; line-height: 1.6;">
+        <div style="margin-bottom: 4px;"><strong>NIF/DNI:</strong> <span style="color: #ffffff; font-family: monospace;">${cert.nif || 'No disponible'}</span></div>
+        <div style="margin-bottom: 4px;"><strong>Emisor:</strong> <span style="color: #f3f4f6;">${cert.issuer}</span></div>
+        <div style="margin-bottom: 4px;"><strong>Válido desde:</strong> <span style="color: #f3f4f6;">${new Date(cert.notBefore).toLocaleDateString('es-ES')}</span></div>
+        <div><strong>Válido hasta:</strong> <span style="color: ${isExpired ? '#fca5a5' : '#a7f3d0'}; font-weight: ${isExpired ? '700' : '400'};">${new Date(cert.notAfter).toLocaleDateString('es-ES')}</span></div>
       </div>
     `;
 
@@ -416,27 +646,36 @@ const showCertificateSelectionDialog = (
   // Footer
   const footer = document.createElement('div');
   footer.style.cssText = `
-    padding: 20px;
-    border-top: 1px solid #e2e8f0;
+    padding: 20px 24px;
+    border-top: 1px solid rgba(255, 140, 0, 0.2);
     display: flex;
-    gap: 10px;
+    gap: 12px;
     justify-content: flex-end;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 0 0 10px 10px;
   `;
 
   const cancelBtn = document.createElement('button');
-  cancelBtn.textContent = 'Cancelar';
+  cancelBtn.textContent = '✕ Cancelar';
   cancelBtn.style.cssText = `
-    padding: 10px 20px;
-    border: 2px solid #d1d5db;
-    background: white;
-    color: #374151;
+    padding: 12px 20px;
+    border: 2px solid #6b7280;
+    background: transparent;
+    color: #d1d5db;
     border-radius: 6px;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 600;
     transition: all 0.2s;
+    font-size: 0.95em;
   `;
-  cancelBtn.onmouseover = () => { cancelBtn.style.background = '#f3f4f6'; };
-  cancelBtn.onmouseout = () => { cancelBtn.style.background = 'white'; };
+  cancelBtn.onmouseover = () => {
+    cancelBtn.style.background = '#374151';
+    cancelBtn.style.borderColor = '#9ca3af';
+  };
+  cancelBtn.onmouseout = () => {
+    cancelBtn.style.background = 'transparent';
+    cancelBtn.style.borderColor = '#6b7280';
+  };
   cancelBtn.onclick = () => {
     modal.remove();
     onSelect(null);
@@ -448,7 +687,7 @@ const showCertificateSelectionDialog = (
   modal.appendChild(dialog);
   document.body.appendChild(modal);
 
-  console.log('🎭 [FNMT] Diálogo de selección mostrado');
+  console.log('🎭 [FNMT] Diálogo de selección mostrado con tema mejorado');
 };
 
 /**
