@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Flame, Users, Shield, Target, Mail, Phone, Instagram, Facebook, Twitter, Linkedin, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, Lightbulb } from 'lucide-react';
+import { Flame, Users, Shield, Target, Mail, Phone, Instagram, Facebook, Twitter, Linkedin, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, Lightbulb, LogIn } from 'lucide-react';
 import { addUser } from './services/userDatabase';
 import { getCertificateFromSession, clearCertificateSession, type BrowserCertificate } from './services/browserCertificateService';
 import TermsModal from './components/TermsModal';
 import SuggestionsForm from './components/SuggestionsForm';
 import CertificateUpload from './components/CertificateUpload';
 import { TraditionalRegistration, type UserData } from './components/TraditionalRegistration';
+import { UserLogin, type LoggedUserData } from './components/UserLogin';
 
 export default function SepeiUnido() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -14,6 +15,8 @@ export default function SepeiUnido() {
   const [showSuggestionsForm, setShowSuggestionsForm] = useState(false);
   const [showCertificateUpload, setShowCertificateUpload] = useState(false);
   const [showTraditionalRegistration, setShowTraditionalRegistration] = useState(false);
+  const [showUserLogin, setShowUserLogin] = useState(false);
+  const [loggedUser, setLoggedUser] = useState<LoggedUserData | null>(null);
   const [registrationMethod, setRegistrationMethod] = useState<'certificate' | 'traditional' | null>(null);
   const [certificateData, setCertificateData] = useState<BrowserCertificate | null>(null);
   const [pendingUserData, setPendingUserData] = useState(null as any);
@@ -37,6 +40,17 @@ export default function SepeiUnido() {
     const cert = getCertificateFromSession();
     if (cert) {
       setCertificateData(cert);
+    }
+
+    // Verificar si hay usuario logueado
+    const currentUserStr = localStorage.getItem('current_user');
+    if (currentUserStr) {
+      try {
+        const user = JSON.parse(currentUserStr);
+        setLoggedUser(user);
+      } catch (error) {
+        console.error('Error al recuperar sesión:', error);
+      }
     }
     
     return () => window.removeEventListener('scroll', handleScroll);
@@ -144,6 +158,26 @@ export default function SepeiUnido() {
     
     setPendingUserData(null);
     setRegistrationMethod(null);
+    setTimeout(() => setFormStatus(null), 5000);
+  };
+
+  const handleLoginSuccess = (userData: LoggedUserData) => {
+    setLoggedUser(userData);
+    setShowUserLogin(false);
+    setFormStatus({ 
+      type: 'success', 
+      message: `¡Bienvenido, ${userData.nombre}!` 
+    });
+    setTimeout(() => setFormStatus(null), 5000);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('current_user');
+    setLoggedUser(null);
+    setFormStatus({ 
+      type: 'success', 
+      message: 'Sesión cerrada correctamente' 
+    });
     setTimeout(() => setFormStatus(null), 5000);
   };
 
@@ -261,6 +295,30 @@ export default function SepeiUnido() {
                   {item.name}
                 </button>
               ))}
+              
+              {/* Botón de Login/Usuario */}
+              {loggedUser ? (
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-white font-semibold text-sm">{loggedUser.nombre}</p>
+                    <p className="text-gray-400 text-xs">{loggedUser.dni}</p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    Salir
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowUserLogin(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                >
+                  <LogIn className="w-5 h-5" />
+                  Iniciar Sesión
+                </button>
+              )}
             </div>
 
             <button
@@ -796,6 +854,14 @@ export default function SepeiUnido() {
         <SuggestionsForm
           certificateData={certificateData}
           onClose={() => setShowSuggestionsForm(false)}
+        />
+      )}
+
+      {/* User Login Modal */}
+      {showUserLogin && (
+        <UserLogin
+          onLoginSuccess={handleLoginSuccess}
+          onCancel={() => setShowUserLogin(false)}
         />
       )}
     </div>
