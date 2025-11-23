@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Lock, CheckCircle, AlertCircle, X, Loader, Fingerprint, Upload, FileCheck, Shield } from 'lucide-react';
 import { selectClientCertificate, saveCertificateToSession, checkBrowserSupport, type BrowserCertificate } from '../services/browserCertificateService';
 import { parseCertificateFile, isValidCertificateFile, getCertificateFileTypeMessage } from '../services/certificateFileParser';
-import { authenticateWithMTLS, detectAuthMethod } from '../services/mtlsAuthService';
 import { isCertificateRegistered } from '../services/fnmtService';
 import { initializeTestCertificates } from '../data/testCertificates';
 
