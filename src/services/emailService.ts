@@ -36,8 +36,9 @@ export async function sendVerificationEmail(data: EmailVerificationData): Promis
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error('❌ Error al enviar email:', error);
+      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
+      console.error('❌ [EMAIL SERVICE] Error al enviar email:', error);
+      console.error('❌ Status:', response.status, response.statusText);
       
       // En desarrollo, mostrar en consola
       if (import.meta.env.DEV) {
@@ -46,6 +47,7 @@ export async function sendVerificationEmail(data: EmailVerificationData): Promis
         console.log('DNI:', data.dni);
         console.log('Contraseña temporal:', data.tempPassword);
         console.log('Token:', data.verificationToken);
+        console.log('⚠️ La API de email falló, pero en desarrollo continuamos');
         return true; // Simular éxito en desarrollo
       }
       
