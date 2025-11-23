@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle, Mail, User, CreditCard, AlertCircle } from 'lucide-react';
+import { sendVerificationEmail } from '../services/emailService';
 
 interface TraditionalRegistrationProps {
   onSuccess: (userData: UserData) => void;
@@ -168,30 +169,35 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
 
       localStorage.setItem(`temp_user_${verificationToken}`, JSON.stringify(tempData));
 
-      // Simular envío de email (en producción, esto sería una llamada a API)
-      console.log('📧 Email de verificación:');
-      console.log('Para:', userData.email);
-      console.log('Asunto: Verifica tu cuenta - SEPEI UNIDO');
-      console.log('---');
-      console.log(`Hola ${userData.nombre},`);
-      console.log('');
-      console.log('Tu contraseña temporal es:', tempPassword);
-      console.log('');
-      console.log('Para verificar tu cuenta, haz clic en el siguiente enlace:');
-      console.log(`https://www.sepeiunido.org/verify?token=${verificationToken}`);
-      console.log('');
-      console.log('Este enlace expira en 24 horas.');
-      console.log('---');
+      // Enviar email de verificación usando el servicio real
+      const emailSent = await sendVerificationEmail({
+        email: userData.email,
+        nombre: userData.nombre,
+        tempPassword,
+        verificationToken,
+        dni: userData.dni
+      });
+
+      if (!emailSent) {
+        setErrors({ email: 'Error al enviar email de verificación. Intenta de nuevo.' });
+        setIsLoading(false);
+        return;
+      }
 
       setVerificationSent(true);
       setStep('verification');
 
-      // Mostrar alerta temporal con la contraseña (solo para desarrollo)
-      alert(`✅ Registro exitoso!\n\nPara desarrollo:\nContraseña temporal: ${tempPassword}\nToken: ${verificationToken}\n\nEn producción, esto se enviará por email.`);
+      // Solo en desarrollo, mostrar la info en consola
+      if (import.meta.env.DEV) {
+        console.log('📧 [DESARROLLO] Datos de verificación:');
+        console.log('Email:', userData.email);
+        console.log('Contraseña temporal:', tempPassword);
+        console.log('Token:', verificationToken);
+      }
 
     } catch (error) {
       console.error('Error en registro:', error);
-      setErrors({ email: 'Error al enviar email de verificación' });
+      setErrors({ email: 'Error al procesar el registro. Intenta de nuevo.' });
     } finally {
       setIsLoading(false);
     }
