@@ -12,26 +12,17 @@ export interface EmailVerificationData {
 }
 
 /**
- * Enviar email de verificación (SIMULADO - para desarrollo)
- * En producción, esto debe llamar a una API backend
+ * Enviar email de verificación
  */
 export async function sendVerificationEmail(data: EmailVerificationData): Promise<boolean> {
   try {
-    // DESARROLLO: Simular envío
     console.log('📧 [EMAIL SERVICE] Enviando email de verificación...');
-    console.log('Para:', data.email);
-    console.log('Nombre:', data.nombre);
-    console.log('DNI:', data.dni);
-    console.log('Contraseña temporal:', data.tempPassword);
-    console.log('Token:', data.verificationToken);
+    
+    const html = generateVerificationEmailHTML(data);
+    const text = generateVerificationEmailText(data);
 
-    // Simular delay de red
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // TODO: En producción, implementar llamada real a backend
-    // Ejemplo con fetch:
-    /*
-    const response = await fetch('https://api.sepeiunido.org/send-verification', {
+    // Llamar a la API serverless de Vercel
+    const response = await fetch('/api/send-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,20 +30,30 @@ export async function sendVerificationEmail(data: EmailVerificationData): Promis
       body: JSON.stringify({
         to: data.email,
         subject: 'Verifica tu cuenta - SEPEI UNIDO',
-        template: 'verification',
-        data: {
-          nombre: data.nombre,
-          dni: data.dni,
-          tempPassword: data.tempPassword,
-          verificationLink: `https://www.sepeiunido.org/verify?token=${data.verificationToken}`,
-        },
+        html: html,
+        text: text,
       }),
     });
 
-    return response.ok;
-    */
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('❌ Error al enviar email:', error);
+      
+      // En desarrollo, mostrar en consola
+      if (import.meta.env.DEV) {
+        console.log('📧 [DESARROLLO] Email que se habría enviado:');
+        console.log('Para:', data.email);
+        console.log('DNI:', data.dni);
+        console.log('Contraseña temporal:', data.tempPassword);
+        console.log('Token:', data.verificationToken);
+        return true; // Simular éxito en desarrollo
+      }
+      
+      return false;
+    }
 
-    return true; // Simulado exitoso
+    console.log('✅ Email enviado correctamente');
+    return true;
 
   } catch (error) {
     console.error('❌ [EMAIL SERVICE] Error al enviar email:', error);
