@@ -1,6 +1,9 @@
 import { Resend } from 'resend';
 
 export default async function handler(req: any, res: any) {
+  // Asegurar que siempre respondemos con JSON
+  res.setHeader('Content-Type', 'application/json');
+  
   console.log('🔷 === INICIO DEL HANDLER ===');
   console.log('🔷 Method:', req.method);
   console.log('🔷 Headers:', JSON.stringify(req.headers, null, 2));
@@ -33,12 +36,6 @@ export default async function handler(req: any, res: any) {
     console.log('🔷 Resend inicializado correctamente');
     
     const { to, subject, html, text } = req.body;
-    console.log('🔷 Datos extraídos del body:');
-    console.log('  - to:', to);
-    console.log('  - subject:', subject);
-    console.log('  - html length:', html?.length || 0);
-    console.log('  - text length:', text?.length || 0);
-
     console.log('🔷 Datos extraídos del body:');
     console.log('  - to:', to);
     console.log('  - subject:', subject);
