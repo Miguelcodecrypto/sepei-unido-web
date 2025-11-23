@@ -4,9 +4,10 @@ import type { UserData } from './TraditionalRegistration';
 
 interface EmailVerificationProps {
   token?: string;
+  onSuccess?: (userData: UserData, tempPassword: string) => void;
 }
 
-export const EmailVerification: React.FC<EmailVerificationProps> = ({ token }) => {
+export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onSuccess }) => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'expired'>('loading');
   const [userData, setUserData] = useState<UserData | null>(null);
   const [tempPassword, setTempPassword] = useState<string>('');
@@ -27,7 +28,11 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token }) =
         setCountdown(countdown - 1);
       }, 1000);
       return () => clearTimeout(timer);
+    } else if (status === 'success' && countdown === 0 && userData && tempPassword && onSuccess) {
+      // Llamar al callback cuando se complete la verificación
+      onSuccess(userData, tempPassword);
     }
+  }, [status, countdown, userData, tempPassword, onSuccess]);
   }, [status, countdown]);
 
   const verifyToken = async (verificationToken: string) => {

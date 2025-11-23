@@ -211,6 +211,37 @@ export default function SepeiUnido() {
     }
   };
 
+  const handleEmailVerificationSuccess = (userData: UserData, tempPassword: string) => {
+    // Crear sesión de usuario
+    const loggedUserData: LoggedUserData = {
+      nombre: userData.nombre,
+      apellidos: userData.apellidos,
+      dni: userData.dni,
+      email: userData.email,
+      verified: true
+    };
+    
+    // Guardar sesión
+    localStorage.setItem('current_user', JSON.stringify(loggedUserData));
+    setLoggedUser(loggedUserData);
+    
+    // Cerrar modal de verificación
+    setShowEmailVerification(false);
+    setVerificationToken(null);
+    
+    // Mostrar mensaje de éxito y abrir formulario de sugerencias
+    setFormStatus({ 
+      type: 'success', 
+      message: `¡Cuenta verificada! Bienvenido, ${userData.nombre}. Ya puedes compartir tus ideas.` 
+    });
+    
+    // Abrir formulario de sugerencias después de un momento
+    setTimeout(() => {
+      setShowSuggestionsForm(true);
+      setFormStatus(null);
+    }, 2000);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('current_user');
     setLoggedUser(null);
@@ -825,7 +856,10 @@ export default function SepeiUnido() {
       {showEmailVerification && verificationToken && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <EmailVerification token={verificationToken} />
+            <EmailVerification 
+              token={verificationToken}
+              onSuccess={handleEmailVerificationSuccess}
+            />
           </div>
         </div>
       )}
