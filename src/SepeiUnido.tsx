@@ -66,9 +66,11 @@ export default function SepeiUnido() {
       return;
     }
 
-    // Mostrar selector de método de registro
+    // Guardar datos del formulario y mostrar selector de método de autenticación
     setPendingUserData(formData);
-    setRegistrationMethod(null); // Resetear para mostrar el selector
+    setPendingAction('register');
+    setAuthMode('register');
+    setShowAuthMethodSelector(true);
   };
 
   const handleSelectAuthMethod = (method: 'certificate' | 'traditional') => {
@@ -897,95 +899,6 @@ export default function SepeiUnido() {
                 setShowAuthMethodSelector(false);
                 setAuthMode('register');
                 setPendingAction(null);
-              }}
-              className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Registration Method Selector (Old - for contact form) */}
-      {pendingUserData && registrationMethod === null && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full">
-            <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-              Elige tu método de registro
-            </h2>
-            
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              {/* Certificado Digital */}
-              <button
-                onClick={() => handleSelectAuthMethod('certificate')}
-                className="group relative p-8 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 hover:border-blue-400 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
-              >
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
-                    <Shield className="w-10 h-10 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">
-                      Certificado FNMT
-                    </h3>
-                    <p className="text-gray-600 text-sm mb-3">
-                      Registro seguro con tu certificado digital de la FNMT
-                    </p>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-center text-green-600 text-xs">
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Verificación instantánea
-                      </div>
-                      <div className="flex items-center justify-center text-green-600 text-xs">
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Máxima seguridad
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </button>
-
-              {/* Registro Tradicional */}
-              <button
-                onClick={() => handleSelectAuthMethod('traditional')}
-                className="group relative p-8 bg-gradient-to-br from-orange-50 to-red-50 hover:from-orange-100 hover:to-red-100 border-2 border-orange-200 hover:border-orange-400 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
-              >
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center group-hover:bg-orange-600 transition-colors">
-                    <Mail className="w-10 h-10 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">
-                      Email + Contraseña
-                    </h3>
-                    <p className="text-gray-600 text-sm mb-3">
-                      Registro con DNI y verificación por correo electrónico
-                    </p>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-center text-green-600 text-xs">
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Proceso simple
-                      </div>
-                      <div className="flex items-center justify-center text-green-600 text-xs">
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Sin certificado necesario
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </button>
-            </div>
-
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-              <p className="text-sm text-gray-600 text-center">
-                <strong>¿No tienes certificado FNMT?</strong> No te preocupes, puedes registrarte con email y recibirás tu contraseña por correo.
-              </p>
-            </div>
-
-            <button
-              onClick={() => {
-                setPendingUserData(null);
-                setRegistrationMethod(null);
               }}
               className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
             >
