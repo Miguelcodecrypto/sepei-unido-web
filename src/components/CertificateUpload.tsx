@@ -1,8 +1,9 @@
 // filepath: src/components/CertificateUpload.tsx
 import React, { useState, useEffect } from 'react';
-import { Lock, CheckCircle, AlertCircle, X, Loader, Fingerprint, Upload, FileCheck } from 'lucide-react';
+import { Lock, CheckCircle, AlertCircle, X, Loader, Fingerprint, Upload, FileCheck, Shield } from 'lucide-react';
 import { selectClientCertificate, saveCertificateToSession, checkBrowserSupport, type BrowserCertificate } from '../services/browserCertificateService';
 import { parseCertificateFile, isValidCertificateFile, getCertificateFileTypeMessage } from '../services/certificateFileParser';
+import { authenticateWithMTLS, detectAuthMethod } from '../services/mtlsAuthService';
 import { isCertificateRegistered } from '../services/fnmtService';
 import { initializeTestCertificates } from '../data/testCertificates';
 
@@ -12,20 +13,27 @@ interface CertificateUploadProps {
 }
 
 export default function CertificateUpload({ onCertificateLoaded, onClose }: CertificateUploadProps) {
-  const [step, setStep] = useState<'method-selection' | 'file-upload' | 'browser-selection' | 'verification'>('method-selection');
+  const [step, setStep] = useState<'method-selection' | 'file-upload' | 'browser-selection' | 'mtls-auth' | 'verification'>('method-selection');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [certificateData, setCertificateData] = useState<BrowserCertificate | null>(null);
   const [browserSupport, setBrowserSupport] = useState({ supported: false, message: '' });
+  const [authMethod, setAuthMethod] = useState<'mtls' | 'file-upload' | 'hybrid'>('file-upload');
   
   // Estados para carga de archivo
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [password, setPassword] = useState<string>('');
 
-  // Verificar compatibilidad del navegador al cargar
+  // Verificar compatibilidad del navegador y método de autenticación
   useEffect(() => {
     const support = checkBrowserSupport();
     setBrowserSupport(support);
+    
+    // Detectar método de autenticación disponible
+    detectAuthMethod().then(method => {
+      console.log('🔍 Método de autenticación detectado:', method);
+      setAuthMethod(method);
+    });
   }, []);
 
   // Handler para selección de archivo
