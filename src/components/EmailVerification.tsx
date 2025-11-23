@@ -33,7 +33,6 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
       onSuccess(userData, tempPassword);
     }
   }, [status, countdown, userData, tempPassword, onSuccess]);
-  }, [status, countdown]);
 
   const verifyToken = async (verificationToken: string) => {
     try {
