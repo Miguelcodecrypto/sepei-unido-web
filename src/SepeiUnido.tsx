@@ -1,4 +1,4 @@
-fnmt.initializeTestCertificates()import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Flame, Users, Shield, Target, Mail, Phone, Instagram, Facebook, Twitter, Linkedin, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, Lightbulb } from 'lucide-react';
 import { addUser } from './services/userDatabase';
 import { getCertificateFromSession, clearCertificateSession, type BrowserCertificate } from './services/browserCertificateService';
