@@ -57,6 +57,14 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     const interval = setInterval(() => {
       setSessionTime(getSessionTimeRemaining());
     }, 60000);
+  useEffect(() => {
+    loadUsers();
+    loadSuggestions();
+    
+    // Actualizar tiempo de sesión cada minuto
+    const interval = setInterval(() => {
+      setSessionTime(getSessionTimeRemaining());
+    }, 60000);
     
     // Mostrar tiempo inicial
     setSessionTime(getSessionTimeRemaining());
@@ -64,20 +72,31 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     return () => clearInterval(interval);
   }, []);
 
-  const loadUsers = () => {
-    const data = getAllUsers();
+  const loadUsers = async () => {
+    const data = await getAllUsers();
     setUsers(data);
     setTotalUsers(data.length);
   };
 
-  const loadSuggestions = () => {
-    const data = getAllSuggestions();
+  const loadSuggestions = async () => {
+    const data = await getAllSuggestions();
     setSuggestions(data);
     setTotalSuggestions(data.length);
   };
 
-  const handleDeleteUser = (id: string, nombre: string) => {
+  const handleDeleteUser = async (id: string, nombre: string) => {
     if (confirm(`¿Eliminar a ${nombre}?`)) {
+      await deleteUser(id);
+      loadUsers();
+    }
+  };
+
+  const handleDeleteSuggestion = async (id: string, asunto: string) => {
+    if (confirm(`¿Eliminar la sugerencia "${asunto}"?`)) {
+      await deleteSuggestion(id);
+      loadSuggestions();
+    }
+  };
       deleteUser(id);
       loadUsers();
     }
@@ -88,13 +107,15 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     onLogout();
   };
 
-  const handleClearDatabase = () => {
-    clearDatabase();
-    loadUsers();
+  const handleClearDatabase = async () => {
+    if (confirm('¿Estás seguro de eliminar TODOS los usuarios? Esta acción no se puede deshacer.')) {
+      await clearDatabase();
+      loadUsers();
+    }
   };
 
-  const handleExport = () => {
-    exportUsersToCSV();
+  const handleExport = async () => {
+    await exportUsersToCSV();
   };
 
   const toggleDetails = (id: string) => {
@@ -104,20 +125,15 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     }));
   };
 
-  const handleDeleteSuggestion = (id: string, asunto: string) => {
-    if (confirm(`¿Eliminar sugerencia: "${asunto}"?`)) {
-      deleteSuggestion(id);
+  const handleClearSuggestions = async () => {
+    if (confirm('¿Estás seguro de eliminar TODAS las sugerencias? Esta acción no se puede deshacer.')) {
+      await clearAllSuggestions();
       loadSuggestions();
     }
   };
 
-  const handleClearSuggestions = () => {
-    clearAllSuggestions();
-    loadSuggestions();
-  };
-
-  const handleExportSuggestions = () => {
-    exportSuggestionsToCSV();
+  const handleExportSuggestions = async () => {
+    await exportSuggestionsToCSV();
   };
 
   return (

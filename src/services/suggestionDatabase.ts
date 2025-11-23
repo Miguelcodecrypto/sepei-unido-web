@@ -1,4 +1,4 @@
-// Servicio de almacenamiento de sugerencias y propuestas en localStorage
+import { supabase } from '../lib/supabase';
 
 interface Suggestion {
   id: string;
@@ -7,58 +7,147 @@ interface Suggestion {
   email: string;
   telefono: string;
   categoria: 'bombero' | 'cabo' | 'sargento' | 'suboficial' | 'oficial';
-  lugarTrabajo: 'Villarrobledo' | 'Hellín' | 'Almansa' | 'La Roda' | 'Alcaraz' | 'Molinicos' | 'Casas Ibáñez';
+  lugar_trabajo: 'Villarrobledo' | 'Hellín' | 'Almansa' | 'La Roda' | 'Alcaraz' | 'Molinicos' | 'Casas Ibáñez';
   asunto: string;
   descripcion: string;
-  fechaRegistro: string;
+  fecha_registro: string;
 }
 
-const SUGGESTIONS_KEY = 'sepei_unido_suggestions';
-
 // Obtener todas las sugerencias
-export const getAllSuggestions = (): Suggestion[] => {
-  const data = localStorage.getItem(SUGGESTIONS_KEY);
-  return data ? JSON.parse(data) : [];
+export const getAllSuggestions = async (): Promise<Suggestion[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('suggestions')
+      .select('*')
+      .order('fecha_registro', { ascending: false });
+
+    if (error) {
+      console.error('Error al obtener sugerencias:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error en getAllSuggestions:', error);
+    return [];
+  }
 };
 
 // Agregar nueva sugerencia
-export const addSuggestion = (suggestionData: Omit<Suggestion, 'id' | 'fechaRegistro'>): Suggestion => {
-  const suggestions = getAllSuggestions();
-  const newSuggestion: Suggestion = {
-    ...suggestionData,
-    id: Date.now().toString(),
-    fechaRegistro: new Date().toISOString(),
-  };
-  
-  suggestions.push(newSuggestion);
-  localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(suggestions));
-  
-  return newSuggestion;
+export const addSuggestion = async (suggestionData: Omit<Suggestion, 'id' | 'fecha_registro'>): Promise<Suggestion | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('suggestions')
+      .insert([{
+        nombre: suggestionData.nombre,
+        apellidos: suggestionData.apellidos,
+        email: suggestionData.email,
+        telefono: suggestionData.telefono,
+        categoria: suggestionData.categoria,
+        lugar_trabajo: suggestionData.lugar_trabajo,
+        asunto: suggestionData.asunto,
+        descripcion: suggestionData.descripcion,
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error al agregar sugerencia:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error en addSuggestion:', error);
+    return null;
+  }
 };
 
 // Obtener sugerencia por ID
-export const getSuggestionById = (id: string): Suggestion | undefined => {
-  const suggestions = getAllSuggestions();
-  return suggestions.find(suggestion => suggestion.id === id);
+export const getSuggestionById = async (id: string): Promise<Suggestion | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('suggestions')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Error al obtener sugerencia:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error en getSuggestionById:', error);
+    return null;
+  }
 };
 
 // Obtener sugerencias por email
-export const getSuggestionsByEmail = (email: string): Suggestion[] => {
-  const suggestions = getAllSuggestions();
-  return suggestions.filter(suggestion => suggestion.email === email);
+export const getSuggestionsByEmail = async (email: string): Promise<Suggestion[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('suggestions')
+      .select('*')
+      .eq('email', email)
+      .order('fecha_registro', { ascending: false });
+
+    if (error) {
+      console.error('Error al obtener sugerencias por email:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error en getSuggestionsByEmail:', error);
+    return [];
+  }
 };
 
 // Eliminar sugerencia
-export const deleteSuggestion = (id: string): boolean => {
-  const suggestions = getAllSuggestions();
-  const filtered = suggestions.filter(suggestion => suggestion.id !== id);
-  localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(filtered));
-  return filtered.length < suggestions.length;
+export const deleteSuggestion = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('suggestions')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error al eliminar sugerencia:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error en deleteSuggestion:', error);
+    return false;
+  }
+};
+
+// Limpiar todas las sugerencias
+export const clearAllSuggestions = async (): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('suggestions')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Eliminar todas
+
+    if (error) {
+      console.error('Error al limpiar sugerencias:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error en clearAllSuggestions:', error);
+    return false;
+  }
 };
 
 // Exportar sugerencias a CSV
-export const exportSuggestionsToCSV = (): void => {
-  const suggestions = getAllSuggestions();
+export const exportSuggestionsToCSV = async (): Promise<void> => {
+  const suggestions = await getAllSuggestions();
   
   if (suggestions.length === 0) {
     alert('No hay sugerencias para exportar');
@@ -73,33 +162,20 @@ export const exportSuggestionsToCSV = (): void => {
     s.email,
     s.telefono,
     s.categoria,
-    s.lugarTrabajo,
+    s.lugar_trabajo,
     s.asunto,
     `"${s.descripcion.replace(/"/g, '""')}"`, // Escapar comillas en descripción
-    new Date(s.fechaRegistro).toLocaleString('es-ES'),
+    new Date(s.fecha_registro).toLocaleString('es-ES'),
   ]);
 
-  const csvContent = [
+  const csv = [
     headers.join(','),
-    ...rows.map(row => row.join(',')),
+    ...rows.map(row => row.join(','))
   ].join('\n');
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  
-  link.setAttribute('href', url);
-  link.setAttribute('download', `sugerencias_propuestas_${new Date().toISOString().split('T')[0]}.csv`);
-  link.style.visibility = 'hidden';
-  
-  document.body.appendChild(link);
+  link.href = URL.createObjectURL(blob);
+  link.download = `sugerencias_sepei_${new Date().toISOString().split('T')[0]}.csv`;
   link.click();
-  document.body.removeChild(link);
-};
-
-// Limpiar todas las sugerencias
-export const clearAllSuggestions = (): void => {
-  if (confirm('¿Estás seguro de que quieres eliminar TODAS las sugerencias? Esta acción no se puede deshacer.')) {
-    localStorage.removeItem(SUGGESTIONS_KEY);
-  }
 };
