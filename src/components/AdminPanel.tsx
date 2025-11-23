@@ -97,10 +97,6 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
       loadSuggestions();
     }
   };
-      deleteUser(id);
-      loadUsers();
-    }
-  };
 
   const handleLogout = () => {
     logout();
