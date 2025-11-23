@@ -5,6 +5,10 @@ import { sendVerificationEmail } from '../services/emailService';
 interface TraditionalRegistrationProps {
   onSuccess: (userData: UserData) => void;
   onCancel: () => void;
+  initialData?: {
+    nombre?: string;
+    email?: string;
+  };
 }
 
 export interface UserData {
@@ -33,12 +37,13 @@ interface ValidationErrors {
 export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = ({
   onSuccess,
   onCancel,
+  initialData,
 }) => {
   const [formData, setFormData] = useState<FormData>({
-    nombre: '',
+    nombre: initialData?.nombre || '',
     apellidos: '',
     dni: '',
-    email: '',
+    email: initialData?.email || '',
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
