@@ -16,8 +16,11 @@ export default function SepeiUnido() {
   const [showCertificateUpload, setShowCertificateUpload] = useState(false);
   const [showTraditionalRegistration, setShowTraditionalRegistration] = useState(false);
   const [showUserLogin, setShowUserLogin] = useState(false);
+  const [showAuthMethodSelector, setShowAuthMethodSelector] = useState(false);
   const [loggedUser, setLoggedUser] = useState<LoggedUserData | null>(null);
   const [registrationMethod, setRegistrationMethod] = useState<'certificate' | 'traditional' | null>(null);
+  const [pendingAction, setPendingAction] = useState<'suggestions' | 'register' | null>(null);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('register');
   const [certificateData, setCertificateData] = useState<BrowserCertificate | null>(null);
   const [pendingUserData, setPendingUserData] = useState(null as any);
   const [formData, setFormData] = useState({
@@ -68,13 +71,26 @@ export default function SepeiUnido() {
     setRegistrationMethod(null); // Resetear para mostrar el selector
   };
 
-  const handleSelectRegistrationMethod = (method: 'certificate' | 'traditional') => {
+  const handleSelectAuthMethod = (method: 'certificate' | 'traditional') => {
     setRegistrationMethod(method);
+    setShowAuthMethodSelector(false);
     
-    if (method === 'certificate') {
-      setShowCertificateUpload(true);
+    if (authMode === 'login') {
+      // Si es login, solo permitir email/password
+      if (method === 'traditional') {
+        setShowUserLogin(true);
+      } else {
+        // Certificado digital solo para registro, no login
+        alert('El certificado digital solo está disponible para registro. Para iniciar sesión con una cuenta existente, usa email y contraseña.');
+        setShowAuthMethodSelector(true);
+      }
     } else {
-      setShowTraditionalRegistration(true);
+      // Modo registro
+      if (method === 'certificate') {
+        setShowCertificateUpload(true);
+      } else {
+        setShowTraditionalRegistration(true);
+      }
     }
   };
 
@@ -158,6 +174,7 @@ export default function SepeiUnido() {
     
     setPendingUserData(null);
     setRegistrationMethod(null);
+    setPendingAction(null);
     setTimeout(() => setFormStatus(null), 5000);
   };
 
@@ -168,7 +185,15 @@ export default function SepeiUnido() {
       type: 'success', 
       message: `¡Bienvenido, ${userData.nombre}!` 
     });
-    setTimeout(() => setFormStatus(null), 5000);
+    setTimeout(() => setFormStatus(null), 3000);
+    
+    // Ejecutar acción pendiente si existe
+    if (pendingAction === 'suggestions') {
+      setTimeout(() => {
+        setShowSuggestionsForm(true);
+        setPendingAction(null);
+      }, 500);
+    }
   };
 
   const handleLogout = () => {
@@ -182,13 +207,21 @@ export default function SepeiUnido() {
   };
 
   const handleOpenSuggestionsForm = () => {
-    // Si no tiene certificado, mostrar modal de carga primero
-    if (!certificateData) {
-      setShowCertificateUpload(true);
+    // Verificar si el usuario está logueado
+    if (!loggedUser) {
+      setPendingAction('suggestions');
+      setAuthMode('login');
+      setShowAuthMethodSelector(true);
       return;
     }
-    // Si ya tiene certificado, abrir formulario de propuestas
+    // Si ya está logueado, abrir formulario de propuestas
     setShowSuggestionsForm(true);
+  };
+
+  const handleOpenRegistration = () => {
+    setPendingAction('register');
+    setAuthMode('register');
+    setShowAuthMethodSelector(true);
   };
 
   const handleChange = (e: any) => {
@@ -538,18 +571,18 @@ export default function SepeiUnido() {
             <div className="h-1.5 w-40 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full mt-6"></div>
           </div>
 
-          {certificateData ? (
-            // Usuario registrado: mostrar botón para acceder
+          {loggedUser ? (
+            // Usuario logueado: mostrar botón para acceder
             <div className="bg-slate-800/90 p-12 rounded-3xl border-2 border-green-500/30 text-center space-y-6">
               <div className="bg-green-500/10 border-2 border-green-500/30 rounded-xl p-4 inline-block">
                 <CheckCircle className="w-8 h-8 text-green-400 mx-auto" />
               </div>
               <div>
-                <p className="text-green-300 font-bold text-lg mb-2">✓ Verificación completada</p>
-                <p className="text-gray-300 mb-4">Bienvenido {certificateData.nombre}. Ya puedes compartir tus ideas y propuestas.</p>
+                <p className="text-green-300 font-bold text-lg mb-2">✓ Sesión activa</p>
+                <p className="text-gray-300 mb-4">Bienvenido {loggedUser.nombre}. Ya puedes compartir tus ideas y propuestas.</p>
               </div>
               <button
-                onClick={() => setShowSuggestionsForm(true)}
+                onClick={handleOpenSuggestionsForm}
                 className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-slate-900 text-lg font-bold rounded-xl shadow-2xl hover:shadow-yellow-500/50 transform hover:scale-105 transition-all"
               >
                 <Lightbulb className="w-6 h-6" />
@@ -557,13 +590,13 @@ export default function SepeiUnido() {
               </button>
             </div>
           ) : (
-            // Usuario no registrado: mostrar instrucciones y botón
+            // Usuario no logueado: mostrar instrucciones y botón de login
             <div className="bg-slate-800/90 p-12 rounded-3xl border-2 border-blue-500/30 space-y-6">
               <div className="flex items-start gap-4">
                 <AlertCircle className="w-8 h-8 text-blue-400 flex-shrink-0 mt-1" />
                 <div>
-                  <p className="text-blue-300 font-bold text-lg mb-2">Requiere Verificación FNMT</p>
-                  <p className="text-gray-300 mb-4">Para compartir ideas y propuestas, necesitas registrarte y verificar tu identidad con un certificado digital FNMT.</p>
+                  <p className="text-blue-300 font-bold text-lg mb-2">Requiere Autenticación</p>
+                  <p className="text-gray-300 mb-4">Para compartir ideas y propuestas, necesitas iniciar sesión o registrarte primero.</p>
                   <ul className="text-gray-300 space-y-2 mb-6">
                     <li className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
@@ -575,7 +608,7 @@ export default function SepeiUnido() {
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-                      Cumple con regulaciones legales
+                      Puedes usar certificado FNMT o email/contraseña
                     </li>
                   </ul>
                 </div>
@@ -584,8 +617,8 @@ export default function SepeiUnido() {
                 onClick={handleOpenSuggestionsForm}
                 className="w-full py-5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-lg font-bold rounded-xl shadow-2xl hover:shadow-blue-500/50 transform hover:scale-105 transition-all flex items-center justify-center gap-3"
               >
-                <Shield className="w-6 h-6" />
-                Registrarse y Verificar Identidad
+                <LogIn className="w-6 h-6" />
+                Iniciar Sesión para Compartir
               </button>
             </div>
           )}
@@ -752,7 +785,128 @@ export default function SepeiUnido() {
         </div>
       )}
 
-      {/* Registration Method Selector */}
+      {/* Auth Method Selector Modal (Login or Register) */}
+      {showAuthMethodSelector && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full">
+            <h2 className="text-3xl font-bold text-gray-800 mb-2 text-center">
+              {authMode === 'login' ? 'Iniciar Sesión' : 'Registrarse'}
+            </h2>
+            <p className="text-gray-600 mb-6 text-center">
+              {authMode === 'login' 
+                ? 'Elige cómo quieres iniciar sesión' 
+                : 'Elige tu método de registro'}
+            </p>
+            
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              {authMode === 'register' && (
+                /* Certificado Digital - Solo para registro */
+                <button
+                  onClick={() => handleSelectAuthMethod('certificate')}
+                  className="group relative p-8 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 hover:border-blue-400 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
+                >
+                  <div className="flex flex-col items-center text-center space-y-4">
+                    <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                      <Shield className="w-10 h-10 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-800 mb-2">
+                        Certificado FNMT
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-3">
+                        Registro seguro con tu certificado digital de la FNMT
+                      </p>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-center text-green-600 text-xs">
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Verificación instantánea
+                        </div>
+                        <div className="flex items-center justify-center text-green-600 text-xs">
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Máxima seguridad
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              )}
+
+              {/* Email + Contraseña */}
+              <button
+                onClick={() => handleSelectAuthMethod('traditional')}
+                className={`group relative p-8 bg-gradient-to-br from-orange-50 to-red-50 hover:from-orange-100 hover:to-red-100 border-2 border-orange-200 hover:border-orange-400 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${authMode === 'login' ? 'md:col-span-2' : ''}`}
+              >
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center group-hover:bg-orange-600 transition-colors">
+                    {authMode === 'login' ? <LogIn className="w-10 h-10 text-white" /> : <Mail className="w-10 h-10 text-white" />}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                      {authMode === 'login' ? 'DNI + Contraseña' : 'Email + Contraseña'}
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-3">
+                      {authMode === 'login' 
+                        ? 'Inicia sesión con tu DNI y contraseña'
+                        : 'Registro con DNI y verificación por correo electrónico'}
+                    </p>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-center text-green-600 text-xs">
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        {authMode === 'login' ? 'Acceso rápido' : 'Proceso simple'}
+                      </div>
+                      <div className="flex items-center justify-center text-green-600 text-xs">
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        {authMode === 'login' ? 'Usa tu cuenta existente' : 'Sin certificado necesario'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            {authMode === 'login' && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-blue-800 text-center">
+                  <strong>¿No tienes cuenta?</strong>{' '}
+                  <button
+                    onClick={() => setAuthMode('register')}
+                    className="text-blue-600 hover:text-blue-700 font-bold underline"
+                  >
+                    Regístrate aquí
+                  </button>
+                </p>
+              </div>
+            )}
+
+            {authMode === 'register' && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-gray-600 text-center">
+                  <strong>¿Ya tienes cuenta?</strong>{' '}
+                  <button
+                    onClick={() => setAuthMode('login')}
+                    className="text-orange-600 hover:text-orange-700 font-bold underline"
+                  >
+                    Inicia sesión aquí
+                  </button>
+                </p>
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                setShowAuthMethodSelector(false);
+                setAuthMode('register');
+                setPendingAction(null);
+              }}
+              className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Registration Method Selector (Old - for contact form) */}
       {pendingUserData && registrationMethod === null && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full">
@@ -763,7 +917,7 @@ export default function SepeiUnido() {
             <div className="grid md:grid-cols-2 gap-6 mb-6">
               {/* Certificado Digital */}
               <button
-                onClick={() => handleSelectRegistrationMethod('certificate')}
+                onClick={() => handleSelectAuthMethod('certificate')}
                 className="group relative p-8 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 hover:border-blue-400 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
               >
                 <div className="flex flex-col items-center text-center space-y-4">
@@ -793,7 +947,7 @@ export default function SepeiUnido() {
 
               {/* Registro Tradicional */}
               <button
-                onClick={() => handleSelectRegistrationMethod('traditional')}
+                onClick={() => handleSelectAuthMethod('traditional')}
                 className="group relative p-8 bg-gradient-to-br from-orange-50 to-red-50 hover:from-orange-100 hover:to-red-100 border-2 border-orange-200 hover:border-orange-400 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
               >
                 <div className="flex flex-col items-center text-center space-y-4">
@@ -850,9 +1004,9 @@ export default function SepeiUnido() {
       )}
 
       {/* Suggestions Form Modal */}
-      {showSuggestionsForm && certificateData && (
+      {showSuggestionsForm && loggedUser && (
         <SuggestionsForm
-          certificateData={certificateData}
+          certificateData={certificateData || undefined}
           onClose={() => setShowSuggestionsForm(false)}
         />
       )}
