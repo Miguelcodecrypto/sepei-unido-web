@@ -16,10 +16,35 @@ export interface EmailVerificationData {
  */
 export async function sendVerificationEmail(data: EmailVerificationData): Promise<boolean> {
   try {
-    console.log('📧 [EMAIL SERVICE] Enviando email de verificación...');
+    console.log('📧 [EMAIL SERVICE] === INICIO ENVÍO EMAIL ===');
+    console.log('📧 [EMAIL SERVICE] Datos recibidos:', {
+      email: data.email,
+      nombre: data.nombre,
+      dni: data.dni,
+      tokenLength: data.verificationToken?.length || 0
+    });
     
     const html = generateVerificationEmailHTML(data);
     const text = generateVerificationEmailText(data);
+    
+    console.log('📧 [EMAIL SERVICE] HTML generado, longitud:', html.length);
+    console.log('📧 [EMAIL SERVICE] Text generado, longitud:', text.length);
+
+    const payload = {
+      to: data.email,
+      subject: 'Verifica tu cuenta - SEPEI UNIDO',
+      html: html,
+      text: text,
+    };
+    
+    console.log('📧 [EMAIL SERVICE] Payload preparado:', {
+      to: payload.to,
+      subject: payload.subject,
+      htmlLength: payload.html.length,
+      textLength: payload.text.length
+    });
+    
+    console.log('📧 [EMAIL SERVICE] Llamando a /api/send-email...');
 
     // Llamar a la API serverless de Vercel
     const response = await fetch('/api/send-email', {
@@ -27,16 +52,31 @@ export async function sendVerificationEmail(data: EmailVerificationData): Promis
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        to: data.email,
-        subject: 'Verifica tu cuenta - SEPEI UNIDO',
-        html: html,
-        text: text,
-      }),
+      body: JSON.stringify(payload),
     });
+    
+    console.log('📧 [EMAIL SERVICE] Respuesta recibida, status:', response.status, response.statusText);
+    console.log('📧 [EMAIL SERVICE] Response ok:', response.ok);
+
+    console.log('📧 [EMAIL SERVICE] Respuesta recibida, status:', response.status, response.statusText);
+    console.log('📧 [EMAIL SERVICE] Response ok:', response.ok);
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
+      console.log('📧 [EMAIL SERVICE] Respuesta no OK, intentando parsear error...');
+      const contentType = response.headers.get('content-type');
+      console.log('📧 [EMAIL SERVICE] Content-Type:', contentType);
+      
+      let error;
+      try {
+        const text = await response.text();
+        console.log('📧 [EMAIL SERVICE] Respuesta como texto:', text);
+        error = JSON.parse(text);
+        console.log('📧 [EMAIL SERVICE] Error parseado:', error);
+      } catch (parseError) {
+        console.error('📧 [EMAIL SERVICE] Error al parsear respuesta:', parseError);
+        error = { message: 'Unknown error' };
+      }
+      
       console.error('❌ [EMAIL SERVICE] Error al enviar email:', error);
       console.error('❌ Status:', response.status, response.statusText);
       
@@ -54,11 +94,19 @@ export async function sendVerificationEmail(data: EmailVerificationData): Promis
       return false;
     }
 
-    console.log('✅ Email enviado correctamente');
+    const result = await response.json();
+    console.log('✅ [EMAIL SERVICE] Email enviado correctamente, resultado:', result);
     return true;
 
   } catch (error) {
-    console.error('❌ [EMAIL SERVICE] Error al enviar email:', error);
+    console.error('💥 [EMAIL SERVICE] === EXCEPCIÓN CAPTURADA ===');
+    console.error('💥 [EMAIL SERVICE] Tipo:', typeof error);
+    console.error('💥 [EMAIL SERVICE] Error:', error);
+    console.error('💥 [EMAIL SERVICE] Is Error:', error instanceof Error);
+    if (error instanceof Error) {
+      console.error('💥 [EMAIL SERVICE] Message:', error.message);
+      console.error('💥 [EMAIL SERVICE] Stack:', error.stack);
+    }
     return false;
   }
 }
