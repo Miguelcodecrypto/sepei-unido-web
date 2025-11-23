@@ -17,22 +17,15 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
   const [error, setError] = useState<string | null>(null);
   const [certificateData, setCertificateData] = useState<BrowserCertificate | null>(null);
   const [browserSupport, setBrowserSupport] = useState({ supported: false, message: '' });
-  const [authMethod, setAuthMethod] = useState<'mtls' | 'file-upload' | 'hybrid'>('file-upload');
   
   // Estados para carga de archivo
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [password, setPassword] = useState<string>('');
 
-  // Verificar compatibilidad del navegador y método de autenticación
+  // Verificar compatibilidad del navegador
   useEffect(() => {
     const support = checkBrowserSupport();
     setBrowserSupport(support);
-    
-    // Detectar método de autenticación disponible
-    detectAuthMethod().then(method => {
-      console.log('🔍 Método de autenticación detectado:', method);
-      setAuthMethod(method);
-    });
   }, []);
 
   // Handler para selección de archivo
