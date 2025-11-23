@@ -28,7 +28,7 @@ export default async function handler(req: any, res: any) {
     console.log('📧 Intentando enviar email a:', to);
 
     // Enviar email
-    const data = await resend.emails.send({
+    const response = await resend.emails.send({
       from: 'SEPEI UNIDO <noreply@sepeiunido.org>',
       to: [to],
       subject: subject,
@@ -36,8 +36,18 @@ export default async function handler(req: any, res: any) {
       text: text,
     });
 
-    console.log('✅ Email enviado:', data);
-    return res.status(200).json({ success: true, id: data.id });
+    // Verificar si hay error en la respuesta
+    if (response.error) {
+      console.error('❌ Error de Resend API:', response.error);
+      return res.status(500).json({ 
+        error: 'Failed to send email',
+        message: response.error.message || 'Resend API error',
+        details: JSON.stringify(response.error)
+      });
+    }
+
+    console.log('✅ Email enviado:', response.data);
+    return res.status(200).json({ success: true, id: response.data?.id });
 
   } catch (error) {
     console.error('❌ Error completo:', JSON.stringify(error, null, 2));
