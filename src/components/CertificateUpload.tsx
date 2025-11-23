@@ -5,6 +5,7 @@ import { selectClientCertificate, saveCertificateToSession, checkBrowserSupport,
 import { parseCertificateFile, isValidCertificateFile, getCertificateFileTypeMessage } from '../services/certificateFileParser';
 import { isCertificateRegistered } from '../services/fnmtService';
 import { initializeTestCertificates } from '../data/testCertificates';
+import { addUser } from '../services/userDatabase';
 
 interface CertificateUploadProps {
   onCertificateLoaded: (data: BrowserCertificate) => void;
@@ -151,6 +152,18 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
   const handleConfirm = () => {
     if (certificateData) {
       saveCertificateToSession(certificateData);
+      
+      // Guardar en la base de datos del panel admin
+      addUser({
+        nombre: certificateData.nombre,
+        email: certificateData.email || '',
+        terminos_aceptados: true,
+        certificado_nif: certificateData.nif,
+        certificado_thumbprint: certificateData.thumbprint,
+        certificado_fecha_validacion: new Date().toISOString(),
+        certificado_valido: true,
+      });
+      
       onCertificateLoaded(certificateData);
     }
   };
