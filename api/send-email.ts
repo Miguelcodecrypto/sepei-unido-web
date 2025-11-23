@@ -68,29 +68,25 @@ export default async function handler(req: any, res: any) {
     }, null, 2));
 
     console.log('🔷 Llamando a resend.emails.send()...');
-    const response = await resend.emails.send(emailPayload);
-    console.log('🔷 Respuesta de Resend recibida:', JSON.stringify(response, null, 2));
-
-    console.log('🔷 Llamando a resend.emails.send()...');
-    const response = await resend.emails.send(emailPayload);
-    console.log('🔷 Respuesta de Resend recibida:', JSON.stringify(response, null, 2));
+    const emailResponse = await resend.emails.send(emailPayload);
+    console.log('🔷 Respuesta de Resend recibida:', JSON.stringify(emailResponse, null, 2));
 
     // Verificar si hay error en la respuesta
-    if (response.error) {
-      console.error('❌ Error de Resend API:', JSON.stringify(response.error, null, 2));
-      console.error('❌ Error name:', response.error.name);
-      console.error('❌ Error message:', response.error.message);
+    if (emailResponse.error) {
+      console.error('❌ Error de Resend API:', JSON.stringify(emailResponse.error, null, 2));
+      console.error('❌ Error name:', emailResponse.error.name);
+      console.error('❌ Error message:', emailResponse.error.message);
       return res.status(500).json({ 
         error: 'Failed to send email',
-        message: response.error.message || 'Resend API error',
-        details: JSON.stringify(response.error),
-        errorName: response.error.name
+        message: emailResponse.error.message || 'Resend API error',
+        details: JSON.stringify(emailResponse.error),
+        errorName: emailResponse.error.name
       });
     }
 
     console.log('✅ Email enviado exitosamente');
-    console.log('✅ ID del email:', response.data?.id);
-    return res.status(200).json({ success: true, id: response.data?.id });
+    console.log('✅ ID del email:', emailResponse.data?.id);
+    return res.status(200).json({ success: true, id: emailResponse.data?.id });
 
   } catch (error) {
     console.error('💥 === EXCEPCIÓN CAPTURADA ===');
