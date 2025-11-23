@@ -1,0 +1,11 @@
+{
+  "git": {
+    "deploymentEnabled": {
+      "feature/dual-registration": true
+    }
+  },
+  "github": {
+    "autoAlias": true,
+    "silent": false
+  }
+}
