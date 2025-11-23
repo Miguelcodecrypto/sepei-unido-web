@@ -1,6 +1,6 @@
-import { Resend } from 'resend';
+const { Resend } = require('resend');
 
-export default async function handler(req: any, res: any) {
+module.exports = async function handler(req: any, res: any) {
   // Asegurar que siempre respondemos con JSON
   res.setHeader('Content-Type', 'application/json');
   
