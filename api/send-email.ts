@@ -40,10 +40,26 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({ success: true, id: data.id });
 
   } catch (error) {
+    console.error('❌ Error completo:', JSON.stringify(error, null, 2));
     console.error('❌ Error al enviar email:', error);
+    
+    let errorMessage = 'Unknown error';
+    let errorDetails = '';
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorDetails = error.stack || '';
+    } else if (typeof error === 'object' && error !== null) {
+      errorMessage = JSON.stringify(error);
+    }
+    
+    console.error('❌ Mensaje de error:', errorMessage);
+    console.error('❌ Detalles:', errorDetails);
+    
     return res.status(500).json({ 
       error: 'Failed to send email',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      message: errorMessage,
+      details: errorDetails
     });
   }
 }
