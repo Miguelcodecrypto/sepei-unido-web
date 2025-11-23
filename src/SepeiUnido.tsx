@@ -7,6 +7,7 @@ import SuggestionsForm from './components/SuggestionsForm';
 import CertificateUpload from './components/CertificateUpload';
 import { TraditionalRegistration, type UserData } from './components/TraditionalRegistration';
 import { UserLogin, type LoggedUserData } from './components/UserLogin';
+import { EmailVerification } from './components/EmailVerification';
 
 export default function SepeiUnido() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -17,6 +18,8 @@ export default function SepeiUnido() {
   const [showTraditionalRegistration, setShowTraditionalRegistration] = useState(false);
   const [showUserLogin, setShowUserLogin] = useState(false);
   const [showAuthMethodSelector, setShowAuthMethodSelector] = useState(false);
+  const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [verificationToken, setVerificationToken] = useState<string | null>(null);
   const [loggedUser, setLoggedUser] = useState<LoggedUserData | null>(null);
   const [registrationMethod, setRegistrationMethod] = useState<'certificate' | 'traditional' | null>(null);
   const [pendingAction, setPendingAction] = useState<'suggestions' | 'register' | null>(null);
@@ -38,6 +41,16 @@ export default function SepeiUnido() {
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
+    
+    // Verificar si la URL contiene un token de verificación
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    
+    if (token) {
+      setVerificationToken(token);
+      setShowEmailVerification(true);
+      console.log('🔍 Token de verificación detectado:', token);
+    }
     
     // Verificar si hay certificado en sesión
     const cert = getCertificateFromSession();
@@ -805,6 +818,15 @@ export default function SepeiUnido() {
               setPendingUserData(null);
             }}
           />
+        </div>
+      )}
+
+      {/* Email Verification Modal */}
+      {showEmailVerification && verificationToken && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <EmailVerification token={verificationToken} />
+          </div>
         </div>
       )}
 
