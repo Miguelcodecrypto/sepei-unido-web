@@ -5,6 +5,7 @@ import { getCertificateFromSession, clearCertificateSession, type BrowserCertifi
 import TermsModal from './components/TermsModal';
 import SuggestionsForm from './components/SuggestionsForm';
 import CertificateUpload from './components/CertificateUpload';
+import { TraditionalRegistration, type UserData } from './components/TraditionalRegistration';
 
 export default function SepeiUnido() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -12,6 +13,8 @@ export default function SepeiUnido() {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showSuggestionsForm, setShowSuggestionsForm] = useState(false);
   const [showCertificateUpload, setShowCertificateUpload] = useState(false);
+  const [showTraditionalRegistration, setShowTraditionalRegistration] = useState(false);
+  const [registrationMethod, setRegistrationMethod] = useState<'certificate' | 'traditional' | null>(null);
   const [certificateData, setCertificateData] = useState<BrowserCertificate | null>(null);
   const [pendingUserData, setPendingUserData] = useState(null as any);
   const [formData, setFormData] = useState({
@@ -46,16 +49,19 @@ export default function SepeiUnido() {
       return;
     }
 
-    // Si no tiene certificado validado, mostrar modal de carga
-    if (!certificateData) {
-      setShowCertificateUpload(true);
-      setPendingUserData(formData);
-      return;
-    }
-
-    // Si tiene certificado, mostrar modal de términos
+    // Mostrar selector de método de registro
     setPendingUserData(formData);
-    setShowTermsModal(true);
+    setRegistrationMethod(null); // Resetear para mostrar el selector
+  };
+
+  const handleSelectRegistrationMethod = (method: 'certificate' | 'traditional') => {
+    setRegistrationMethod(method);
+    
+    if (method === 'certificate') {
+      setShowCertificateUpload(true);
+    } else {
+      setShowTraditionalRegistration(true);
+    }
   };
 
   const handleAcceptTerms = () => {
@@ -115,6 +121,30 @@ export default function SepeiUnido() {
     setShowCertificateUpload(false);
     // Mostrar modal de términos después de cargar certificado
     setShowTermsModal(true);
+  };
+
+  const handleTraditionalRegistrationSuccess = (userData: UserData) => {
+    console.log('Usuario registrado con método tradicional:', userData);
+    setShowTraditionalRegistration(false);
+    setFormStatus({ 
+      type: 'success', 
+      message: '¡Registro exitoso! Revisa tu email para verificar tu cuenta.' 
+    });
+    
+    // Limpiar formulario
+    setFormData({
+      nombre: '',
+      email: '',
+      telefono: '',
+      instagram: '',
+      facebook: '',
+      twitter: '',
+      linkedin: ''
+    });
+    
+    setPendingUserData(null);
+    setRegistrationMethod(null);
+    setTimeout(() => setFormStatus(null), 5000);
   };
 
   const handleOpenSuggestionsForm = () => {
@@ -643,8 +673,114 @@ export default function SepeiUnido() {
       {showCertificateUpload && (
         <CertificateUpload
           onCertificateLoaded={handleCertificateLoaded}
-          onClose={() => setShowCertificateUpload(false)}
+          onClose={() => {
+            setShowCertificateUpload(false);
+            setRegistrationMethod(null);
+          }}
         />
+      )}
+
+      {/* Traditional Registration Modal */}
+      {showTraditionalRegistration && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <TraditionalRegistration
+            onSuccess={handleTraditionalRegistrationSuccess}
+            onCancel={() => {
+              setShowTraditionalRegistration(false);
+              setRegistrationMethod(null);
+              setPendingUserData(null);
+            }}
+          />
+        </div>
+      )}
+
+      {/* Registration Method Selector */}
+      {pendingUserData && registrationMethod === null && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full">
+            <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">
+              Elige tu método de registro
+            </h2>
+            
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              {/* Certificado Digital */}
+              <button
+                onClick={() => handleSelectRegistrationMethod('certificate')}
+                className="group relative p-8 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 hover:border-blue-400 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
+              >
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                    <Shield className="w-10 h-10 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                      Certificado FNMT
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-3">
+                      Registro seguro con tu certificado digital de la FNMT
+                    </p>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-center text-green-600 text-xs">
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Verificación instantánea
+                      </div>
+                      <div className="flex items-center justify-center text-green-600 text-xs">
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Máxima seguridad
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              {/* Registro Tradicional */}
+              <button
+                onClick={() => handleSelectRegistrationMethod('traditional')}
+                className="group relative p-8 bg-gradient-to-br from-orange-50 to-red-50 hover:from-orange-100 hover:to-red-100 border-2 border-orange-200 hover:border-orange-400 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
+              >
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center group-hover:bg-orange-600 transition-colors">
+                    <Mail className="w-10 h-10 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                      Email + Contraseña
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-3">
+                      Registro con DNI y verificación por correo electrónico
+                    </p>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-center text-green-600 text-xs">
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Proceso simple
+                      </div>
+                      <div className="flex items-center justify-center text-green-600 text-xs">
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Sin certificado necesario
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-gray-600 text-center">
+                <strong>¿No tienes certificado FNMT?</strong> No te preocupes, puedes registrarte con email y recibirás tu contraseña por correo.
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                setPendingUserData(null);
+                setRegistrationMethod(null);
+              }}
+              className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Terms and Conditions Modal */}
