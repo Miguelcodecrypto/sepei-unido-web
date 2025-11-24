@@ -4,6 +4,7 @@ import SepeiUnido from './SepeiUnido';
 import AdminPanel from './components/AdminPanel';
 import LoginPanel from './components/LoginPanel';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
+import { VerifyEmail } from './pages/VerifyEmail';
 import { Settings } from 'lucide-react';
 import { isAuthenticated } from './services/authService';
 
@@ -13,6 +14,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<MainApp />} />
         <Route path="/politica-privacidad" element={<PrivacyPolicy />} />
+        <Route path="/verify" element={<VerifyEmail />} />
       </Routes>
     </BrowserRouter>
   );
