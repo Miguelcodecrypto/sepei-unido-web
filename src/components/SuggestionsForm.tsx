@@ -1,25 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send, AlertCircle, CheckCircle, Lightbulb, X } from 'lucide-react';
 import { addSuggestion } from '../services/suggestionDatabase';
 import type { BrowserCertificate } from '../services/browserCertificateService';
+import type { LoggedUserData } from './UserLogin';
 
 interface SuggestionsFormProps {
   onClose?: () => void;
   onSuccess?: () => void;
   certificateData?: BrowserCertificate;
+  userData?: LoggedUserData;
+  inline?: boolean;
 }
 
-export default function SuggestionsForm({ onClose, onSuccess, certificateData }: SuggestionsFormProps) {
+export default function SuggestionsForm({ onClose, onSuccess, certificateData, userData, inline = false }: SuggestionsFormProps) {
   const [formData, setFormData] = useState({
-    nombre: certificateData?.nombre || '',
-    apellidos: certificateData?.apellidos || '',
-    email: certificateData?.email || '',
-    telefono: '',
+    nombre: certificateData?.nombre || userData?.nombre || '',
+    apellidos: certificateData?.apellidos || userData?.apellidos || '',
+    email: certificateData?.email || userData?.email || '',
+    telefono: userData?.telefono || '',
     categoria: 'bombero' as const,
     lugarTrabajo: 'Villarrobledo' as const,
     asunto: '',
     descripcion: '',
   });
+
+  // Actualizar datos del formulario cuando cambia userData
+  useEffect(() => {
+    if (userData) {
+      setFormData(prev => ({
+        ...prev,
+        nombre: userData.nombre || prev.nombre,
+        apellidos: userData.apellidos || prev.apellidos,
+        email: userData.email || prev.email,
+        telefono: userData.telefono || prev.telefono,
+      }));
+    }
+  }, [userData]);
 
   const [formStatus, setFormStatus] = useState(null as any);
 
@@ -97,41 +113,65 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData }:
     }
   };
 
-  return (
-    <div className="w-full max-w-4xl mx-auto">
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl border-2 border-orange-500/30 p-8 shadow-2xl">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-orange-500/20 p-3 rounded-xl">
-              <Lightbulb className="w-8 h-8 text-orange-500" />
-            </div>
-            <div>
-              <h2 className="text-3xl font-black text-white">Expresa tu Idea o Propuesta</h2>
-              <p className="text-gray-400 text-sm mt-1">Tu voz importa. Comparte tus inquietudes y propuestas con nosotros</p>
-            </div>
-          </div>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-red-400 transition"
-              title="Cerrar"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          )}
-        </div>
+  // Contenedor diferente según si es inline o modal
+  const FormContainer = inline ? 'div' : 'div';
+  const containerClass = inline 
+    ? '' 
+    : 'fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4';
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Verificación FNMT */}
-          {certificateData && (
-            <div className="bg-green-500/10 border-2 border-green-500/30 rounded-xl p-4 flex items-center gap-3">
-              <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0" />
+  const contentClass = inline
+    ? ''
+    : 'max-h-[90vh] overflow-y-auto';
+
+  return (
+    <div className={containerClass}>
+      <div className={`w-full max-w-4xl mx-auto ${contentClass}`}>
+        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl border-2 border-orange-500/30 p-8 shadow-2xl">
+          {/* Header */}
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-orange-500/20 p-3 rounded-xl">
+                <Lightbulb className="w-8 h-8 text-orange-500" />
+              </div>
               <div>
-                <p className="text-green-300 font-bold text-sm">Identidad Verificada</p>
-                <p className="text-green-200 text-xs mt-1">
-                  ✓ {certificateData.nombre} {certificateData.apellidos} ({certificateData.nif})
+                <h2 className="text-3xl font-black text-white">Expresa tu Idea o Propuesta</h2>
+                <p className="text-gray-400 text-sm mt-1">Tu voz importa. Comparte tus inquietudes y propuestas con nosotros</p>
+              </div>
+            </div>
+            {onClose && !inline && (
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-red-400 transition"
+                title="Cerrar"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            )}
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Verificación de usuario logueado */}
+            {userData && (
+              <div className="bg-green-500/10 border-2 border-green-500/30 rounded-xl p-4 flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0" />
+                <div>
+                  <p className="text-green-300 font-bold text-sm">Usuario Autenticado</p>
+                  <p className="text-green-200 text-xs mt-1">
+                    ✓ {userData.nombre} {userData.apellidos} - DNI: {userData.dni}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Verificación FNMT */}
+            {certificateData && (
+              <div className="bg-green-500/10 border-2 border-green-500/30 rounded-xl p-4 flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0" />
+                <div>
+                  <p className="text-green-300 font-bold text-sm">Identidad Verificada con Certificado Digital</p>
+                  <p className="text-green-200 text-xs mt-1">
+                    ✓ {certificateData.nombre} {certificateData.apellidos} ({certificateData.nif})
                 </p>
               </div>
             </div>
@@ -286,6 +326,7 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData }:
             * Campos obligatorios. Tu información será tratada conforme a la legislación de protección de datos.
           </p>
         </form>
+      </div>
       </div>
     </div>
   );
