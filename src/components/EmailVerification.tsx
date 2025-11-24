@@ -118,8 +118,11 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
       // Guardar en la base de datos del panel admin
       addUser({
         nombre: tempData.nombre,
+        apellidos: tempData.apellidos,
+        dni: tempData.dni,
         email: tempData.email,
         telefono: tempData.telefono || '',
+        verified: true,
         terminos_aceptados: true,
       });
 
