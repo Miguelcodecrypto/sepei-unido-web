@@ -16,7 +16,7 @@
 import type { BrowserCertificate } from './browserCertificateService';
 
 // URL del Cloudflare Worker (cambiar a tu dominio real)
-const CLOUDFLARE_MTLS_API = import.meta.env.PROD 
+const CLOUDFLARE_MTLS_API = (import.meta as any).env?.PROD 
   ? 'https://api-mtls.sepeiunido.org'
   : 'http://localhost:8787'; // Para desarrollo local con wrangler dev
 

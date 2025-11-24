@@ -218,7 +218,8 @@ export default function SepeiUnido() {
       apellidos: userData.apellidos,
       dni: userData.dni,
       email: userData.email,
-      verified: true
+      verified: true,
+      lastLogin: new Date().toISOString()
     };
     
     // Guardar sesión
