@@ -1,11 +1,24 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import SepeiUnido from './SepeiUnido';
 import AdminPanel from './components/AdminPanel';
 import LoginPanel from './components/LoginPanel';
+import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { Settings } from 'lucide-react';
 import { isAuthenticated } from './services/authService';
 
 export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<MainApp />} />
+        <Route path="/politica-privacidad" element={<PrivacyPolicy />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+function MainApp() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
