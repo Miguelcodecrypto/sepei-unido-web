@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CheckCircle, Mail, User, CreditCard, AlertCircle } from 'lucide-react';
 import { sendVerificationEmail } from '../services/emailService';
 import { hashPassword, generateTemporaryPassword } from '../services/passwordService';
+import { getUserByDni } from '../services/userDatabase';
 
 interface TraditionalRegistrationProps {
   onSuccess: (userData: UserData) => void;
@@ -147,8 +148,8 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
       // Normalizar DNI a mayúsculas
       const normalizedDNI = formData.dni.toUpperCase();
 
-      // Verificar si el DNI ya está registrado
-      const existingUser = localStorage.getItem(`user_${normalizedDNI}`);
+      // Verificar si el DNI ya está registrado en Supabase
+      const existingUser = await getUserByDni(normalizedDNI);
       if (existingUser) {
         setErrors({ dni: 'Este DNI ya está registrado' });
         setIsLoading(false);

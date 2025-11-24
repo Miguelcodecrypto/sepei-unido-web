@@ -101,6 +101,56 @@ export const getUserById = async (id: string): Promise<User | null> => {
   }
 };
 
+// Obtener usuario por DNI
+export const getUserByDni = async (dni: string): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('dni', dni.toUpperCase())
+      .single();
+
+    if (error) {
+      // Si el error es que no existe el usuario, retornar null sin error
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      console.error('Error al obtener usuario por DNI:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error en getUserByDni:', error);
+    return null;
+  }
+};
+
+// Obtener usuario por Email
+export const getUserByEmail = async (email: string): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .single();
+
+    if (error) {
+      // Si el error es que no existe el usuario, retornar null sin error
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      console.error('Error al obtener usuario por email:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error en getUserByEmail:', error);
+    return null;
+  }
+};
+
 // Obtener usuario por email
 export const getUserByEmail = async (email: string): Promise<User | null> => {
   try {
