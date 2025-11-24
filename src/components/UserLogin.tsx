@@ -103,6 +103,12 @@ export const UserLogin: React.FC<UserLoginProps> = ({
       localStorage.setItem('current_user', JSON.stringify(loggedUser));
 
       // Verificar si necesita cambiar contraseña
+      console.log('🔑 [LOGIN] Verificando requires_password_change:', {
+        requiere: userData.requires_password_change,
+        tipo: typeof userData.requires_password_change,
+        userData_completo: userData
+      });
+      
       if (userData.requires_password_change === true) {
         console.log('⚠️ Usuario debe cambiar contraseña temporal');
         setTempUserData(loggedUser);

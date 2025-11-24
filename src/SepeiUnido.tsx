@@ -60,6 +60,9 @@ export default function SepeiUnido() {
     if (currentUserStr) {
       try {
         const user = JSON.parse(currentUserStr);
+        console.log('👤 [SESIÓN] Usuario recuperado:', user);
+        console.log('👤 [SESIÓN] Tiene nombre?', user.nombre);
+        console.log('👤 [SESIÓN] Tiene apellidos?', user.apellidos);
         setLoggedUser(user);
       } catch (error) {
         console.error('Error al recuperar sesión:', error);
