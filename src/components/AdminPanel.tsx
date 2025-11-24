@@ -8,6 +8,8 @@ import { migrateExistingPasswords } from '../utils/migratePasswords';
 interface User {
   id: string;
   nombre: string;
+  apellidos?: string;
+  dni?: string;
   email: string;
   telefono?: string;
   instagram?: string;
@@ -76,6 +78,8 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     const mappedData = data.map(user => ({
       id: user.id,
       nombre: user.nombre,
+      apellidos: user.apellidos,
+      dni: user.dni,
       email: user.email,
       telefono: user.telefono,
       instagram: user.instagram,
@@ -321,6 +325,8 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                 <thead className="bg-slate-900/80 border-b border-slate-700">
                   <tr>
                     <th className="px-6 py-4 text-left text-white font-semibold">Nombre</th>
+                    <th className="px-6 py-4 text-left text-white font-semibold">Apellidos</th>
+                    <th className="px-6 py-4 text-left text-white font-semibold">DNI</th>
                     <th className="px-6 py-4 text-left text-white font-semibold">Email</th>
                     <th className="px-6 py-4 text-left text-white font-semibold">Teléfono</th>
                     <th className="px-6 py-4 text-left text-white font-semibold">Fecha Registro</th>
@@ -332,6 +338,8 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                     <React.Fragment key={user.id}>
                       <tr className="border-b border-slate-700/50 hover:bg-slate-700/30 transition">
                         <td className="px-6 py-4 text-white">{user.nombre}</td>
+                        <td className="px-6 py-4 text-gray-300">{user.apellidos || '-'}</td>
+                        <td className="px-6 py-4 text-gray-300">{user.dni || '-'}</td>
                         <td className="px-6 py-4 text-gray-300">{user.email}</td>
                         <td className="px-6 py-4 text-gray-300">{user.telefono || '-'}</td>
                         <td className="px-6 py-4 text-gray-300">
@@ -358,7 +366,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                       </tr>
                       {showDetails[user.id] && (
                         <tr className="bg-slate-900/50 border-b border-slate-700/50">
-                          <td colSpan={5} className="px-6 py-4">
+                          <td colSpan={7} className="px-6 py-4">
                             <div className="space-y-4">
                               {/* Información FNMT */}
                               {user.certificado_nif && (
