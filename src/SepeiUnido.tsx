@@ -8,6 +8,7 @@ import CertificateUpload from './components/CertificateUpload';
 import { TraditionalRegistration, type UserData } from './components/TraditionalRegistration';
 import { UserLogin, type LoggedUserData } from './components/UserLogin';
 import { EmailVerification } from './components/EmailVerification';
+import AnnouncementsBoard from './components/AnnouncementsBoard';
 
 export default function SepeiUnido() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -547,6 +548,13 @@ export default function SepeiUnido() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Tablón de Anuncios */}
+      <section className="py-24 px-4 bg-slate-900">
+        <div className="max-w-7xl mx-auto">
+          <AnnouncementsBoard />
         </div>
       </section>
 
