@@ -739,6 +739,15 @@ export default function SepeiUnido() {
         </div>
       </section>
 
+      {/* Botón flotante para sugerencias */}
+      <button
+        onClick={handleOpenSuggestionsForm}
+        className="fixed bottom-24 right-8 z-40 p-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-full shadow-2xl hover:shadow-blue-500/50 transform hover:scale-110 transition-all flex items-center gap-2"
+        title="Enviar sugerencia o propuesta"
+      >
+        <Lightbulb className="w-6 h-6" />
+      </button>
+
       <footer className="bg-slate-900 py-8 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
