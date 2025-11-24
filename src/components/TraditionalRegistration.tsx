@@ -27,6 +27,7 @@ interface FormData {
   apellidos: string;
   dni: string;
   email: string;
+  telefono: string;
 }
 
 interface ValidationErrors {
@@ -34,6 +35,7 @@ interface ValidationErrors {
   apellidos?: string;
   dni?: string;
   email?: string;
+  telefono?: string;
 }
 
 export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = ({
@@ -46,6 +48,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
     apellidos: '',
     dni: '',
     email: initialData?.email || '',
+    telefono: '',
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -178,6 +181,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
       // Guardar datos temporales para verificación
       const tempData = {
         ...userData,
+        telefono: formData.telefono.trim(),
         tempPassword,
         hashedPassword, // Guardar el hash para uso posterior
         verificationToken,
@@ -396,7 +400,30 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
           </p>
         </div>
 
-        {/* Checkbox de Protección de Datos */}
+        {/* Teléfono */}
+        <div>
+          <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-1">
+            Teléfono (opcional)
+          </label>
+          <div className="relative">
+            <input
+              type="tel"
+              id="telefono"
+              name="telefono"
+              value={formData.telefono}
+              onChange={handleChange}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.telefono ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="612345678"
+            />
+          </div>
+          {errors.telefono && (
+            <p className="text-red-500 text-sm mt-1">{errors.telefono}</p>
+          )}
+        </div>
+
+        {/* Checkbox de Protección de Datos */
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
