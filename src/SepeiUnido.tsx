@@ -444,6 +444,36 @@ export default function SepeiUnido() {
               >
                 Únete
               </button>
+              
+              {/* Botón Login/Usuario móvil */}
+              {loggedUser ? (
+                <div className="pt-4 border-t border-slate-800">
+                  <div className="mb-3">
+                    <p className="text-white font-semibold">{loggedUser.nombre}</p>
+                    <p className="text-gray-400 text-sm">{loggedUser.dni}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
+                  >
+                    Salir
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setShowUserLogin(true);
+                  }}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                >
+                  <LogIn className="w-5 h-5" />
+                  Iniciar Sesión
+                </button>
+              )}
             </div>
           </div>
         )}
