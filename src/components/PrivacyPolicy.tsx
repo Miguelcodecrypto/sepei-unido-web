@@ -52,7 +52,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
               </div>
               <div className="space-y-2 text-gray-700">
                 <p><strong>Identidad:</strong> SEPEI UNIDO - Movimiento de Bomberos de Castilla-La Mancha</p>
-                <p><strong>Correo electrónico:</strong> contacto@sepeiunido.org</p>
+                <p><strong>Correo electrónico:</strong> sepeiunido@gmail.com</p>
                 <p><strong>Sitio web:</strong> www.sepeiunido.org</p>
               </div>
             </section>
@@ -211,7 +211,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
               <div className="mt-6 p-4 bg-white rounded-lg border border-orange-200">
                 <p className="text-gray-800 font-semibold mb-2">📧 Para ejercer tus derechos:</p>
                 <p className="text-gray-700">
-                  Envía un correo a <a href="mailto:contacto@sepeiunido.org" className="text-blue-600 hover:underline font-semibold">contacto@sepeiunido.org</a> con 
+                  Envía un correo a <a href="mailto:sepeiunido@gmail.com" className="text-blue-600 hover:underline font-semibold">sepeiunido@gmail.com</a> con 
                   el asunto "Ejercicio de Derechos RGPD" e incluye:
                 </p>
                 <ul className="list-disc list-inside text-gray-700 mt-2 ml-4 text-sm">
@@ -306,7 +306,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
                 Para cualquier consulta sobre esta Política de Privacidad o el tratamiento de tus datos personales:
               </p>
               <div className="space-y-2">
-                <p><strong>Email:</strong> contacto@sepeiunido.org</p>
+                <p><strong>Email:</strong> sepeiunido@gmail.com</p>
                 <p><strong>Web:</strong> www.sepeiunido.org</p>
               </div>
             </section>
