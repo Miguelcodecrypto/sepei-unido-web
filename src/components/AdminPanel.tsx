@@ -72,14 +72,46 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
 
   const loadUsers = async () => {
     const data = await getAllUsers();
-    setUsers(data);
-    setTotalUsers(data.length);
+    // Mapear datos de Supabase (snake_case) a formato del componente (camelCase)
+    const mappedData = data.map(user => ({
+      id: user.id,
+      nombre: user.nombre,
+      email: user.email,
+      telefono: user.telefono,
+      instagram: user.instagram,
+      facebook: user.facebook,
+      twitter: user.twitter,
+      linkedin: user.linkedin,
+      fechaRegistro: user.fecha_registro,
+      terminos_aceptados: user.terminos_aceptados,
+      fecha_aceptacion_terminos: user.fecha_aceptacion_terminos,
+      version_terminos: user.version_terminos,
+      certificado_nif: user.certificado_nif,
+      certificado_thumbprint: user.certificado_thumbprint,
+      certificado_fecha_validacion: user.certificado_fecha_validacion,
+      certificado_valido: user.certificado_valido,
+    }));
+    setUsers(mappedData);
+    setTotalUsers(mappedData.length);
   };
 
   const loadSuggestions = async () => {
     const data = await getAllSuggestions();
-    setSuggestions(data);
-    setTotalSuggestions(data.length);
+    // Mapear datos de Supabase (snake_case) a formato del componente (camelCase)
+    const mappedData = data.map(suggestion => ({
+      id: suggestion.id,
+      nombre: suggestion.nombre,
+      apellidos: suggestion.apellidos,
+      email: suggestion.email,
+      telefono: suggestion.telefono,
+      categoria: suggestion.categoria,
+      lugarTrabajo: suggestion.lugar_trabajo,
+      asunto: suggestion.asunto,
+      descripcion: suggestion.descripcion,
+      fechaRegistro: suggestion.fecha_registro,
+    }));
+    setSuggestions(mappedData);
+    setTotalSuggestions(mappedData.length);
   };
 
   const handleDeleteUser = async (id: string, nombre: string) => {
