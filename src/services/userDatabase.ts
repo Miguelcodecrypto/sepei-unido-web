@@ -145,26 +145,6 @@ export const getUserByEmail = async (email: string): Promise<User | null> => {
   }
 };
 
-// Obtener usuario por email
-export const getUserByEmail = async (email: string): Promise<User | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single();
-
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.error('Error al obtener usuario por email:', error);
-    }
-
-    return data || null;
-  } catch (error) {
-    console.error('Error en getUserByEmail:', error);
-    return null;
-  }
-};
-
 // Eliminar usuario
 export const deleteUser = async (id: string): Promise<boolean> => {
   try {
