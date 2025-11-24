@@ -50,7 +50,7 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validar campos requeridos
@@ -77,16 +77,23 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
     }
 
     try {
-      addSuggestion({
+      console.log('📝 Enviando sugerencia a Supabase...');
+      const result = await addSuggestion({
         nombre: formData.nombre,
         apellidos: formData.apellidos,
         email: formData.email,
         telefono: formData.telefono,
         categoria: formData.categoria,
-        lugarTrabajo: formData.lugarTrabajo,
+        lugar_trabajo: formData.lugarTrabajo,
         asunto: formData.asunto,
         descripcion: formData.descripcion,
       });
+
+      if (!result) {
+        throw new Error('No se pudo guardar la sugerencia');
+      }
+
+      console.log('✅ Sugerencia guardada exitosamente:', result);
 
       setFormStatus({
         type: 'success',
