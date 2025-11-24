@@ -815,28 +815,31 @@ export default function SepeiUnido() {
             
             <div className="grid md:grid-cols-2 gap-6 mb-6">
               {authMode === 'register' && (
-                /* Certificado Digital - Solo para registro */
+                /* Certificado Digital - Solo para registro - Proximamente */
                 <button
-                  onClick={() => handleSelectAuthMethod('certificate')}
-                  className="group relative p-8 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 hover:border-blue-400 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
+                  disabled
+                  className="group relative p-8 bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-300 rounded-xl opacity-60 cursor-not-allowed"
                 >
+                  <div className="absolute top-4 right-4 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    PRÓXIMAMENTE
+                  </div>
                   <div className="flex flex-col items-center text-center space-y-4">
-                    <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                    <div className="w-20 h-20 bg-gray-400 rounded-full flex items-center justify-center">
                       <Shield className="w-10 h-10 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-gray-800 mb-2">
+                      <h3 className="text-xl font-bold text-gray-600 mb-2">
                         Certificado FNMT
                       </h3>
-                      <p className="text-gray-600 text-sm mb-3">
+                      <p className="text-gray-500 text-sm mb-3">
                         Registro seguro con tu certificado digital de la FNMT
                       </p>
                       <div className="space-y-1">
-                        <div className="flex items-center justify-center text-green-600 text-xs">
+                        <div className="flex items-center justify-center text-gray-500 text-xs">
                           <CheckCircle className="w-4 h-4 mr-1" />
                           Verificación instantánea
                         </div>
-                        <div className="flex items-center justify-center text-green-600 text-xs">
+                        <div className="flex items-center justify-center text-gray-500 text-xs">
                           <CheckCircle className="w-4 h-4 mr-1" />
                           Máxima seguridad
                         </div>

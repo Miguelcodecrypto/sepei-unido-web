@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CheckCircle, Mail, User, CreditCard, AlertCircle } from 'lucide-react';
 import { sendVerificationEmail } from '../services/emailService';
+import { hashPassword, generateTemporaryPassword } from '../services/passwordService';
 
 interface TraditionalRegistrationProps {
   onSuccess: (userData: UserData) => void;
@@ -148,8 +149,11 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         return;
       }
 
-      // Generar contraseña temporal (6 dígitos)
-      const tempPassword = Math.floor(100000 + Math.random() * 900000).toString();
+      // Generar contraseña temporal segura
+      const tempPassword = generateTemporaryPassword(12);
+      
+      // Cifrar la contraseña antes de guardarla
+      const hashedPassword = await hashPassword(tempPassword);
 
       // Crear token de verificación
       const verificationToken = crypto.randomUUID();
@@ -168,6 +172,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
       const tempData = {
         ...userData,
         tempPassword,
+        hashedPassword, // Guardar el hash para uso posterior
         verificationToken,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 horas
       };
