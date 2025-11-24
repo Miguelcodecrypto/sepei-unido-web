@@ -51,6 +51,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'form' | 'verification'>('form');
   const [verificationSent, setVerificationSent] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   // Validar DNI/NIE español
   const validateDNI = (dni: string): boolean => {
@@ -132,6 +133,11 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
     e.preventDefault();
 
     if (!validateForm()) {
+      return;
+    }
+
+    if (!acceptedPrivacy) {
+      setErrors({ email: 'Debes aceptar la política de privacidad para continuar' });
       return;
     }
 
@@ -389,6 +395,31 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
           </p>
         </div>
 
+        {/* Checkbox de Protección de Datos */}
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={acceptedPrivacy}
+              onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+              className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">
+              He leído y acepto la{' '}
+              <a 
+                href="/politica-privacidad" 
+                target="_blank" 
+                className="text-blue-600 hover:text-blue-800 font-semibold underline"
+              >
+                Política de Privacidad
+              </a>
+              {' '}y el tratamiento de mis datos personales conforme al RGPD. 
+              Mis datos serán utilizados únicamente para gestionar mi participación en SEPEI UNIDO 
+              y no serán cedidos a terceros sin mi consentimiento.
+            </span>
+          </label>
+        </div>
+
         {/* Botones */}
         <div className="flex gap-3 pt-4">
           <button
@@ -402,7 +433,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
           <button
             type="submit"
             className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-            disabled={isLoading}
+            disabled={isLoading || !acceptedPrivacy}
           >
             {isLoading ? 'Enviando...' : 'Registrarse'}
           </button>
@@ -411,7 +442,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
 
       <div className="mt-6 pt-6 border-t border-gray-200">
         <p className="text-xs text-gray-500 text-center">
-          Al registrarte, aceptas nuestros términos y condiciones
+          Tus datos están protegidos según la normativa RGPD
         </p>
       </div>
     </div>
