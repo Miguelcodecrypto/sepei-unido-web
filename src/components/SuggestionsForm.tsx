@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Send, AlertCircle, CheckCircle, Lightbulb, X } from 'lucide-react';
 import { addSuggestion } from '../services/suggestionDatabase';
+import { sendSuggestionConfirmationEmail, sendSuggestionNotificationEmail } from '../services/emailService';
 import type { BrowserCertificate } from '../services/browserCertificateService';
 import type { LoggedUserData } from './UserLogin';
 
@@ -94,6 +95,29 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
       }
 
       console.log('✅ Sugerencia guardada exitosamente:', result);
+
+      // Enviar emails de confirmación
+      console.log('📧 Enviando emails de confirmación...');
+      
+      // Email al usuario
+      const emailData = {
+        nombre: formData.nombre,
+        apellidos: formData.apellidos,
+        email: formData.email,
+        telefono: formData.telefono,
+        categoria: formData.categoria,
+        lugarTrabajo: formData.lugarTrabajo,
+        asunto: formData.asunto,
+        descripcion: formData.descripcion,
+      };
+
+      // Enviar ambos emails en paralelo
+      await Promise.all([
+        sendSuggestionConfirmationEmail(emailData),
+        sendSuggestionNotificationEmail(emailData)
+      ]);
+
+      console.log('✅ Emails enviados correctamente');
 
       setFormStatus({
         type: 'success',
