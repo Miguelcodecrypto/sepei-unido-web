@@ -57,7 +57,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
   const [verificationSent, setVerificationSent] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
-  // Validar DNI/NIE español
+  // Validar DNI/NIE espa├▒ol
   const validateDNI = (dni: string): boolean => {
     const dniRegex = /^[0-9]{8}[A-Z]$/;
     const nieRegex = /^[XYZ][0-9]{7}[A-Z]$/;
@@ -108,13 +108,13 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
     if (!formData.dni.trim()) {
       newErrors.dni = 'El DNI/NIE es obligatorio';
     } else if (!validateDNI(formData.dni.toUpperCase())) {
-      newErrors.dni = 'DNI/NIE inválido';
+      newErrors.dni = 'DNI/NIE inv├ílido';
     }
 
     if (!formData.email.trim()) {
       newErrors.email = 'El email es obligatorio';
     } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Email inválido';
+      newErrors.email = 'Email inv├ílido';
     }
 
     setErrors(newErrors);
@@ -141,31 +141,31 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
     }
 
     if (!acceptedPrivacy) {
-      setErrors({ email: 'Debes aceptar la política de privacidad para continuar' });
+      setErrors({ email: 'Debes aceptar la pol├¡tica de privacidad para continuar' });
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Normalizar DNI a mayúsculas
+      // Normalizar DNI a may├║sculas
       const normalizedDNI = formData.dni.toUpperCase();
 
-      // Verificar si el DNI ya está registrado en Supabase
+      // Verificar si el DNI ya est├í registrado en Supabase
       const existingUser = await getUserByDni(normalizedDNI);
       if (existingUser) {
-        setErrors({ dni: 'Este DNI ya está registrado' });
+        setErrors({ dni: 'Este DNI ya est├í registrado' });
         setIsLoading(false);
         return;
       }
 
-      // Generar contraseña temporal segura
+      // Generar contrase├▒a temporal segura
       const tempPassword = generateTemporaryPassword(12);
       
-      // Cifrar la contraseña antes de guardarla
+      // Cifrar la contrase├▒a antes de guardarla
       const hashedPassword = await hashPassword(tempPassword);
 
-      // Crear token de verificación
+      // Crear token de verificaci├│n
       const verificationToken = crypto.randomUUID();
 
       // Crear usuario
@@ -190,7 +190,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
 
       localStorage.setItem(`temp_user_${verificationToken}`, JSON.stringify(tempData));
 
-      // Enviar email de verificación usando el servicio real
+      // Enviar email de verificaci├│n usando el servicio real
       const emailSent = await sendVerificationEmail({
         email: userData.email,
         nombre: userData.nombre,
@@ -200,7 +200,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
       });
 
       if (!emailSent) {
-        setErrors({ email: 'Error al enviar email de verificación. Intenta de nuevo.' });
+        setErrors({ email: 'Error al enviar email de verificaci├│n. Intenta de nuevo.' });
         setIsLoading(false);
         return;
       }
@@ -210,9 +210,9 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
 
       // Solo en desarrollo, mostrar la info en consola
       if (import.meta.env.DEV) {
-        console.log('📧 [DESARROLLO] Datos de verificación:');
+        console.log('­ƒôº [DESARROLLO] Datos de verificaci├│n:');
         console.log('Email:', userData.email);
-        console.log('Contraseña temporal:', tempPassword);
+        console.log('Contrase├▒a temporal:', tempPassword);
         console.log('Token:', verificationToken);
       }
 
@@ -235,7 +235,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
           </div>
 
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            ¡Revisa tu correo!
+            ┬íRevisa tu correo!
           </h2>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
@@ -251,11 +251,11 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
             <ul className="text-sm text-gray-600 mt-2 space-y-1">
               <li className="flex items-center">
                 <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                Tu contraseña temporal
+                Tu contrase├▒a temporal
               </li>
               <li className="flex items-center">
                 <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                Enlace de verificación
+                Enlace de verificaci├│n
               </li>
             </ul>
           </div>
@@ -337,7 +337,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
               className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                 errors.apellidos ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Pérez García"
+              placeholder="P├®rez Garc├¡a"
             />
           </div>
           {errors.apellidos && (
@@ -369,7 +369,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
             <p className="text-red-500 text-sm mt-1">{errors.dni}</p>
           )}
           <p className="text-gray-500 text-xs mt-1">
-            Este será tu nombre de usuario
+            Este ser├í tu nombre de usuario
           </p>
         </div>
 
@@ -423,7 +423,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
           )}
         </div>
 
-        {/* Checkbox de Protección de Datos */
+        {/* Checkbox de Protección de Datos */}
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
@@ -433,17 +433,17 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
               className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             />
             <span className="text-sm text-gray-700">
-              He leído y acepto la{' '}
+              He le├¡do y acepto la{' '}
               <a 
                 href="/politica-privacidad" 
                 target="_blank" 
                 className="text-blue-600 hover:text-blue-800 font-semibold underline"
               >
-                Política de Privacidad
+                Pol├¡tica de Privacidad
               </a>
               {' '}y el tratamiento de mis datos personales conforme al RGPD. 
-              Mis datos serán utilizados únicamente para gestionar mi participación en SEPEI UNIDO 
-              y no serán cedidos a terceros sin mi consentimiento.
+              Mis datos ser├ín utilizados ├║nicamente para gestionar mi participaci├│n en SEPEI UNIDO 
+              y no ser├ín cedidos a terceros sin mi consentimiento.
             </span>
           </label>
         </div>
@@ -470,7 +470,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
 
       <div className="mt-6 pt-6 border-t border-gray-200">
         <p className="text-xs text-gray-500 text-center">
-          Tus datos están protegidos según la normativa RGPD
+          Tus datos est├ín protegidos seg├║n la normativa RGPD
         </p>
       </div>
     </div>
