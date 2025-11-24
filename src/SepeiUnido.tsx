@@ -511,7 +511,7 @@ export default function SepeiUnido() {
                 <ChevronDown className="w-5 h-5" />
               </button>
               <button
-                onClick={() => scrollToSection('contacto-section')}
+                onClick={handleOpenRegistration}
                 className="px-10 py-5 bg-white/5 text-white text-lg font-bold rounded-xl border-2 border-white/20 hover:bg-white/10 transform hover:scale-105 transition-all"
               >
                 Únete Ahora
