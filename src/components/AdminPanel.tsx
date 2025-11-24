@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Shield } from 'lucide-react';
+import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb } from 'lucide-react';
 import { getAllUsers, deleteUser, clearDatabase, exportUsersToCSV } from '../services/userDatabase';
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
-import { migrateExistingPasswords } from '../utils/migratePasswords';
 
 interface User {
   id: string;
@@ -51,11 +50,6 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalSuggestions, setTotalSuggestions] = useState(0);
   const [sessionTime, setSessionTime] = useState(0);
-  const [migrationStatus, setMigrationStatus] = useState<{
-    running: boolean;
-    message: string;
-    details: string[];
-  }>({ running: false, message: '', details: [] });
 
   useEffect(() => {
     loadUsers();
@@ -166,36 +160,6 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     await exportSuggestionsToCSV();
   };
 
-  const handleMigratePasswords = async () => {
-    if (!confirm('¿Seguro que quieres migrar las contraseñas a formato cifrado?\n\nEsto convertirá todas las contraseñas en texto plano a bcrypt hash.')) {
-      return;
-    }
-
-    setMigrationStatus({ running: true, message: 'Migrando contraseñas...', details: [] });
-
-    try {
-      const result = await migrateExistingPasswords();
-      
-      setMigrationStatus({
-        running: false,
-        message: `✅ Migración completada: ${result.migrated} usuarios migrados, ${result.errors} errores`,
-        details: result.details,
-      });
-
-      // Auto-cerrar después de 10 segundos
-      setTimeout(() => {
-        setMigrationStatus({ running: false, message: '', details: [] });
-      }, 10000);
-
-    } catch (error) {
-      setMigrationStatus({
-        running: false,
-        message: `❌ Error en la migración: ${error}`,
-        details: [],
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 py-12 px-4">
       <div className="max-w-7xl mx-auto">
@@ -273,16 +237,6 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
             Exportar CSV
           </button>
           
-          {activeTab === 'users' && (
-            <button
-              onClick={handleMigratePasswords}
-              disabled={migrationStatus.running}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition"
-            >
-              <Shield className="w-5 h-5" />
-              {migrationStatus.running ? 'Migrando...' : 'Migrar Contraseñas'}
-            </button>
-          )}
           <button
             onClick={activeTab === 'users' ? handleClearDatabase : handleClearSuggestions}
             className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition"
@@ -291,26 +245,6 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
             {activeTab === 'users' ? 'Limpiar Base de Datos' : 'Limpiar Sugerencias'}
           </button>
         </div>
-
-        {/* Migration Status */}
-        {migrationStatus.message && (
-          <div className={`mb-8 p-6 rounded-lg border ${
-            migrationStatus.message.includes('✅') 
-              ? 'bg-green-500/10 border-green-500/30' 
-              : migrationStatus.message.includes('❌')
-              ? 'bg-red-500/10 border-red-500/30'
-              : 'bg-blue-500/10 border-blue-500/30'
-          }`}>
-            <p className="text-white font-semibold mb-2">{migrationStatus.message}</p>
-            {migrationStatus.details.length > 0 && (
-              <div className="mt-4 max-h-60 overflow-y-auto bg-black/30 p-4 rounded font-mono text-sm">
-                {migrationStatus.details.map((detail, idx) => (
-                  <div key={idx} className="text-gray-300">{detail}</div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Users Table */}
         {activeTab === 'users' && (
