@@ -100,6 +100,9 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
       const userDataToSave = {
         ...verifiedUser,
         password: tempData.hashedPassword, // Contraseña cifrada con bcrypt
+        requires_password_change: true, // Marcar para cambio obligatorio
+        nombre: tempData.nombre,
+        apellidos: tempData.apellidos,
       };
       
       console.log('💾 [VERIFICACIÓN] Datos a guardar:', {

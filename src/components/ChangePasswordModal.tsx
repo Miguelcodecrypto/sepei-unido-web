@@ -139,6 +139,15 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       storedUserData.requires_password_change = false;
       storedUserData.password_changed_at = new Date().toISOString();
       localStorage.setItem(userKey, JSON.stringify(storedUserData));
+      
+      // Actualizar current_user también
+      const currentUserStr = localStorage.getItem('current_user');
+      if (currentUserStr) {
+        const currentUser = JSON.parse(currentUserStr);
+        localStorage.setItem('current_user', JSON.stringify(currentUser));
+      }
+
+      console.log('✅ [CAMBIO CONTRASEÑA] Contraseña actualizada, requires_password_change = false');
 
       // Actualizar en Supabase
       const { updateUserPassword } = await import('../services/userDatabase');
