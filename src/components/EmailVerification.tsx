@@ -37,24 +37,51 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
 
   const verifyToken = async (verificationToken: string) => {
     try {
+      console.log('🔍 [VERIFICACIÓN] Iniciando verificación del token:', verificationToken);
+      
       // Buscar datos temporales en localStorage
       const tempDataKey = `temp_user_${verificationToken}`;
+      console.log('🔍 [VERIFICACIÓN] Buscando clave:', tempDataKey);
+      
+      // Debug: Mostrar todas las claves en localStorage
+      console.log('🔍 [VERIFICACIÓN] Claves en localStorage:', Object.keys(localStorage));
+      
       const tempDataStr = localStorage.getItem(tempDataKey);
+      console.log('🔍 [VERIFICACIÓN] Datos encontrados:', tempDataStr ? 'SÍ' : 'NO');
 
       if (!tempDataStr) {
+        console.error('❌ [VERIFICACIÓN] No se encontraron datos temporales para el token');
         setStatus('expired');
         return;
       }
 
       const tempData = JSON.parse(tempDataStr);
+      console.log('🔍 [VERIFICACIÓN] Datos temporales parseados:', {
+        nombre: tempData.nombre,
+        dni: tempData.dni,
+        expiresAt: tempData.expiresAt,
+        hasHashedPassword: !!tempData.hashedPassword
+      });
 
       // Verificar si el token ha expirado
       const expiresAt = new Date(tempData.expiresAt);
-      if (new Date() > expiresAt) {
+      const now = new Date();
+      console.log('🔍 [VERIFICACIÓN] Comparación de fechas:', {
+        expira: expiresAt.toISOString(),
+        ahora: now.toISOString(),
+        expirado: now > expiresAt
+      });
+      
+      if (now > expiresAt) {
+        console.error('❌ [VERIFICACIÓN] Token expirado');
         localStorage.removeItem(tempDataKey);
         setStatus('expired');
         return;
       }
+      
+      console.log('✅ [VERIFICACIÓN] Token válido, procediendo a verificar usuario...');
+
+      console.log('✅ [VERIFICACIÓN] Token válido, procediendo a verificar usuario...');
 
       // Crear usuario verificado
       const verifiedUser: UserData = {
@@ -68,10 +95,20 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
 
       // Guardar usuario en localStorage
       const userKey = `user_${tempData.dni}`;
-      localStorage.setItem(userKey, JSON.stringify({
+      console.log('💾 [VERIFICACIÓN] Guardando usuario con clave:', userKey);
+      
+      const userDataToSave = {
         ...verifiedUser,
-        password: tempData.tempPassword, // En producción, esto debe ser hasheado
-      }));
+        password: tempData.hashedPassword, // Contraseña cifrada con bcrypt
+      };
+      
+      console.log('💾 [VERIFICACIÓN] Datos a guardar:', {
+        ...userDataToSave,
+        password: userDataToSave.password ? userDataToSave.password.substring(0, 20) + '...' : 'NO HAY PASSWORD'
+      });
+      
+      localStorage.setItem(userKey, JSON.stringify(userDataToSave));
+      console.log('✅ [VERIFICACIÓN] Usuario guardado en localStorage');
 
       // Guardar en índice de usuarios
       const usersIndex = JSON.parse(localStorage.getItem('users_index') || '[]');

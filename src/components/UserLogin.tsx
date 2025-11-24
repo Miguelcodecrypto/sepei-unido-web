@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { LogIn, User, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { verifyPassword } from '../services/passwordService';
 
 interface UserLoginProps {
   onLoginSuccess: (userData: LoggedUserData) => void;
@@ -65,8 +66,10 @@ export const UserLogin: React.FC<UserLoginProps> = ({
 
       const userData = JSON.parse(userDataStr);
 
-      // Verificar contraseña
-      if (userData.password !== formData.password) {
+      // Verificar contraseña usando bcrypt
+      const isPasswordValid = await verifyPassword(formData.password, userData.password);
+      
+      if (!isPasswordValid) {
         setError('Contraseña incorrecta');
         setIsLoading(false);
         return;

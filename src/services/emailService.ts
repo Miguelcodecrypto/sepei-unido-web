@@ -24,6 +24,27 @@ export async function sendVerificationEmail(data: EmailVerificationData): Promis
       tokenLength: data.verificationToken?.length || 0
     });
     
+    // MODO DESARROLLO: Simular envío exitoso y mostrar datos en consola
+    if (import.meta.env.DEV) {
+      console.log('🔧 [DESARROLLO] Modo desarrollo detectado - Simulando envío de email');
+      console.log('📧 ========================================');
+      console.log('📧 EMAIL DE VERIFICACIÓN (SIMULADO)');
+      console.log('📧 ========================================');
+      console.log('📧 Para:', data.email);
+      console.log('📧 Nombre:', data.nombre);
+      console.log('📧 DNI:', data.dni);
+      console.log('📧 Contraseña temporal:', data.tempPassword);
+      console.log('📧 Token:', data.verificationToken);
+      console.log('📧 ========================================');
+      console.log('📧 LINK DE VERIFICACIÓN:');
+      console.log(`📧 http://localhost:5176/verify?token=${data.verificationToken}`);
+      console.log('📧 ========================================');
+      console.log('🔧 Copia el link de arriba y pégalo en el navegador para verificar tu cuenta');
+      
+      // Simular éxito
+      return true;
+    }
+    
     const html = generateVerificationEmailHTML(data);
     const text = generateVerificationEmailText(data);
     
