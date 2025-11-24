@@ -261,8 +261,11 @@ export default function SepeiUnido() {
       setShowAuthMethodSelector(true);
       return;
     }
-    // Si ya está logueado, abrir formulario de propuestas
-    setShowSuggestionsForm(true);
+    // Si ya está logueado, hacer scroll al formulario de ideas
+    const ideasSection = document.getElementById('ideas-form-section');
+    if (ideasSection) {
+      ideasSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   };
 
   const handleOpenRegistration = () => {
@@ -666,22 +669,18 @@ export default function SepeiUnido() {
           </div>
 
           {loggedUser ? (
-            // Usuario logueado: mostrar botón para acceder
-            <div className="bg-slate-800/90 p-12 rounded-3xl border-2 border-green-500/30 text-center space-y-6">
-              <div className="bg-green-500/10 border-2 border-green-500/30 rounded-xl p-4 inline-block">
-                <CheckCircle className="w-8 h-8 text-green-400 mx-auto" />
+            // Usuario logueado: mostrar formulario inline
+            <div id="ideas-form-section" className="bg-slate-800/90 p-8 rounded-3xl border-2 border-green-500/30">
+              <div className="bg-green-500/10 border-2 border-green-500/30 rounded-xl p-4 mb-6 text-center">
+                <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                <p className="text-green-300 font-bold">✓ Sesión activa - {loggedUser.nombre}</p>
               </div>
-              <div>
-                <p className="text-green-300 font-bold text-lg mb-2">✓ Sesión activa</p>
-                <p className="text-gray-300 mb-4">Bienvenido {loggedUser.nombre}. Ya puedes compartir tus ideas y propuestas.</p>
-              </div>
-              <button
-                onClick={handleOpenSuggestionsForm}
-                className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-slate-900 text-lg font-bold rounded-xl shadow-2xl hover:shadow-yellow-500/50 transform hover:scale-105 transition-all"
-              >
-                <Lightbulb className="w-6 h-6" />
-                Compartir mi Idea
-              </button>
+              <SuggestionsForm
+                certificateData={certificateData || undefined}
+                userData={loggedUser}
+                onClose={() => {}}
+                inline={true}
+              />
             </div>
           ) : (
             // Usuario no logueado: mostrar instrucciones y botón de login
@@ -932,13 +931,7 @@ export default function SepeiUnido() {
         />
       )}
 
-      {/* Suggestions Form Modal */}
-      {showSuggestionsForm && loggedUser && (
-        <SuggestionsForm
-          certificateData={certificateData || undefined}
-          onClose={() => setShowSuggestionsForm(false)}
-        />
-      )}
+
 
       {/* User Login Modal */}
       {showUserLogin && (
