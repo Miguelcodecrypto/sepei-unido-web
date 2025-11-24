@@ -7,6 +7,7 @@ interface User {
   dni?: string;
   email: string;
   telefono?: string;
+  registration_ip?: string;
   fecha_registro: string;
   terminos_aceptados: boolean;
   fecha_aceptacion_terminos: string;
@@ -50,6 +51,7 @@ export const addUser = async (userData: Omit<User, 'id' | 'fecha_registro' | 'fe
         dni: userData.dni,
         email: userData.email,
         telefono: userData.telefono,
+        registration_ip: userData.registration_ip,
         terminos_aceptados: userData.terminos_aceptados,
         certificado_nif: userData.certificado_nif,
         certificado_thumbprint: userData.certificado_thumbprint,

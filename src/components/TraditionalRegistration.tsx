@@ -162,11 +162,21 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
       // Generar contrase├▒a temporal segura
       const tempPassword = generateTemporaryPassword(12);
       
-      // Cifrar la contrase├▒a antes de guardarla
+      // Cifrar la contraseña antes de guardarla
       const hashedPassword = await hashPassword(tempPassword);
 
-      // Crear token de verificaci├│n
+      // Crear token de verificación
       const verificationToken = crypto.randomUUID();
+
+      // Obtener IP del cliente
+      let userIP = 'unknown';
+      try {
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        userIP = ipData.ip;
+      } catch (error) {
+        console.error('Error obteniendo IP:', error);
+      }
 
       // Crear usuario
       const userData: UserData = {
@@ -182,6 +192,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
       const tempData = {
         ...userData,
         telefono: formData.telefono.trim(),
+        registration_ip: userIP,
         tempPassword,
         hashedPassword, // Guardar el hash para uso posterior
         verificationToken,

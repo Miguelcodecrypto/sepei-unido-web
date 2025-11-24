@@ -122,6 +122,7 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
         dni: tempData.dni,
         email: tempData.email,
         telefono: tempData.telefono || '',
+        registration_ip: tempData.registration_ip || 'unknown',
         verified: true,
         terminos_aceptados: true,
         requires_password_change: true, // Marcar que debe cambiar contraseña
