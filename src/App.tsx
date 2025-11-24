@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import SepeiUnido from './SepeiUnido';
 import AdminPanel from './components/AdminPanel';
 import LoginPanel from './components/LoginPanel';
-import SuggestionsForm from './components/SuggestionsForm';
 import { Settings } from 'lucide-react';
 import { isAuthenticated } from './services/authService';
 
@@ -47,15 +46,6 @@ export default function App() {
   // Si está autenticado y hace clic en admin, mostrar panel
   if (showAdmin && isAuth) {
     return <AdminPanel onLogout={handleLogout} />;
-  }
-
-  // Si hace clic en sugerencias, mostrar formulario
-  if (showSuggestions) {
-    return (
-      <div className="min-h-screen bg-slate-950 py-12 px-4">
-        <SuggestionsForm onClose={() => setShowSuggestions(false)} />
-      </div>
-    );
   }
 
   return (
