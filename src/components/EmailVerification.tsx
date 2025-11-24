@@ -124,6 +124,7 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
         telefono: tempData.telefono || '',
         verified: true,
         terminos_aceptados: true,
+        requires_password_change: true, // Marcar que debe cambiar contraseña
       });
 
       // Limpiar datos temporales

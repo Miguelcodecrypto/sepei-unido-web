@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Flame, Users, Shield, Target, Mail, Phone, Instagram, Facebook, Twitter, Linkedin, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, Lightbulb, LogIn } from 'lucide-react';
+import { Flame, Users, Shield, Target, Mail, Phone, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, Lightbulb, LogIn } from 'lucide-react';
 import { addUser } from './services/userDatabase';
 import { getCertificateFromSession, clearCertificateSession, type BrowserCertificate } from './services/browserCertificateService';
 import TermsModal from './components/TermsModal';
@@ -30,9 +30,6 @@ export default function SepeiUnido() {
     nombre: '',
     email: '',
     telefono: '',
-    instagram: '',
-    facebook: '',
-    twitter: '',
     linkedin: ''
   });
   const [formStatus, setFormStatus] = useState(null as any);
@@ -117,10 +114,6 @@ export default function SepeiUnido() {
         nombre: pendingUserData.nombre,
         email: pendingUserData.email,
         telefono: pendingUserData.telefono || undefined,
-        instagram: pendingUserData.instagram || undefined,
-        facebook: pendingUserData.facebook || undefined,
-        twitter: pendingUserData.twitter || undefined,
-        linkedin: pendingUserData.linkedin || undefined,
         terminos_aceptados: true,
         // Datos del certificado FNMT
         certificado_nif: certificateData.nif,
@@ -137,9 +130,6 @@ export default function SepeiUnido() {
         nombre: '',
         email: '',
         telefono: '',
-        instagram: '',
-        facebook: '',
-        twitter: '',
         linkedin: ''
       });
       
@@ -181,9 +171,6 @@ export default function SepeiUnido() {
       nombre: '',
       email: '',
       telefono: '',
-      instagram: '',
-      facebook: '',
-      twitter: '',
       linkedin: ''
     });
     

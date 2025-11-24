@@ -16,6 +16,7 @@ interface User {
   certificado_fecha_validacion?: string;
   certificado_valido?: boolean;
   verified?: boolean;
+  requires_password_change?: boolean;
 }
 
 // Obtener todos los usuarios
@@ -55,6 +56,7 @@ export const addUser = async (userData: Omit<User, 'id' | 'fecha_registro' | 'fe
         certificado_fecha_validacion: userData.certificado_fecha_validacion,
         certificado_valido: userData.certificado_valido,
         verified: userData.verified,
+        requires_password_change: userData.requires_password_change,
         version_terminos: '1.0',
       }])
       .select()
@@ -240,4 +242,27 @@ export const exportUsersToCSV = async (): Promise<void> => {
   link.href = URL.createObjectURL(blob);
   link.download = `usuarios_sepei_${new Date().toISOString().split('T')[0]}.csv`;
   link.click();
+};
+
+// Actualizar contraseña de usuario
+export const updateUserPassword = async (dni: string, hashedPassword: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({ 
+        requires_password_change: false,
+        password_changed_at: new Date().toISOString()
+      })
+      .eq('dni', dni.toUpperCase());
+
+    if (error) {
+      console.error('Error al actualizar contraseña en Supabase:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error en updateUserPassword:', error);
+    return false;
+  }
 };
