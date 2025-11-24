@@ -7,10 +7,6 @@ interface User {
   dni?: string;
   email: string;
   telefono?: string;
-  instagram?: string;
-  facebook?: string;
-  twitter?: string;
-  linkedin?: string;
   fecha_registro: string;
   terminos_aceptados: boolean;
   fecha_aceptacion_terminos: string;
@@ -53,10 +49,6 @@ export const addUser = async (userData: Omit<User, 'id' | 'fecha_registro' | 'fe
         dni: userData.dni,
         email: userData.email,
         telefono: userData.telefono,
-        instagram: userData.instagram,
-        facebook: userData.facebook,
-        twitter: userData.twitter,
-        linkedin: userData.linkedin,
         terminos_aceptados: userData.terminos_aceptados,
         certificado_nif: userData.certificado_nif,
         certificado_thumbprint: userData.certificado_thumbprint,
