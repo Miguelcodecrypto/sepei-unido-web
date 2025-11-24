@@ -57,14 +57,6 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     const interval = setInterval(() => {
       setSessionTime(getSessionTimeRemaining());
     }, 60000);
-  useEffect(() => {
-    loadUsers();
-    loadSuggestions();
-    
-    // Actualizar tiempo de sesión cada minuto
-    const interval = setInterval(() => {
-      setSessionTime(getSessionTimeRemaining());
-    }, 60000);
     
     // Mostrar tiempo inicial
     setSessionTime(getSessionTimeRemaining());
