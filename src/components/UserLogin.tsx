@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { LogIn, User, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { verifyPassword } from '../services/passwordService';
+import { ChangePasswordModal } from './ChangePasswordModal';
 
 interface UserLoginProps {
   onLoginSuccess: (userData: LoggedUserData) => void;
@@ -30,6 +31,8 @@ export const UserLogin: React.FC<UserLoginProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [tempUserData, setTempUserData] = useState<LoggedUserData | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -99,6 +102,15 @@ export const UserLogin: React.FC<UserLoginProps> = ({
       // Guardar sesión activa
       localStorage.setItem('current_user', JSON.stringify(loggedUser));
 
+      // Verificar si necesita cambiar contraseña
+      if (userData.requires_password_change === true) {
+        console.log('⚠️ Usuario debe cambiar contraseña temporal');
+        setTempUserData(loggedUser);
+        setShowChangePassword(true);
+        setIsLoading(false);
+        return;
+      }
+
       console.log('✅ Login exitoso:', loggedUser);
       onLoginSuccess(loggedUser);
 
@@ -109,6 +121,26 @@ export const UserLogin: React.FC<UserLoginProps> = ({
       setIsLoading(false);
     }
   };
+
+  // Mostrar modal de cambio de contraseña si es necesario
+  if (showChangePassword && tempUserData) {
+    return (
+      <ChangePasswordModal
+        userData={{
+          dni: tempUserData.dni,
+          nombre: tempUserData.nombre,
+          email: tempUserData.email,
+        }}
+        onSuccess={() => {
+          setShowChangePassword(false);
+          if (tempUserData) {
+            onLoginSuccess(tempUserData);
+          }
+        }}
+        canCancel={false}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">

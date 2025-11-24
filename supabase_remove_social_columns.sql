@@ -7,7 +7,10 @@ ALTER TABLE users DROP COLUMN IF EXISTS facebook;
 ALTER TABLE users DROP COLUMN IF EXISTS twitter;
 ALTER TABLE users DROP COLUMN IF EXISTS linkedin;
 
--- Verificar que las columnas se han eliminado
+-- Agregar columna para controlar cambio de contraseña obligatorio
+ALTER TABLE users ADD COLUMN IF NOT EXISTS requires_password_change BOOLEAN DEFAULT false;
+
+-- Verificar que las columnas se han eliminado y agregado
 SELECT column_name, data_type 
 FROM information_schema.columns 
 WHERE table_name = 'users' 
