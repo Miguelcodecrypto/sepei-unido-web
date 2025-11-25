@@ -107,13 +107,8 @@ USING (publicado = true);
 DROP POLICY IF EXISTS "Admins pueden gestionar votaciones" ON votaciones;
 CREATE POLICY "Admins pueden gestionar votaciones"
 ON votaciones FOR ALL
-USING (
-    EXISTS (
-        SELECT 1 FROM users 
-        WHERE users.email = auth.jwt() ->> 'email' 
-        AND users.email IN ('miguelangel2002cb@gmail.com', 'admin@sepeiunido.org')
-    )
-);
+USING (auth.uid() IS NOT NULL)
+WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Políticas para opciones_votacion
 -- Todos pueden ver opciones de votaciones publicadas
@@ -131,13 +126,8 @@ USING (
 DROP POLICY IF EXISTS "Admins pueden gestionar opciones" ON opciones_votacion;
 CREATE POLICY "Admins pueden gestionar opciones"
 ON opciones_votacion FOR ALL
-USING (
-    EXISTS (
-        SELECT 1 FROM users 
-        WHERE users.email = auth.jwt() ->> 'email' 
-        AND users.email IN ('miguelangel2002cb@gmail.com', 'admin@sepeiunido.org')
-    )
-);
+USING (auth.uid() IS NOT NULL)
+WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Políticas para votos
 -- Usuarios autenticados pueden insertar su voto
@@ -162,28 +152,17 @@ USING (
     EXISTS (
         SELECT 1 FROM votaciones 
         WHERE votaciones.id = votos.votacion_id 
-        AND (
-            votaciones.resultados_publicos = true OR
-            EXISTS (
-                SELECT 1 FROM users 
-                WHERE users.email = auth.jwt() ->> 'email' 
-                AND users.email IN ('miguelangel2002cb@gmail.com', 'admin@sepeiunido.org')
-            )
-        )
+        AND votaciones.resultados_publicos = true
     )
+    OR auth.uid() IS NOT NULL
 );
 
 -- Admins pueden gestionar todos los votos
 DROP POLICY IF EXISTS "Admins pueden gestionar votos" ON votos;
 CREATE POLICY "Admins pueden gestionar votos"
 ON votos FOR ALL
-USING (
-    EXISTS (
-        SELECT 1 FROM users 
-        WHERE users.email = auth.jwt() ->> 'email' 
-        AND users.email IN ('miguelangel2002cb@gmail.com', 'admin@sepeiunido.org')
-    )
-);
+USING (auth.uid() IS NOT NULL)
+WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Comentarios en las tablas
 COMMENT ON TABLE votaciones IS 'Almacena las votaciones y encuestas del sistema';
