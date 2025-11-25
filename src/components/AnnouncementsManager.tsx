@@ -69,15 +69,19 @@ export default function AnnouncementsManager() {
       // Subir imagen si hay una nueva
       if (imageFile) {
         setUploadProgress('Subiendo imagen...');
-        imagen_url = await uploadAnnouncementImage(imageFile);
+        const uploadedImageUrl = await uploadAnnouncementImage(imageFile);
+        if (uploadedImageUrl) imagen_url = uploadedImageUrl;
       }
 
       // Subir archivo adjunto si hay uno nuevo
       if (attachmentFile) {
         setUploadProgress('Subiendo archivo...');
-        archivo_url = await uploadAnnouncementFile(attachmentFile);
-        archivo_nombre = attachmentFile.name;
-        archivo_tipo = attachmentFile.type;
+        const uploadedFileUrl = await uploadAnnouncementFile(attachmentFile);
+        if (uploadedFileUrl) {
+          archivo_url = uploadedFileUrl;
+          archivo_nombre = attachmentFile.name;
+          archivo_tipo = attachmentFile.type;
+        }
       }
 
       const announcementData = {
