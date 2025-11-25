@@ -616,7 +616,7 @@ export default function SepeiUnido() {
       {/* Votaciones Activas */}
       <section id="votaciones-section" className="py-24 px-4 bg-slate-950">
         <div className="max-w-7xl mx-auto">
-          <VotingBoard onLoginRequired={handleOpenLogin} />
+          <VotingBoard onLoginRequired={() => setShowUserLogin(true)} />
         </div>
       </section>
 
