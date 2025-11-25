@@ -504,6 +504,8 @@ export default function SepeiUnido() {
                 Leer Manifiesto
                 <ChevronDown className="w-5 h-5" />
               </button>
+              
+              {/* Botón de Anuncios Moderno */}
               <button
                 onClick={() => {
                   const announcementsSection = document.querySelector('#inicio')?.nextElementSibling;
@@ -511,16 +513,56 @@ export default function SepeiUnido() {
                     announcementsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }
                 }}
-                className="group relative px-10 py-5 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-lg font-bold rounded-xl shadow-2xl hover:shadow-blue-500/50 transform hover:scale-105 transition-all overflow-hidden"
+                className="group relative px-8 py-5 overflow-hidden rounded-2xl"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="relative flex items-center justify-center gap-2">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                  📢 Novedades y Anuncios
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                {/* Fondo animado con gradiente */}
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 opacity-90 group-hover:opacity-100 transition-opacity duration-300"></div>
+                
+                {/* Efecto de brillo en movimiento */}
+                <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+                
+                {/* Partículas flotantes */}
+                <div className="absolute top-1/2 left-1/4 w-2 h-2 bg-white/40 rounded-full animate-ping"></div>
+                <div className="absolute top-1/3 right-1/3 w-1.5 h-1.5 bg-cyan-300/50 rounded-full animate-pulse"></div>
+                <div className="absolute bottom-1/3 left-1/2 w-1 h-1 bg-purple-300/40 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
+                
+                {/* Contenido del botón */}
+                <div className="relative flex items-center gap-3 text-white font-bold text-lg">
+                  {/* Icono con rotación */}
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-white/20 rounded-full blur-md group-hover:bg-white/30 transition-all"></div>
+                    <div className="relative w-10 h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 group-hover:rotate-12 transition-transform duration-300">
+                      <span className="text-2xl group-hover:scale-110 transition-transform">📢</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col items-start">
+                    <span className="text-xs text-cyan-100 font-normal uppercase tracking-wider">Últimas</span>
+                    <span className="leading-tight group-hover:tracking-wide transition-all">Novedades</span>
+                  </div>
+                  
+                  {/* Badge animado */}
+                  <div className="absolute -top-2 -right-2">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-red-500 rounded-full animate-ping"></div>
+                      <div className="relative bg-gradient-to-br from-red-400 to-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full border-2 border-white shadow-lg">
+                        NUEVO
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Flecha animada */}
+                  <div className="ml-2 group-hover:translate-x-1 transition-transform duration-300">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </div>
                 </div>
+                
+                {/* Borde brillante */}
+                <div className="absolute inset-0 rounded-2xl border-2 border-white/20 group-hover:border-white/40 transition-colors"></div>
               </button>
+              
               <button
                 onClick={handleOpenRegistration}
                 className="px-10 py-5 bg-white/5 text-white text-lg font-bold rounded-xl border-2 border-white/20 hover:bg-white/10 transform hover:scale-105 transition-all"
