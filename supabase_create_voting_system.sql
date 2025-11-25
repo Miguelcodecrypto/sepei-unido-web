@@ -111,7 +111,7 @@ USING (
     EXISTS (
         SELECT 1 FROM users 
         WHERE users.email = auth.jwt() ->> 'email' 
-        AND users.role = 'admin'
+        AND users.email IN ('miguelangel2002cb@gmail.com', 'admin@sepeiunido.org')
     )
 );
 
@@ -135,7 +135,7 @@ USING (
     EXISTS (
         SELECT 1 FROM users 
         WHERE users.email = auth.jwt() ->> 'email' 
-        AND users.role = 'admin'
+        AND users.email IN ('miguelangel2002cb@gmail.com', 'admin@sepeiunido.org')
     )
 );
 
@@ -167,7 +167,7 @@ USING (
             EXISTS (
                 SELECT 1 FROM users 
                 WHERE users.email = auth.jwt() ->> 'email' 
-                AND users.role = 'admin'
+                AND users.email IN ('miguelangel2002cb@gmail.com', 'admin@sepeiunido.org')
             )
         )
     )
@@ -181,7 +181,7 @@ USING (
     EXISTS (
         SELECT 1 FROM users 
         WHERE users.email = auth.jwt() ->> 'email' 
-        AND users.role = 'admin'
+        AND users.email IN ('miguelangel2002cb@gmail.com', 'admin@sepeiunido.org')
     )
 );
 
