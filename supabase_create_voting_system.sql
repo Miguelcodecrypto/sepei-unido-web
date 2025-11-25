@@ -99,6 +99,7 @@ ALTER TABLE votos ENABLE ROW LEVEL SECURITY;
 
 -- Políticas para votaciones
 -- Todos pueden ver votaciones publicadas
+DROP POLICY IF EXISTS "Votaciones públicas visibles para todos" ON votaciones;
 CREATE POLICY "Votaciones públicas visibles para todos"
 ON votaciones FOR SELECT
 USING (publicado = true);
@@ -112,6 +113,7 @@ WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Políticas para opciones_votacion
 -- Todos pueden ver opciones de votaciones publicadas
+DROP POLICY IF EXISTS "Opciones de votaciones públicas visibles" ON opciones_votacion;
 CREATE POLICY "Opciones de votaciones públicas visibles"
 ON opciones_votacion FOR SELECT
 USING (
@@ -131,6 +133,7 @@ WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Políticas para votos
 -- Usuarios autenticados pueden insertar su voto
+DROP POLICY IF EXISTS "Usuarios pueden votar" ON votos;
 CREATE POLICY "Usuarios pueden votar"
 ON votos FOR INSERT
 WITH CHECK (
