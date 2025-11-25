@@ -9,6 +9,7 @@ import { TraditionalRegistration, type UserData } from './components/Traditional
 import { UserLogin, type LoggedUserData } from './components/UserLogin';
 import { EmailVerification } from './components/EmailVerification';
 import AnnouncementsBoard from './components/AnnouncementsBoard';
+import VotingBoard from './components/VotingBoard';
 
 export default function SepeiUnido() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -612,7 +613,14 @@ export default function SepeiUnido() {
         </div>
       </section>
 
-      <section id="manifiesto-section" className="py-24 px-4 bg-slate-950">
+      {/* Votaciones Activas */}
+      <section id="votaciones-section" className="py-24 px-4 bg-slate-950">
+        <div className="max-w-7xl mx-auto">
+          <VotingBoard onLoginRequired={handleOpenLogin} />
+        </div>
+      </section>
+
+      <section id="manifiesto-section" className="py-24 px-4 bg-slate-900">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-5xl md:text-6xl font-black text-white mb-6">Nuestro Manifiesto</h2>
