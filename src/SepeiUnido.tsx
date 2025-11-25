@@ -505,6 +505,23 @@ export default function SepeiUnido() {
                 <ChevronDown className="w-5 h-5" />
               </button>
               <button
+                onClick={() => {
+                  const announcementsSection = document.querySelector('#inicio')?.nextElementSibling;
+                  if (announcementsSection) {
+                    announcementsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }}
+                className="group relative px-10 py-5 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-lg font-bold rounded-xl shadow-2xl hover:shadow-blue-500/50 transform hover:scale-105 transition-all overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  📢 Novedades y Anuncios
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                </div>
+              </button>
+              <button
                 onClick={handleOpenRegistration}
                 className="px-10 py-5 bg-white/5 text-white text-lg font-bold rounded-xl border-2 border-white/20 hover:bg-white/10 transform hover:scale-105 transition-all"
               >
