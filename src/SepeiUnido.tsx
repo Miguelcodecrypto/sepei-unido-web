@@ -507,22 +507,7 @@ export default function SepeiUnido() {
               
               {/* Botón de Anuncios Moderno */}
               <button
-                onClick={() => {
-                  const heroSection = document.getElementById('inicio');
-                  if (heroSection) {
-                    const announcementsSection = heroSection.nextElementSibling as HTMLElement;
-                    if (announcementsSection) {
-                      const offset = 80; // Offset para el header
-                      const elementPosition = announcementsSection.getBoundingClientRect().top;
-                      const offsetPosition = elementPosition + window.pageYOffset - offset;
-                      
-                      window.scrollTo({
-                        top: offsetPosition,
-                        behavior: 'smooth'
-                      });
-                    }
-                  }
-                }}
+                onClick={() => scrollToSection('anuncios-section')}
                 className="group relative px-8 py-5 overflow-hidden rounded-2xl"
               >
                 {/* Fondo animado con gradiente */}
@@ -621,7 +606,7 @@ export default function SepeiUnido() {
       </section>
 
       {/* Tablón de Anuncios */}
-      <section className="py-24 px-4 bg-slate-900">
+      <section id="anuncios-section" className="py-24 px-4 bg-slate-900">
         <div className="max-w-7xl mx-auto">
           <AnnouncementsBoard />
         </div>
