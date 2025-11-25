@@ -13,11 +13,7 @@ CREATE TABLE IF NOT EXISTS votaciones (
     resultados_publicos BOOLEAN DEFAULT false,
     multiple_respuestas BOOLEAN DEFAULT false, -- Permite seleccionar múltiples opciones
     creado_por VARCHAR(255),
-    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    activa BOOLEAN GENERATED ALWAYS AS (
-        publicado = true AND 
-        NOW() BETWEEN fecha_inicio AND fecha_fin
-    ) STORED
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Tabla de opciones de votación
@@ -42,13 +38,12 @@ CREATE TABLE IF NOT EXISTS votos (
 );
 
 -- Índices para mejorar el rendimiento
-CREATE INDEX idx_votaciones_publicado ON votaciones(publicado);
-CREATE INDEX idx_votaciones_activa ON votaciones((publicado = true AND NOW() BETWEEN fecha_inicio AND fecha_fin));
-CREATE INDEX idx_votaciones_fecha_fin ON votaciones(fecha_fin DESC);
-CREATE INDEX idx_opciones_votacion_id ON opciones_votacion(votacion_id);
-CREATE INDEX idx_votos_votacion_id ON votos(votacion_id);
-CREATE INDEX idx_votos_user_id ON votos(user_id);
-CREATE INDEX idx_votos_opcion_id ON votos(opcion_id);
+CREATE INDEX IF NOT EXISTS idx_votaciones_publicado ON votaciones(publicado);
+CREATE INDEX IF NOT EXISTS idx_votaciones_fecha_fin ON votaciones(fecha_fin DESC);
+CREATE INDEX IF NOT EXISTS idx_opciones_votacion_id ON opciones_votacion(votacion_id);
+CREATE INDEX IF NOT EXISTS idx_votos_votacion_id ON votos(votacion_id);
+CREATE INDEX IF NOT EXISTS idx_votos_user_id ON votos(user_id);
+CREATE INDEX IF NOT EXISTS idx_votos_opcion_id ON votos(opcion_id);
 
 -- Función para obtener resultados de una votación
 CREATE OR REPLACE FUNCTION obtener_resultados_votacion(votacion_uuid UUID)
@@ -109,11 +104,14 @@ ON votaciones FOR SELECT
 USING (publicado = true);
 
 -- Solo admins pueden gestionar votaciones (insertar, actualizar, eliminar)
+DROP POLICY IF EXISTS "Admins pueden gestionar votaciones" ON votaciones;
 CREATE POLICY "Admins pueden gestionar votaciones"
 ON votaciones FOR ALL
 USING (
-    auth.jwt() ->> 'email' IN (
-        SELECT email FROM users WHERE role = 'admin'
+    EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.email = auth.jwt() ->> 'email' 
+        AND users.role = 'admin'
     )
 );
 
@@ -130,11 +128,14 @@ USING (
 );
 
 -- Solo admins pueden gestionar opciones
+DROP POLICY IF EXISTS "Admins pueden gestionar opciones" ON opciones_votacion;
 CREATE POLICY "Admins pueden gestionar opciones"
 ON opciones_votacion FOR ALL
 USING (
-    auth.jwt() ->> 'email' IN (
-        SELECT email FROM users WHERE role = 'admin'
+    EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.email = auth.jwt() ->> 'email' 
+        AND users.role = 'admin'
     )
 );
 
@@ -154,6 +155,7 @@ WITH CHECK (
 );
 
 -- Los votos solo son visibles si los resultados son públicos o si eres admin
+DROP POLICY IF EXISTS "Ver votos según configuración" ON votos;
 CREATE POLICY "Ver votos según configuración"
 ON votos FOR SELECT
 USING (
@@ -162,17 +164,24 @@ USING (
         WHERE votaciones.id = votos.votacion_id 
         AND (
             votaciones.resultados_publicos = true OR
-            auth.jwt() ->> 'email' IN (SELECT email FROM users WHERE role = 'admin')
+            EXISTS (
+                SELECT 1 FROM users 
+                WHERE users.email = auth.jwt() ->> 'email' 
+                AND users.role = 'admin'
+            )
         )
     )
 );
 
 -- Admins pueden gestionar todos los votos
+DROP POLICY IF EXISTS "Admins pueden gestionar votos" ON votos;
 CREATE POLICY "Admins pueden gestionar votos"
 ON votos FOR ALL
 USING (
-    auth.jwt() ->> 'email' IN (
-        SELECT email FROM users WHERE role = 'admin'
+    EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.email = auth.jwt() ->> 'email' 
+        AND users.role = 'admin'
     )
 );
 
@@ -180,6 +189,5 @@ USING (
 COMMENT ON TABLE votaciones IS 'Almacena las votaciones y encuestas del sistema';
 COMMENT ON TABLE opciones_votacion IS 'Opciones disponibles para cada votación';
 COMMENT ON TABLE votos IS 'Registro de votos emitidos por los usuarios';
-COMMENT ON COLUMN votaciones.activa IS 'Campo calculado que indica si la votación está actualmente activa';
 COMMENT ON COLUMN votaciones.multiple_respuestas IS 'Permite a los usuarios seleccionar múltiples opciones';
 COMMENT ON COLUMN votaciones.resultados_publicos IS 'Define si los resultados son visibles públicamente';
