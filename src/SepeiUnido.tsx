@@ -508,9 +508,19 @@ export default function SepeiUnido() {
               {/* Botón de Anuncios Moderno */}
               <button
                 onClick={() => {
-                  const announcementsSection = document.querySelector('#inicio')?.nextElementSibling;
-                  if (announcementsSection) {
-                    announcementsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  const heroSection = document.getElementById('inicio');
+                  if (heroSection) {
+                    const announcementsSection = heroSection.nextElementSibling as HTMLElement;
+                    if (announcementsSection) {
+                      const offset = 80; // Offset para el header
+                      const elementPosition = announcementsSection.getBoundingClientRect().top;
+                      const offsetPosition = elementPosition + window.pageYOffset - offset;
+                      
+                      window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                      });
+                    }
                   }
                 }}
                 className="group relative px-8 py-5 overflow-hidden rounded-2xl"
@@ -532,13 +542,13 @@ export default function SepeiUnido() {
                   <div className="relative">
                     <div className="absolute inset-0 bg-white/20 rounded-full blur-md group-hover:bg-white/30 transition-all"></div>
                     <div className="relative w-10 h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 group-hover:rotate-12 transition-transform duration-300">
-                      <span className="text-2xl group-hover:scale-110 transition-transform">📢</span>
+                      <span className="text-2xl group-hover:scale-110 transition-transform">📰</span>
                     </div>
                   </div>
                   
                   <div className="flex flex-col items-start">
                     <span className="text-xs text-cyan-100 font-normal uppercase tracking-wider">Últimas</span>
-                    <span className="leading-tight group-hover:tracking-wide transition-all">Novedades</span>
+                    <span className="leading-tight group-hover:tracking-wide transition-all">Noticias</span>
                   </div>
                   
                   {/* Badge animado */}
