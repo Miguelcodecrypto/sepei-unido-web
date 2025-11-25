@@ -160,7 +160,18 @@ export async function getVotacionesActivas(): Promise<VotacionCompleta[]> {
     const fin = new Date(v.fecha_fin);
     const ahora = new Date();
     const esActiva = ahora >= inicio && ahora <= fin;
-    console.log(`Votación "${v.titulo}": inicio=${v.fecha_inicio}, fin=${v.fecha_fin}, activa=${esActiva}`);
+    console.log(`Votación "${v.titulo}":`, {
+      inicio: v.fecha_inicio,
+      fin: v.fecha_fin,
+      inicioDate: inicio.toISOString(),
+      finDate: fin.toISOString(),
+      ahoraDate: ahora.toISOString(),
+      ahoraMs: ahora.getTime(),
+      inicioMs: inicio.getTime(),
+      finMs: fin.getTime(),
+      comparacion: `${ahora.getTime()} >= ${inicio.getTime()} && ${ahora.getTime()} <= ${fin.getTime()}`,
+      activa: esActiva
+    });
     return esActiva;
   });
 
