@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone } from 'lucide-react';
+import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3 } from 'lucide-react';
 import { getAllUsers, deleteUser, clearDatabase, exportUsersToCSV } from '../services/userDatabase';
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
 import AnnouncementsManager from './AnnouncementsManager';
+import VotingManager from './VotingManager';
 
 interface User {
   id: string;
@@ -44,7 +45,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onLogout }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'users' | 'suggestions' | 'announcements'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'suggestions' | 'announcements' | 'voting'>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
@@ -225,10 +226,21 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
             <Megaphone className="w-5 h-5" />
             Anuncios
           </button>
+          <button
+            onClick={() => setActiveTab('voting')}
+            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
+              activeTab === 'voting'
+                ? 'text-orange-500 border-b-2 border-orange-500'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <BarChart3 className="w-5 h-5" />
+            Votaciones
+          </button>
         </div>
 
         {/* Stats */}
-        {activeTab !== 'announcements' && (
+        {activeTab !== 'announcements' && activeTab !== 'voting' && (
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-orange-500/20 mb-8">
             <div className="text-center">
               <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
@@ -509,6 +521,11 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
         {/* Announcements Manager */}
         {activeTab === 'announcements' && (
           <AnnouncementsManager />
+        )}
+
+        {/* Voting Manager */}
+        {activeTab === 'voting' && (
+          <VotingManager />
         )}
       </div>
     </div>
