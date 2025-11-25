@@ -136,12 +136,12 @@ export async function getVotacionesPublicadas(): Promise<VotacionCompleta[]> {
 export async function getVotacionesActivas(): Promise<VotacionCompleta[]> {
   const now = new Date().toISOString();
   
+  console.log('Buscando votaciones activas. Hora actual:', now);
+  
   const { data: votaciones, error } = await supabase
     .from('votaciones')
     .select('*')
     .eq('publicado', true)
-    .lte('fecha_inicio', now)
-    .gte('fecha_fin', now)
     .order('fecha_fin', { ascending: true });
 
   if (error) {
@@ -149,10 +149,27 @@ export async function getVotacionesActivas(): Promise<VotacionCompleta[]> {
     return [];
   }
 
+  if (!votaciones || votaciones.length === 0) {
+    console.log('No hay votaciones publicadas');
+    return [];
+  }
+
+  // Filtrar manualmente las votaciones activas
+  const votacionesActivas = votaciones.filter(v => {
+    const inicio = new Date(v.fecha_inicio);
+    const fin = new Date(v.fecha_fin);
+    const ahora = new Date();
+    const esActiva = ahora >= inicio && ahora <= fin;
+    console.log(`Votación "${v.titulo}": inicio=${v.fecha_inicio}, fin=${v.fecha_fin}, activa=${esActiva}`);
+    return esActiva;
+  });
+
+  console.log(`Total votaciones activas: ${votacionesActivas.length}`);
+
   const user = (await supabase.auth.getUser()).data.user;
 
   const votacionesCompletas = await Promise.all(
-    votaciones.map(async (votacion) => {
+    votacionesActivas.map(async (votacion) => {
       const { data: opciones } = await supabase
         .from('opciones_votacion')
         .select('*')
