@@ -7,6 +7,7 @@ interface User {
   dni?: string;
   email: string;
   telefono?: string;
+  password?: string;
   registration_ip?: string;
   fecha_registro: string;
   terminos_aceptados: boolean;
@@ -18,6 +19,7 @@ interface User {
   certificado_valido?: boolean;
   verified?: boolean;
   requires_password_change?: boolean;
+  lastLogin?: string;
 }
 
 // Obtener todos los usuarios
