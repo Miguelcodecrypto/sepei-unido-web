@@ -125,6 +125,16 @@ export const UserLogin: React.FC<UserLoginProps> = ({
 
       console.log('✅ [LOGIN] Usuario encontrado en Supabase');
 
+      // Verificar que la contraseña existe
+      if (!userData.password) {
+        console.error('❌ [LOGIN] Usuario en Supabase no tiene contraseña guardada');
+        setError('Tu usuario no tiene contraseña configurada. Por favor contacta al administrador.');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('🔑 [LOGIN] Hash de contraseña:', userData.password.substring(0, 20) + '...');
+
       // Verificar contraseña usando bcrypt
       const isPasswordValid = await verifyPassword(formData.password, userData.password);
       
