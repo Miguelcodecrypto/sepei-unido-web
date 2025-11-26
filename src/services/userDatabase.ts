@@ -248,3 +248,23 @@ export const updateUserPassword = async (dni: string, hashedPassword: string): P
     return false;
   }
 };
+
+// Actualizar datos de usuario
+export const updateUser = async (id: string, updates: Partial<User>): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error al actualizar usuario en Supabase:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error en updateUser:', error);
+    return false;
+  }
+};

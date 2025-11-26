@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Loader, Mail, Key, ArrowRight } from 'lucide-react';
 import type { UserData } from './TraditionalRegistration';
-import { addUser } from '../services/userDatabase';
+import { getUserByDni, updateUser } from '../services/userDatabase';
 
 interface EmailVerificationProps {
   token?: string;
@@ -93,7 +93,7 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
         registeredAt: new Date().toISOString(),
       };
 
-      // Guardar usuario en localStorage
+      // Guardar usuario en localStorage (compatibilidad temporal)
       const userKey = `user_${tempData.dni}`;
       console.log('💾 [VERIFICACIÓN] Guardando usuario con clave:', userKey);
       
@@ -113,23 +113,28 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
       localStorage.setItem(userKey, JSON.stringify(userDataToSave));
       console.log('✅ [VERIFICACIÓN] Usuario guardado en localStorage');
 
-      // Guardar en índice de usuarios
+      // Guardar en índice de usuarios (compatibilidad)
       const usersIndex = JSON.parse(localStorage.getItem('users_index') || '[]');
       usersIndex.push(tempData.dni);
       localStorage.setItem('users_index', JSON.stringify(usersIndex));
 
-      // Guardar en la base de datos del panel admin
-      addUser({
-        nombre: tempData.nombre,
-        apellidos: tempData.apellidos,
-        dni: tempData.dni,
-        email: tempData.email,
-        telefono: tempData.telefono || '',
-        registration_ip: tempData.registration_ip || 'unknown',
-        verified: true,
-        terminos_aceptados: true,
-        requires_password_change: true, // Marcar que debe cambiar contraseña
-      });
+      // Actualizar usuario en Supabase para marcarlo como verificado
+      console.log('💾 [VERIFICACIÓN] Actualizando usuario en Supabase...');
+      const existingUser = await getUserByDni(tempData.dni);
+      if (existingUser) {
+        const updated = await updateUser(existingUser.id, {
+          verified: true,
+          requires_password_change: true,
+        });
+        
+        if (updated) {
+          console.log('✅ Usuario verificado en Supabase');
+        } else {
+          console.error('❌ Error al actualizar usuario en Supabase');
+        }
+      } else {
+        console.error('❌ Usuario no encontrado en Supabase para verificar');
+      }
 
       // Limpiar datos temporales
       localStorage.removeItem(tempDataKey);

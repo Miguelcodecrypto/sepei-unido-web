@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { CheckCircle, Mail, User, CreditCard, AlertCircle } from 'lucide-react';
 import { sendVerificationEmail } from '../services/emailService';
 import { hashPassword, generateTemporaryPassword } from '../services/passwordService';
-import { getUserByDni } from '../services/userDatabase';
+import { getUserByDni, addUser } from '../services/userDatabase';
 
 interface TraditionalRegistrationProps {
   onSuccess: (userData: UserData) => void;
@@ -188,7 +188,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         registeredAt: new Date().toISOString(),
       };
 
-      // Guardar datos temporales para verificación
+      // Guardar datos temporales para verificación (localStorage temporal)
       const tempData = {
         ...userData,
         telefono: formData.telefono.trim(),
@@ -200,6 +200,34 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
       };
 
       localStorage.setItem(`temp_user_${verificationToken}`, JSON.stringify(tempData));
+
+      // Guardar en Supabase inmediatamente (no verificado aún)
+      console.log('💾 [REGISTRO] Guardando usuario en Supabase...');
+      const supabaseUser = await addUser({
+        nombre: userData.nombre,
+        apellidos: userData.apellidos,
+        dni: userData.dni,
+        email: userData.email,
+        telefono: formData.telefono.trim(),
+        password: hashedPassword,
+        registration_ip: userIP,
+        terminos_aceptados: acceptedPrivacy,
+        verified: false,
+        requires_password_change: true, // Contraseña temporal requiere cambio
+        certificado_nif: null,
+        certificado_thumbprint: null,
+        certificado_fecha_validacion: null,
+        certificado_valido: false,
+      });
+
+      if (!supabaseUser) {
+        console.error('❌ Error al guardar usuario en Supabase');
+        setErrors({ email: 'Error al procesar el registro en la base de datos. Intenta de nuevo.' });
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('✅ Usuario guardado en Supabase:', supabaseUser.id);
 
       // Enviar email de verificaci├│n usando el servicio real
       const emailSent = await sendVerificationEmail({
