@@ -53,6 +53,7 @@ export const addUser = async (userData: Omit<User, 'id' | 'fecha_registro' | 'fe
         dni: userData.dni,
         email: userData.email,
         telefono: userData.telefono,
+        password: userData.password,
         registration_ip: userData.registration_ip,
         terminos_aceptados: userData.terminos_aceptados,
         certificado_nif: userData.certificado_nif,
