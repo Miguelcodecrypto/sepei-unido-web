@@ -161,8 +161,12 @@ export const UserLogin: React.FC<UserLoginProps> = ({
         lastLogin: new Date().toISOString(),
       };
 
-      // Actualizar último login en Supabase
-      await updateUser(userData.id, { lastLogin: loggedUser.lastLogin });
+      // Intentar actualizar último login en Supabase (no crítico si falla)
+      try {
+        await updateUser(userData.id, { last_login: new Date().toISOString() });
+      } catch (error) {
+        console.warn('No se pudo actualizar lastLogin en Supabase:', error);
+      }
 
       // También actualizar en localStorage para compatibilidad
       const userKey = `user_${normalizedDNI}`;
