@@ -343,6 +343,25 @@ export async function emitirVoto(
 
     console.log('👤 [VOTO] Usuario votando:', currentUser.dni, currentUser.email);
 
+    // 1.5 VERIFICAR AUTORIZACIÓN PARA VOTAR
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('autorizado_votar')
+      .eq('dni', currentUser.dni.toUpperCase())
+      .single();
+
+    if (userError || !userData) {
+      console.error('❌ [VOTO] Error al verificar autorización del usuario');
+      return false;
+    }
+
+    if (!userData.autorizado_votar) {
+      console.warn('⚠️ [VOTO] Usuario no autorizado para votar por el administrador');
+      return false;
+    }
+
+    console.log('✅ [VOTO] Usuario autorizado para votar');
+
     // 2. VERIFICAR SI YA VOTÓ (PREVENCIÓN DE VOTO DUPLICADO)
     const { data: votosExistentes, error: checkError } = await supabase
       .from('votos')

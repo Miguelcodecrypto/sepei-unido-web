@@ -21,6 +21,7 @@ interface User {
   requires_password_change?: boolean;
   lastLogin?: string;
   last_login?: string;
+  autorizado_votar?: boolean;
 }
 
 // Obtener todos los usuarios
@@ -270,6 +271,29 @@ export const updateUser = async (id: string, updates: Partial<User>): Promise<bo
     return true;
   } catch (error) {
     console.error('Error en updateUser:', error);
+    return false;
+  }
+};
+
+// Autorizar/desautorizar usuario para votar
+export const toggleVotingAuthorization = async (userId: string, autorizado: boolean): Promise<boolean> => {
+  try {
+    console.log(`🔐 ${autorizado ? 'Autorizando' : 'Desautorizando'} usuario ${userId} para votar`);
+    
+    const { error } = await supabase
+      .from('users')
+      .update({ autorizado_votar: autorizado })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('❌ Error al actualizar autorización de voto:', error);
+      return false;
+    }
+
+    console.log(`✅ Usuario ${autorizado ? 'autorizado' : 'desautorizado'} correctamente`);
+    return true;
+  } catch (error) {
+    console.error('❌ Error en toggleVotingAuthorization:', error);
     return false;
   }
 };
