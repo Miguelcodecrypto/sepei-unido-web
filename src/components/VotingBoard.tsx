@@ -102,7 +102,8 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
         setShowResults({ ...showResults, [votacionId]: true });
       }
     } else {
-      alert('Error al registrar el voto. Puede que ya hayas votado.');
+      // Mensajes de error más específicos
+      alert('❌ Error al registrar el voto.\n\nPosibles causas:\n• Ya has votado en esta votación\n• No estás autorizado por el administrador\n• La votación ha finalizado\n\nContacta con el administrador si el problema persiste.');
     }
     
     setVotando(null);

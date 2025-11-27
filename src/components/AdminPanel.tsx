@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3 } from 'lucide-react';
-import { getAllUsers, deleteUser, clearDatabase, exportUsersToCSV } from '../services/userDatabase';
+import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle } from 'lucide-react';
+import { getAllUsers, deleteUser, clearDatabase, exportUsersToCSV, toggleVotingAuthorization } from '../services/userDatabase';
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
 import AnnouncementsManager from './AnnouncementsManager';
@@ -25,6 +25,7 @@ interface User {
   certificado_thumbprint?: string;
   certificado_fecha_validacion?: string;
   certificado_valido?: boolean;
+  autorizado_votar?: boolean;
 }
 
 interface Suggestion {
@@ -90,6 +91,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
       certificado_thumbprint: user.certificado_thumbprint,
       certificado_fecha_validacion: user.certificado_fecha_validacion,
       certificado_valido: user.certificado_valido,
+      autorizado_votar: user.autorizado_votar,
     }));
     setUsers(mappedData);
     setTotalUsers(mappedData.length);
@@ -160,6 +162,16 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
 
   const handleExportSuggestions = async () => {
     await exportSuggestionsToCSV();
+  };
+
+  const handleToggleVotingAuth = async (userId: string, currentStatus: boolean, userName: string) => {
+    const action = currentStatus ? 'desautorizar' : 'autorizar';
+    if (confirm(`¿${action.charAt(0).toUpperCase() + action.slice(1)} a ${userName} para votar?`)) {
+      const success = await toggleVotingAuthorization(userId, !currentStatus);
+      if (success) {
+        loadUsers(); // Recargar lista de usuarios
+      }
+    }
   };
 
   return (
@@ -290,6 +302,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                     <th className="px-6 py-4 text-left text-white font-semibold">Email</th>
                     <th className="px-6 py-4 text-left text-white font-semibold">Teléfono</th>
                     <th className="px-6 py-4 text-left text-white font-semibold">Fecha Registro</th>
+                    <th className="px-6 py-4 text-center text-white font-semibold">Voto</th>
                     <th className="px-6 py-4 text-center text-white font-semibold">Acciones</th>
                   </tr>
                 </thead>
@@ -304,6 +317,19 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                         <td className="px-6 py-4 text-gray-300">{user.telefono || '-'}</td>
                         <td className="px-6 py-4 text-gray-300">
                           {new Date(user.fechaRegistro).toLocaleDateString('es-ES')}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => handleToggleVotingAuth(user.id, user.autorizado_votar || false, user.nombre)}
+                            className={`p-2 rounded transition ${
+                              user.autorizado_votar 
+                                ? 'bg-green-600/20 hover:bg-red-600/20 text-green-400 hover:text-red-400' 
+                                : 'bg-red-600/20 hover:bg-green-600/20 text-red-400 hover:text-green-400'
+                            }`}
+                            title={user.autorizado_votar ? 'Desautorizar voto' : 'Autorizar voto'}
+                          >
+                            {user.autorizado_votar ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+                          </button>
                         </td>
                         <td className="px-6 py-4 text-center">
                           <div className="flex gap-2 justify-center">
@@ -326,7 +352,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                       </tr>
                       {showDetails[user.id] && (
                         <tr className="bg-slate-900/50 border-b border-slate-700/50">
-                          <td colSpan={7} className="px-6 py-4">
+                          <td colSpan={8} className="px-6 py-4">
                             <div className="space-y-4">
                               {/* Información FNMT */}
                               {user.certificado_nif && (
