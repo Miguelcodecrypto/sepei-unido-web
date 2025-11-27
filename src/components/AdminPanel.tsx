@@ -70,31 +70,40 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
   }, []);
 
   const loadUsers = async () => {
+    console.log('📥 Cargando usuarios desde Supabase...');
     const data = await getAllUsers();
+    console.log('👥 Usuarios obtenidos:', data.length);
+    
     // Mapear datos de Supabase (snake_case) a formato del componente (camelCase)
-    const mappedData = data.map(user => ({
-      id: user.id,
-      nombre: user.nombre,
-      apellidos: user.apellidos,
-      dni: user.dni,
-      email: user.email,
-      telefono: user.telefono,
-      instagram: user.instagram,
-      facebook: user.facebook,
-      twitter: user.twitter,
-      linkedin: user.linkedin,
-      fechaRegistro: user.fecha_registro,
-      terminos_aceptados: user.terminos_aceptados,
-      fecha_aceptacion_terminos: user.fecha_aceptacion_terminos,
-      version_terminos: user.version_terminos,
-      certificado_nif: user.certificado_nif,
-      certificado_thumbprint: user.certificado_thumbprint,
-      certificado_fecha_validacion: user.certificado_fecha_validacion,
-      certificado_valido: user.certificado_valido,
-      autorizado_votar: user.autorizado_votar,
-    }));
+    const mappedData = data.map(user => {
+      console.log(`Usuario ${user.nombre}: autorizado_votar =`, user.autorizado_votar);
+      return {
+        id: user.id,
+        nombre: user.nombre,
+        apellidos: user.apellidos,
+        dni: user.dni,
+        email: user.email,
+        telefono: user.telefono,
+        instagram: user.instagram,
+        facebook: user.facebook,
+        twitter: user.twitter,
+        linkedin: user.linkedin,
+        fechaRegistro: user.fecha_registro,
+        terminos_aceptados: user.terminos_aceptados,
+        fecha_aceptacion_terminos: user.fecha_aceptacion_terminos,
+        version_terminos: user.version_terminos,
+        certificado_nif: user.certificado_nif,
+        certificado_thumbprint: user.certificado_thumbprint,
+        certificado_fecha_validacion: user.certificado_fecha_validacion,
+        certificado_valido: user.certificado_valido,
+        autorizado_votar: user.autorizado_votar,
+      };
+    });
+    
+    console.log('✅ Usuarios mapeados, actualizando estado...');
     setUsers(mappedData);
     setTotalUsers(mappedData.length);
+    console.log('✅ Estado actualizado');
   };
 
   const loadSuggestions = async () => {
