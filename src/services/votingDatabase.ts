@@ -96,8 +96,6 @@ export async function getVotacionesPublicadas(): Promise<VotacionCompleta[]> {
     return [];
   }
 
-  const user = (await supabase.auth.getUser()).data.user;
-
   const votacionesCompletas = await Promise.all(
     votaciones.map(async (votacion) => {
       const { data: opciones } = await supabase
@@ -112,12 +110,16 @@ export async function getVotacionesPublicadas(): Promise<VotacionCompleta[]> {
         .eq('votacion_id', votacion.id);
 
       let usuario_ya_voto = false;
-      if (user) {
-        const { data: votoData } = await supabase.rpc('usuario_ya_voto', {
-          votacion_uuid: votacion.id,
-          usuario_id: user.id
-        });
-        usuario_ya_voto = votoData || false;
+      const currentUserStr = localStorage.getItem('current_user');
+      if (currentUserStr) {
+        const currentUser = JSON.parse(currentUserStr);
+        const { data: existingVote } = await supabase
+          .from('votos')
+          .select('id')
+          .eq('votacion_id', votacion.id)
+          .eq('user_id', currentUser.dni)
+          .single();
+        usuario_ya_voto = !!existingVote;
       }
 
       return {
@@ -177,8 +179,6 @@ export async function getVotacionesActivas(): Promise<VotacionCompleta[]> {
 
   console.log(`Total votaciones activas: ${votacionesActivas.length}`);
 
-  const user = (await supabase.auth.getUser()).data.user;
-
   const votacionesCompletas = await Promise.all(
     votacionesActivas.map(async (votacion) => {
       const { data: opciones } = await supabase
@@ -193,12 +193,16 @@ export async function getVotacionesActivas(): Promise<VotacionCompleta[]> {
         .eq('votacion_id', votacion.id);
 
       let usuario_ya_voto = false;
-      if (user) {
-        const { data: votoData } = await supabase.rpc('usuario_ya_voto', {
-          votacion_uuid: votacion.id,
-          usuario_id: user.id
-        });
-        usuario_ya_voto = votoData || false;
+      const currentUserStr = localStorage.getItem('current_user');
+      if (currentUserStr) {
+        const currentUser = JSON.parse(currentUserStr);
+        const { data: existingVote } = await supabase
+          .from('votos')
+          .select('id')
+          .eq('votacion_id', votacion.id)
+          .eq('user_id', currentUser.dni)
+          .single();
+        usuario_ya_voto = !!existingVote;
       }
 
       return {
@@ -318,52 +322,121 @@ export async function deleteVotacion(id: string): Promise<boolean> {
   return true;
 }
 
-// Emitir voto
+// Emitir voto con validación de seguridad estricta
 export async function emitirVoto(
   votacion_id: string,
   opcion_ids: string[]
 ): Promise<boolean> {
   try {
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) {
-      console.error('Usuario no autenticado');
+    // 1. VALIDAR AUTENTICACIÓN
+    const currentUserStr = localStorage.getItem('current_user');
+    if (!currentUserStr) {
+      console.error('❌ [VOTO] Usuario no autenticado');
       return false;
     }
 
-    // Verificar que la votación permite múltiples respuestas si se envían varias
-    if (opcion_ids.length > 1) {
-      const { data: votacion } = await supabase
-        .from('votaciones')
-        .select('multiple_respuestas')
-        .eq('id', votacion_id)
-        .single();
-
-      if (!votacion?.multiple_respuestas) {
-        console.error('Esta votación no permite múltiples respuestas');
-        return false;
-      }
+    const currentUser = JSON.parse(currentUserStr);
+    if (!currentUser.dni || !currentUser.email || !currentUser.verified) {
+      console.error('❌ [VOTO] Usuario inválido o no verificado');
+      return false;
     }
 
-    // Preparar los votos
+    console.log('👤 [VOTO] Usuario votando:', currentUser.dni, currentUser.email);
+
+    // 2. VERIFICAR SI YA VOTÓ (PREVENCIÓN DE VOTO DUPLICADO)
+    const { data: votosExistentes, error: checkError } = await supabase
+      .from('votos')
+      .select('id')
+      .eq('votacion_id', votacion_id)
+      .eq('user_id', currentUser.dni)
+      .limit(1);
+
+    if (checkError) {
+      console.error('❌ [VOTO] Error al verificar voto previo:', checkError);
+      return false;
+    }
+
+    if (votosExistentes && votosExistentes.length > 0) {
+      console.warn('⚠️ [VOTO] El usuario ya votó en esta votación');
+      return false;
+    }
+
+    console.log('✅ [VOTO] Usuario no ha votado aún, procediendo...');
+
+    // 3. VALIDAR CONFIGURACIÓN DE VOTACIÓN
+    const { data: votacion, error: votacionError } = await supabase
+      .from('votaciones')
+      .select('multiple_respuestas, publicado, fecha_inicio, fecha_fin')
+      .eq('id', votacion_id)
+      .single();
+
+    if (votacionError || !votacion) {
+      console.error('❌ [VOTO] Votación no encontrada');
+      return false;
+    }
+
+    // Verificar que la votación está publicada
+    if (!votacion.publicado) {
+      console.error('❌ [VOTO] Votación no publicada');
+      return false;
+    }
+
+    // Verificar que estamos en el período de votación
+    const ahora = new Date();
+    const inicio = new Date(votacion.fecha_inicio);
+    const fin = new Date(votacion.fecha_fin);
+
+    if (ahora < inicio) {
+      console.error('❌ [VOTO] La votación aún no ha comenzado');
+      return false;
+    }
+
+    if (ahora > fin) {
+      console.error('❌ [VOTO] La votación ha finalizado');
+      return false;
+    }
+
+    // Verificar múltiples respuestas
+    if (opcion_ids.length > 1 && !votacion.multiple_respuestas) {
+      console.error('❌ [VOTO] Esta votación no permite múltiples respuestas');
+      return false;
+    }
+
+    if (opcion_ids.length === 0) {
+      console.error('❌ [VOTO] Debe seleccionar al menos una opción');
+      return false;
+    }
+
+    console.log('✅ [VOTO] Validaciones pasadas, registrando voto...');
+
+    // 4. PREPARAR VOTOS
     const votos = opcion_ids.map(opcion_id => ({
       votacion_id,
       opcion_id,
-      user_id: user.id,
-      user_email: user.email || ''
+      user_id: currentUser.dni, // DNI como identificador único
+      user_email: currentUser.email,
+      fecha_voto: new Date().toISOString()
     }));
 
-    const { error } = await supabase
+    // 5. INSERTAR VOTO (la constraint UNIQUE en la BD previene duplicados)
+    const { error: insertError } = await supabase
       .from('votos')
       .insert(votos);
 
-    if (error) {
-      console.error('Error al emitir voto:', error);
+    if (insertError) {
+      // Si el error es por duplicate key, significa que ya votó
+      if (insertError.code === '23505') {
+        console.error('⚠️ [VOTO] Intento de voto duplicado detectado por la base de datos');
+        return false;
+      }
+      console.error('❌ [VOTO] Error al emitir voto:', insertError);
       return false;
     }
 
+    console.log('✅ [VOTO] Voto registrado correctamente y de forma segura');
     return true;
   } catch (error) {
-    console.error('Error al emitir voto:', error);
+    console.error('❌ [VOTO] Error al emitir voto:', error);
     return false;
   }
 }
@@ -384,22 +457,45 @@ export async function getResultadosVotacion(
   return data || [];
 }
 
-// Verificar si usuario ya votó
-export async function usuarioYaVoto(
-  votacion_id: string,
-  user_id: string
-): Promise<boolean> {
-  const { data, error } = await supabase.rpc('usuario_ya_voto', {
-    votacion_uuid: votacion_id,
-    usuario_id: user_id
-  });
+// Verificar si el usuario ya votó en una votación específica
+export async function usuarioYaVoto(votacion_id: string): Promise<boolean> {
+  try {
+    // Obtener usuario autenticado desde localStorage
+    const currentUserStr = localStorage.getItem('current_user');
+    if (!currentUserStr) {
+      console.error('❌ [VERIFICACIÓN VOTO] Usuario no autenticado');
+      return false; // No autenticado = no puede haber votado
+    }
 
-  if (error) {
-    console.error('Error al verificar voto:', error);
+    const currentUser = JSON.parse(currentUserStr);
+    if (!currentUser.dni) {
+      console.error('❌ [VERIFICACIÓN VOTO] Usuario sin DNI');
+      return false;
+    }
+
+    console.log('🔍 [VERIFICACIÓN VOTO] Verificando si votó:', currentUser.dni, 'en votación:', votacion_id);
+
+    // Consultar directamente la tabla votos usando el DNI del usuario
+    const { data, error } = await supabase
+      .from('votos')
+      .select('id')
+      .eq('votacion_id', votacion_id)
+      .eq('user_id', currentUser.dni)
+      .limit(1);
+
+    if (error) {
+      console.error('❌ [VERIFICACIÓN VOTO] Error al verificar voto:', error);
+      return false;
+    }
+
+    const yaVoto = data && data.length > 0;
+    console.log(yaVoto ? '✅ [VERIFICACIÓN VOTO] Usuario YA votó' : '❌ [VERIFICACIÓN VOTO] Usuario NO ha votado');
+    
+    return yaVoto;
+  } catch (error) {
+    console.error('❌ [VERIFICACIÓN VOTO] Error:', error);
     return false;
   }
-
-  return data || false;
 }
 
 // Toggle publicado
