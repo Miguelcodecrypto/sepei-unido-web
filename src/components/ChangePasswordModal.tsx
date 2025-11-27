@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { hashPassword, verifyPassword } from '../services/passwordService';
+import { getUserByDni, updateUserPassword } from '../services/userDatabase';
 
 interface ChangePasswordModalProps {
   userData: {
@@ -107,51 +108,66 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
         return;
       }
 
-      // Obtener datos del usuario desde localStorage
-      const userKey = `user_${userData.dni}`;
-      const userDataStr = localStorage.getItem(userKey);
+      console.log('🔍 [CAMBIO CONTRASEÑA] Buscando usuario en Supabase:', userData.dni);
+      
+      // Obtener datos del usuario desde Supabase
+      const supabaseUser = await getUserByDni(userData.dni);
 
-      if (!userDataStr) {
-        setErrors({ general: 'Error: Usuario no encontrado' });
+      if (!supabaseUser || !supabaseUser.password) {
+        console.error('❌ [CAMBIO CONTRASEÑA] Usuario no encontrado o sin contraseña en Supabase');
+        setErrors({ general: 'Error: Usuario no encontrado en la base de datos' });
         setIsLoading(false);
         return;
       }
 
-      const storedUserData = JSON.parse(userDataStr);
+      console.log('✅ [CAMBIO CONTRASEÑA] Usuario encontrado en Supabase');
 
-      // Verificar contraseña actual
+      // Verificar contraseña actual contra Supabase
       const isCurrentPasswordValid = await verifyPassword(
         formData.currentPassword,
-        storedUserData.password
+        supabaseUser.password
       );
 
       if (!isCurrentPasswordValid) {
+        console.error('❌ [CAMBIO CONTRASEÑA] Contraseña actual incorrecta');
         setErrors({ currentPassword: 'Contraseña actual incorrecta' });
         setIsLoading(false);
         return;
       }
 
+      console.log('✅ [CAMBIO CONTRASEÑA] Contraseña actual verificada correctamente');
+
       // Cifrar nueva contraseña
       const hashedNewPassword = await hashPassword(formData.newPassword);
+      console.log('🔑 [CAMBIO CONTRASEÑA] Nueva contraseña hasheada');
 
-      // Actualizar contraseña en localStorage
-      storedUserData.password = hashedNewPassword;
-      storedUserData.requires_password_change = false;
-      storedUserData.password_changed_at = new Date().toISOString();
-      localStorage.setItem(userKey, JSON.stringify(storedUserData));
+      // Actualizar contraseña en Supabase
+      const updated = await updateUserPassword(userData.dni, hashedNewPassword);
       
-      // Actualizar current_user también
-      const currentUserStr = localStorage.getItem('current_user');
-      if (currentUserStr) {
-        const currentUser = JSON.parse(currentUserStr);
-        localStorage.setItem('current_user', JSON.stringify(currentUser));
+      if (!updated) {
+        console.error('❌ [CAMBIO CONTRASEÑA] Error al actualizar en Supabase');
+        setErrors({ general: 'Error al actualizar la contraseña en la base de datos' });
+        setIsLoading(false);
+        return;
       }
 
-      console.log('✅ [CAMBIO CONTRASEÑA] Contraseña actualizada, requires_password_change = false');
+      console.log('✅ [CAMBIO CONTRASEÑA] Contraseña actualizada en Supabase');
 
-      // Actualizar en Supabase
-      const { updateUserPassword } = await import('../services/userDatabase');
-      await updateUserPassword(userData.dni, hashedNewPassword);
+      // También actualizar en localStorage para compatibilidad (si existe)
+      const userKey = `user_${userData.dni}`;
+      const userDataStr = localStorage.getItem(userKey);
+      if (userDataStr) {
+        try {
+          const storedUserData = JSON.parse(userDataStr);
+          storedUserData.password = hashedNewPassword;
+          storedUserData.requires_password_change = false;
+          storedUserData.password_changed_at = new Date().toISOString();
+          localStorage.setItem(userKey, JSON.stringify(storedUserData));
+          console.log('✅ [CAMBIO CONTRASEÑA] También actualizado en localStorage');
+        } catch (error) {
+          console.warn('⚠️ [CAMBIO CONTRASEÑA] No se pudo actualizar localStorage:', error);
+        }
+      }
 
       setSuccessMessage('¡Contraseña actualizada correctamente!');
       
