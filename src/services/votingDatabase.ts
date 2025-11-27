@@ -363,11 +363,14 @@ export async function emitirVoto(
     console.log('✅ [VOTO] Usuario autorizado para votar');
 
     // 2. VERIFICAR SI YA VOTÓ (PREVENCIÓN DE VOTO DUPLICADO)
+    const dniNormalizado = currentUser.dni.toUpperCase();
+    console.log('🔍 [VOTO] Verificando voto previo con DNI:', dniNormalizado);
+    
     const { data: votosExistentes, error: checkError } = await supabase
       .from('votos')
       .select('id')
       .eq('votacion_id', votacion_id)
-      .eq('user_id', currentUser.dni)
+      .eq('user_id', dniNormalizado)
       .limit(1);
 
     if (checkError) {
@@ -432,7 +435,7 @@ export async function emitirVoto(
     const votos = opcion_ids.map(opcion_id => ({
       votacion_id,
       opcion_id,
-      user_id: currentUser.dni, // DNI como identificador único
+      user_id: dniNormalizado, // DNI normalizado a mayúsculas
       user_email: currentUser.email,
       fecha_voto: new Date().toISOString()
     }));
@@ -492,14 +495,15 @@ export async function usuarioYaVoto(votacion_id: string): Promise<boolean> {
       return false;
     }
 
-    console.log('🔍 [VERIFICACIÓN VOTO] Verificando si votó:', currentUser.dni, 'en votación:', votacion_id);
+    const dniNormalizado = currentUser.dni.toUpperCase();
+    console.log('🔍 [VERIFICACIÓN VOTO] Verificando si votó:', dniNormalizado, 'en votación:', votacion_id);
 
     // Consultar directamente la tabla votos usando el DNI del usuario
     const { data, error } = await supabase
       .from('votos')
       .select('id')
       .eq('votacion_id', votacion_id)
-      .eq('user_id', currentUser.dni)
+      .eq('user_id', dniNormalizado)
       .limit(1);
 
     if (error) {
