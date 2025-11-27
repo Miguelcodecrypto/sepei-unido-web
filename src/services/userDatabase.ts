@@ -20,6 +20,7 @@ interface User {
   verified?: boolean;
   requires_password_change?: boolean;
   lastLogin?: string;
+  last_login?: string;
 }
 
 // Obtener todos los usuarios
@@ -235,6 +236,7 @@ export const updateUserPassword = async (dni: string, hashedPassword: string): P
     const { error } = await supabase
       .from('users')
       .update({ 
+        password: hashedPassword,
         requires_password_change: false,
         password_changed_at: new Date().toISOString()
       })
