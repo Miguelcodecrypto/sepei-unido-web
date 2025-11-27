@@ -279,17 +279,23 @@ export const updateUser = async (id: string, updates: Partial<User>): Promise<bo
 export const toggleVotingAuthorization = async (userId: string, autorizado: boolean): Promise<boolean> => {
   try {
     console.log(`🔐 ${autorizado ? 'Autorizando' : 'Desautorizando'} usuario ${userId} para votar`);
+    console.log('Datos a actualizar:', { autorizado_votar: autorizado });
     
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .update({ autorizado_votar: autorizado })
-      .eq('id', userId);
+      .eq('id', userId)
+      .select();
 
     if (error) {
       console.error('❌ Error al actualizar autorización de voto:', error);
+      console.error('Código de error:', error.code);
+      console.error('Mensaje:', error.message);
+      console.error('Detalles:', error.details);
       return false;
     }
 
+    console.log('✅ Usuario actualizado en Supabase:', data);
     console.log(`✅ Usuario ${autorizado ? 'autorizado' : 'desautorizado'} correctamente`);
     return true;
   } catch (error) {

@@ -167,9 +167,18 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
   const handleToggleVotingAuth = async (userId: string, currentStatus: boolean, userName: string) => {
     const action = currentStatus ? 'desautorizar' : 'autorizar';
     if (confirm(`¿${action.charAt(0).toUpperCase() + action.slice(1)} a ${userName} para votar?`)) {
+      console.log(`🔄 Cambiando autorización para ${userName} (ID: ${userId})`);
+      console.log(`Estado actual: ${currentStatus} -> Nuevo estado: ${!currentStatus}`);
+      
       const success = await toggleVotingAuthorization(userId, !currentStatus);
+      
       if (success) {
-        loadUsers(); // Recargar lista de usuarios
+        console.log('✅ Autorización actualizada, recargando usuarios...');
+        await loadUsers(); // Recargar lista de usuarios
+        alert(`✅ ${userName} ${!currentStatus ? 'autorizado' : 'desautorizado'} correctamente`);
+      } else {
+        console.error('❌ Error al actualizar autorización');
+        alert(`❌ Error al ${action} a ${userName}. Verifica la consola para más detalles.`);
       }
     }
   };
