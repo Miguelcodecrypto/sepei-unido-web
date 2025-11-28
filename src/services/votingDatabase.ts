@@ -49,6 +49,7 @@ export interface VotacionCompleta extends Votacion {
     opcion: string;
     votos: number;
   }>;
+  estado?: 'activa' | 'finalizada' | 'programada';
 }
 
 // Obtener todas las votaciones (admin)
@@ -121,6 +122,20 @@ export async function getVotacionesPublicadas(): Promise<VotacionCompleta[]> {
         votos: r.total_votos
       }));
 
+      // Calcular estado de la votación
+      const now = new Date();
+      const inicio = new Date(votacion.fecha_inicio);
+      const fin = new Date(votacion.fecha_fin);
+      let estado: 'activa' | 'finalizada' | 'programada';
+      
+      if (now < inicio) {
+        estado = 'programada';
+      } else if (now >= inicio && now <= fin) {
+        estado = 'activa';
+      } else {
+        estado = 'finalizada';
+      }
+
       let usuario_ya_voto = false;
       const currentUser = await getCurrentUser();
       if (currentUser) {
@@ -138,7 +153,8 @@ export async function getVotacionesPublicadas(): Promise<VotacionCompleta[]> {
         opciones: opciones || [],
         total_votos: count || 0,
         usuario_ya_voto,
-        votos: votos
+        votos: votos,
+        estado: estado
       };
     })
   );
