@@ -45,6 +45,10 @@ export interface VotacionCompleta extends Votacion {
   opciones: OpcionVotacion[];
   total_votos?: number;
   usuario_ya_voto?: boolean;
+  votos?: Array<{
+    opcion: string;
+    votos: number;
+  }>;
 }
 
 // Obtener todas las votaciones (admin)
@@ -110,6 +114,13 @@ export async function getVotacionesPublicadas(): Promise<VotacionCompleta[]> {
         .select('user_id', { count: 'exact', head: true })
         .eq('votacion_id', votacion.id);
 
+      // Obtener resultados detallados por opción
+      const resultados = await getResultadosVotacion(votacion.id);
+      const votos = resultados.map(r => ({
+        opcion: r.texto,
+        votos: r.total_votos
+      }));
+
       let usuario_ya_voto = false;
       const currentUser = await getCurrentUser();
       if (currentUser) {
@@ -126,7 +137,8 @@ export async function getVotacionesPublicadas(): Promise<VotacionCompleta[]> {
         ...votacion,
         opciones: opciones || [],
         total_votos: count || 0,
-        usuario_ya_voto
+        usuario_ya_voto,
+        votos: votos
       };
     })
   );
