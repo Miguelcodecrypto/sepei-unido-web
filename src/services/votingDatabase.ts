@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { getCurrentUser } from './sessionService';
 
 // Interfaces
 export interface Votacion {
@@ -110,9 +111,8 @@ export async function getVotacionesPublicadas(): Promise<VotacionCompleta[]> {
         .eq('votacion_id', votacion.id);
 
       let usuario_ya_voto = false;
-      const currentUserStr = localStorage.getItem('current_user');
-      if (currentUserStr) {
-        const currentUser = JSON.parse(currentUserStr);
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
         const { data: existingVote } = await supabase
           .from('votos')
           .select('id')
@@ -193,9 +193,8 @@ export async function getVotacionesActivas(): Promise<VotacionCompleta[]> {
         .eq('votacion_id', votacion.id);
 
       let usuario_ya_voto = false;
-      const currentUserStr = localStorage.getItem('current_user');
-      if (currentUserStr) {
-        const currentUser = JSON.parse(currentUserStr);
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
         const { data: existingVote } = await supabase
           .from('votos')
           .select('id')
@@ -329,13 +328,12 @@ export async function emitirVoto(
 ): Promise<boolean> {
   try {
     // 1. VALIDAR AUTENTICACIÓN
-    const currentUserStr = localStorage.getItem('current_user');
-    if (!currentUserStr) {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
       console.error('❌ [VOTO] Usuario no autenticado');
       return false;
     }
 
-    const currentUser = JSON.parse(currentUserStr);
     if (!currentUser.dni || !currentUser.email || !currentUser.verified) {
       console.error('❌ [VOTO] Usuario inválido o no verificado');
       return false;
@@ -344,18 +342,12 @@ export async function emitirVoto(
     console.log('👤 [VOTO] Usuario votando:', currentUser.dni, currentUser.email);
 
     // 1.5 VERIFICAR AUTORIZACIÓN PARA VOTAR
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('autorizado_votar')
-      .eq('dni', currentUser.dni.toUpperCase())
-      .single();
-
-    if (userError || !userData) {
-      console.error('❌ [VOTO] Error al verificar autorización del usuario');
+    if (!currentUser.autorizado_votar) {
+      console.warn('⚠️ [VOTO] Usuario no autorizado para votar');
       return false;
     }
 
-    if (!userData.autorizado_votar) {
+    if (!currentUser.autorizado_votar) {
       console.warn('⚠️ [VOTO] Usuario no autorizado para votar por el administrador');
       return false;
     }
@@ -482,14 +474,13 @@ export async function getResultadosVotacion(
 // Verificar si el usuario ya votó en una votación específica
 export async function usuarioYaVoto(votacion_id: string): Promise<boolean> {
   try {
-    // Obtener usuario autenticado desde localStorage
-    const currentUserStr = localStorage.getItem('current_user');
-    if (!currentUserStr) {
+    // Obtener usuario autenticado desde sesión en Supabase
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
       console.error('❌ [VERIFICACIÓN VOTO] Usuario no autenticado');
       return false; // No autenticado = no puede haber votado
     }
 
-    const currentUser = JSON.parse(currentUserStr);
     if (!currentUser.dni) {
       console.error('❌ [VERIFICACIÓN VOTO] Usuario sin DNI');
       return false;

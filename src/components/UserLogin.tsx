@@ -3,6 +3,7 @@ import { LogIn, User, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { verifyPassword } from '../services/passwordService';
 import { getUserByDni, updateUser } from '../services/userDatabase';
 import { ChangePasswordModal } from './ChangePasswordModal';
+import { createSession } from '../services/sessionService';
 
 interface UserLoginProps {
   onLoginSuccess: (userData: LoggedUserData) => void;
@@ -151,7 +152,7 @@ export const UserLogin: React.FC<UserLoginProps> = ({
         return;
       }
 
-      // Login exitoso
+      // Login exitoso - preparar datos de usuario
       const loggedUser: LoggedUserData = {
         dni: userData.dni,
         nombre: userData.nombre,
@@ -161,30 +162,30 @@ export const UserLogin: React.FC<UserLoginProps> = ({
         lastLogin: new Date().toISOString(),
       };
 
-      // Intentar actualizar último login en Supabase (no crítico si falla)
+      // Crear sesión en Supabase (reemplaza localStorage)
+      console.log('🔐 [LOGIN] Creando sesión para usuario:', userData.id);
+      const sessionToken = await createSession(userData.id);
+      
+      if (!sessionToken) {
+        console.error('❌ [LOGIN] Error al crear sesión');
+        setError('Error al crear sesión. Por favor intenta de nuevo.');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('✅ [LOGIN] Sesión creada exitosamente');
+
+      // Actualizar último login en Supabase
       try {
         await updateUser(userData.id, { last_login: new Date().toISOString() });
       } catch (error) {
-        console.warn('No se pudo actualizar lastLogin en Supabase:', error);
+        console.warn('⚠️ [LOGIN] No se pudo actualizar lastLogin en Supabase:', error);
       }
-
-      // También actualizar en localStorage para compatibilidad
-      const userKey = `user_${normalizedDNI}`;
-      const localUserStr = localStorage.getItem(userKey);
-      if (localUserStr) {
-        const localUser = JSON.parse(localUserStr);
-        localUser.lastLogin = loggedUser.lastLogin;
-        localStorage.setItem(userKey, JSON.stringify(localUser));
-      }
-
-      // Guardar sesión activa
-      localStorage.setItem('current_user', JSON.stringify(loggedUser));
 
       // Verificar si necesita cambiar contraseña
       console.log('🔑 [LOGIN] Verificando requires_password_change:', {
         requiere: userData.requires_password_change,
         tipo: typeof userData.requires_password_change,
-        userData_completo: userData
       });
       
       if (userData.requires_password_change === true) {
@@ -195,7 +196,7 @@ export const UserLogin: React.FC<UserLoginProps> = ({
         return;
       }
 
-      console.log('✅ Login exitoso (Supabase):', loggedUser);
+      console.log('✅ Login exitoso (Supabase session):', loggedUser);
       onLoginSuccess(loggedUser);
 
     } catch (error) {
