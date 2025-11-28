@@ -35,6 +35,8 @@ export async function trackPageVisit(pageUrl?: string): Promise<void> {
     const currentUser = await getCurrentUser();
     const ip = await getClientIP();
     
+    console.log('📊 [ANALYTICS] Usuario actual:', currentUser ? `${currentUser.nombre} (ID: ${currentUser.id})` : 'No autenticado');
+    
     const visitData = {
       session_id: sessionId,
       user_id: currentUser?.id || null,
@@ -45,11 +47,19 @@ export async function trackPageVisit(pageUrl?: string): Promise<void> {
       page_url: pageUrl || window.location.pathname
     };
 
-    await supabase
+    const { error } = await supabase
       .from('site_visits')
       .insert([visitData]);
 
-    console.log('📊 [ANALYTICS] Visita registrada:', pageUrl || window.location.pathname);
+    if (error) {
+      console.error('❌ [ANALYTICS] Error al insertar visita:', error);
+    } else {
+      console.log('✅ [ANALYTICS] Visita registrada:', {
+        page: pageUrl || window.location.pathname,
+        user_id: currentUser?.id || 'anónimo',
+        session: sessionId
+      });
+    }
   } catch (error) {
     console.error('❌ [ANALYTICS] Error al registrar visita:', error);
   }
@@ -79,6 +89,26 @@ export async function trackInteraction(
       interaction_data: additionalData || null,
       created_at: new Date().toISOString(),
       ip_address: ip,
+      duration_seconds: durationSeconds || null
+    };
+
+    const { error } = await supabase
+      .from('user_interactions')
+      .insert([interactionData]);
+
+    if (error) {
+      console.error('❌ [ANALYTICS] Error al registrar interacción:', error);
+    } else {
+      console.log('✅ [ANALYTICS] Interacción registrada:', {
+        section,
+        type: interactionType,
+        user_id: currentUser?.id || 'anónimo'
+      });
+    }
+  } catch (error) {
+    console.error('❌ [ANALYTICS] Error al registrar interacción:', error);
+  }
+}
       duration_seconds: durationSeconds || null
     };
 
