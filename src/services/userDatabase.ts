@@ -303,3 +303,31 @@ export const toggleVotingAuthorization = async (userId: string, autorizado: bool
     return false;
   }
 };
+
+// Resetear contraseña temporal de un usuario
+export const resetTempPassword = async (userId: string, tempPassword: string, hashedPassword: string): Promise<boolean> => {
+  try {
+    console.log(`🔑 Reseteando contraseña temporal para usuario ${userId}`);
+    
+    const { data, error } = await supabase
+      .from('users')
+      .update({ 
+        password: hashedPassword,
+        requires_password_change: true,
+        password_changed_at: null
+      })
+      .eq('id', userId)
+      .select('nombre, apellidos, email, dni');
+
+    if (error) {
+      console.error('❌ Error al resetear contraseña:', error);
+      return false;
+    }
+
+    console.log('✅ Contraseña temporal reseteada correctamente');
+    return true;
+  } catch (error) {
+    console.error('❌ Error en resetTempPassword:', error);
+    return false;
+  }
+};

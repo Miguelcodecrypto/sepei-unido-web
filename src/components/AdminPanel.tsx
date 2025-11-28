@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle } from 'lucide-react';
-import { getAllUsers, deleteUser, clearDatabase, exportUsersToCSV, toggleVotingAuthorization } from '../services/userDatabase';
+import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key } from 'lucide-react';
+import { getAllUsers, deleteUser, clearDatabase, exportUsersToCSV, toggleVotingAuthorization, resetTempPassword } from '../services/userDatabase';
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
+import { hashPassword } from '../services/passwordService';
 import AnnouncementsManager from './AnnouncementsManager';
 import VotingManager from './VotingManager';
 
@@ -192,6 +193,23 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     }
   };
 
+  const handleResetTempPassword = async (userId: string, userName: string, userEmail: string) => {
+    // Generar contraseña temporal aleatoria
+    const tempPassword = `Sepei${Math.floor(1000 + Math.random() * 9000)}!`;
+    
+    if (confirm(`¿Resetear contraseña temporal de ${userName}?\n\nNueva contraseña: ${tempPassword}\n\n⚠️ Anota esta contraseña, se la debes comunicar al usuario.`)) {
+      const hashedPassword = await hashPassword(tempPassword);
+      const success = await resetTempPassword(userId, tempPassword, hashedPassword);
+      
+      if (success) {
+        await loadUsers();
+        alert(`✅ Contraseña reseteada correctamente\n\nUsuario: ${userName}\nEmail: ${userEmail}\nContraseña temporal: ${tempPassword}\n\n⚠️ El usuario DEBE cambiar esta contraseña en su próximo login.`);
+      } else {
+        alert(`❌ Error al resetear contraseña. Verifica la consola.`);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 py-12 px-4">
       <div className="max-w-7xl mx-auto">
@@ -351,6 +369,13 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                         </td>
                         <td className="px-6 py-4 text-center">
                           <div className="flex gap-2 justify-center">
+                            <button
+                              onClick={() => handleResetTempPassword(user.id, user.nombre, user.email)}
+                              className="p-2 hover:bg-yellow-600/30 rounded transition text-yellow-400"
+                              title="Resetear contraseña temporal"
+                            >
+                              <Key className="w-5 h-5" />
+                            </button>
                             <button
                               onClick={() => toggleDetails(user.id)}
                               className="p-2 hover:bg-blue-600/30 rounded transition text-blue-400"
