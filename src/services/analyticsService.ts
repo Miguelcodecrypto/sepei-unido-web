@@ -164,9 +164,10 @@ export async function getAnalyticsSummary(days: number = 30): Promise<{
       .is('user_id', null)
       .gte('visited_at', startDate.toISOString());
 
-    // Visitas por día
+    // Visitas por día (usando la vista directamente)
     const { data: visitsByDay } = await supabase
-      .rpc('analytics_summary')
+      .from('analytics_summary')
+      .select('*')
       .gte('visit_date', startDate.toISOString().split('T')[0])
       .order('visit_date', { ascending: false })
       .limit(days);
@@ -249,7 +250,14 @@ export async function getTopActiveUsers(limit: number = 10): Promise<Array<{
 }>> {
   try {
     const { data, error } = await supabase
-      .rpc('get_top_active_users', { limit_count: limit });
+      .rpc('get_top_active_users', { limit_count: limit })
+      .returns<Array<{
+        user_id: string;
+        user_name: string;
+        user_email: string;
+        total_interactions: number;
+        last_interaction: string;
+      }>>();
 
     if (error) {
       console.error('❌ [ANALYTICS] Error al obtener usuarios activos:', error);
