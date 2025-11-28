@@ -274,7 +274,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
           </div>
 
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            ┬íRevisa tu correo!
+            ¡Revisa tu correo!
           </h2>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
@@ -290,11 +290,11 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
             <ul className="text-sm text-gray-600 mt-2 space-y-1">
               <li className="flex items-center">
                 <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                Tu contrase├▒a temporal
+                Tu contraseña temporal
               </li>
               <li className="flex items-center">
                 <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                Enlace de verificaci├│n
+                Enlace de verificación
               </li>
             </ul>
           </div>
@@ -376,7 +376,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
               className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                 errors.apellidos ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="P├®rez Garc├¡a"
+              placeholder="Pérez García"
             />
           </div>
           {errors.apellidos && (
@@ -408,7 +408,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
             <p className="text-red-500 text-sm mt-1">{errors.dni}</p>
           )}
           <p className="text-gray-500 text-xs mt-1">
-            Este ser├í tu nombre de usuario
+            Este será tu nombre de usuario
           </p>
         </div>
 
@@ -472,17 +472,17 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
               className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             />
             <span className="text-sm text-gray-700">
-              He le├¡do y acepto la{' '}
+              He leído y acepto la{' '}
               <a 
                 href="/politica-privacidad" 
                 target="_blank" 
                 className="text-blue-600 hover:text-blue-800 font-semibold underline"
               >
-                Pol├¡tica de Privacidad
+                Política de Privacidad
               </a>
               {' '}y el tratamiento de mis datos personales conforme al RGPD. 
-              Mis datos ser├ín utilizados ├║nicamente para gestionar mi participaci├│n en SEPEI UNIDO 
-              y no ser├ín cedidos a terceros sin mi consentimiento.
+              Mis datos serán utilizados únicamente para gestionar mi participación en SEPEI UNIDO 
+              y no serán cedidos a terceros sin mi consentimiento.
             </span>
           </label>
         </div>
@@ -509,7 +509,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
 
       <div className="mt-6 pt-6 border-t border-gray-200">
         <p className="text-xs text-gray-500 text-center">
-          Tus datos est├ín protegidos seg├║n la normativa RGPD
+          Tus datos están protegidos según la normativa RGPD
         </p>
       </div>
     </div>
