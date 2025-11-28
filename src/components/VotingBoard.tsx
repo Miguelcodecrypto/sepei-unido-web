@@ -7,6 +7,7 @@ import {
   VotacionCompleta,
   ResultadoVotacion
 } from '../services/votingDatabase';
+import { getCurrentUser } from '../services/sessionService';
 
 interface VotingBoardProps {
   onLoginRequired?: () => void;
@@ -66,7 +67,8 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
   };
 
   const handleVotar = async (votacionId: string) => {
-    const currentUser = localStorage.getItem('current_user');
+    // Verificar autenticación usando el sistema de sesiones
+    const currentUser = await getCurrentUser();
     if (!currentUser) {
       if (onLoginRequired) {
         onLoginRequired();

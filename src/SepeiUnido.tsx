@@ -57,19 +57,22 @@ export default function SepeiUnido() {
       setCertificateData(cert);
     }
 
-    // Verificar si hay usuario logueado
-    const currentUserStr = localStorage.getItem('current_user');
-    if (currentUserStr) {
-      try {
-        const user = JSON.parse(currentUserStr);
-        console.log('👤 [SESIÓN] Usuario recuperado:', user);
-        console.log('👤 [SESIÓN] Tiene nombre?', user.nombre);
-        console.log('👤 [SESIÓN] Tiene apellidos?', user.apellidos);
-        setLoggedUser(user);
-      } catch (error) {
-        console.error('Error al recuperar sesión:', error);
+    // Verificar si hay usuario logueado usando el nuevo sistema de sesión
+    const loadCurrentUser = async () => {
+      const user = await getCurrentUser();
+      if (user) {
+        console.log('👤 [SESIÓN] Usuario recuperado desde Supabase:', user);
+        setLoggedUser({
+          dni: user.dni,
+          nombre: user.nombre,
+          apellidos: user.apellidos || '',
+          email: user.email,
+          verified: user.verified,
+        });
       }
-    }
+    };
+    
+    loadCurrentUser();
     
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -214,8 +217,7 @@ export default function SepeiUnido() {
       lastLogin: new Date().toISOString()
     };
     
-    // Guardar sesión
-    localStorage.setItem('current_user', JSON.stringify(loggedUserData));
+    // La sesión ahora se gestiona en sessionService
     setLoggedUser(loggedUserData);
     
     // Cerrar modal de verificación
@@ -235,8 +237,8 @@ export default function SepeiUnido() {
     }, 2000);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('current_user');
+  const handleLogout = async () => {
+    await invalidateSession();
     setLoggedUser(null);
     setFormStatus({ 
       type: 'success', 
