@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Eye, FileText, Download, X, Star, ChevronRight } from 'lucide-react';
 import { getPublishedAnnouncements, incrementViews, type Announcement } from '../services/announcementDatabase';
+import { trackInteraction, useTrackSectionTime } from '../services/analyticsService';
 
 export default function AnnouncementsBoard() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -9,6 +10,13 @@ export default function AnnouncementsBoard() {
 
   useEffect(() => {
     loadAnnouncements();
+    
+    // Rastrear visita a la sección de anuncios
+    trackInteraction('announcements', 'view_announcements');
+    
+    // Iniciar seguimiento de tiempo en la sección
+    const cleanup = useTrackSectionTime('announcements');
+    return cleanup;
   }, []);
 
   const loadAnnouncements = async () => {
@@ -25,6 +33,9 @@ export default function AnnouncementsBoard() {
     setAnnouncements(prev =>
       prev.map(a => a.id === announcement.id ? { ...a, vistas: a.vistas + 1 } : a)
     );
+    
+    // Rastrear que el usuario abrió un anuncio específico
+    await trackInteraction('announcements', 'open_announcement', announcement.id);
   };
 
   const getCategoryColor = (categoria: string) => {

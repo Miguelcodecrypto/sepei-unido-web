@@ -8,6 +8,7 @@ import {
   ResultadoVotacion
 } from '../services/votingDatabase';
 import { getCurrentUser } from '../services/sessionService';
+import { trackInteraction, useTrackSectionTime } from '../services/analyticsService';
 
 interface VotingBoardProps {
   onLoginRequired?: () => void;
@@ -23,6 +24,13 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
 
   useEffect(() => {
     loadVotaciones();
+    
+    // Rastrear visita a la sección de votaciones
+    trackInteraction('voting', 'view_voting');
+    
+    // Iniciar seguimiento de tiempo en la sección
+    const cleanup = useTrackSectionTime('voting');
+    return cleanup;
   }, []);
 
   const loadVotaciones = async () => {
@@ -89,6 +97,12 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
     
     if (success) {
       alert('¡Voto registrado correctamente!');
+      
+      // Rastrear voto exitoso
+      await trackInteraction('voting', 'cast_vote', votacionId, { 
+        opciones_count: opciones.length 
+      });
+      
       // Recargar votaciones para actualizar el estado
       await loadVotaciones();
       // Limpiar selección
