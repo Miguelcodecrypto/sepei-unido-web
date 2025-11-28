@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Loader, Mail, Key, ArrowRight } from 'lucide-react';
 import type { UserData } from './TraditionalRegistration';
-import { getUserByDni, updateUser } from '../services/userDatabase';
+import { getUserByVerificationToken, verifyUserEmail } from '../services/userDatabase';
 
 interface EmailVerificationProps {
   token?: string;
@@ -39,108 +39,74 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
     try {
       console.log('🔍 [VERIFICACIÓN] Iniciando verificación del token:', verificationToken);
       
-      // Buscar datos temporales en localStorage
-      const tempDataKey = `temp_user_${verificationToken}`;
-      console.log('🔍 [VERIFICACIÓN] Buscando clave:', tempDataKey);
+      // Buscar usuario por token de verificación en Supabase
+      const user = await getUserByVerificationToken(verificationToken);
       
-      // Debug: Mostrar todas las claves en localStorage
-      console.log('🔍 [VERIFICACIÓN] Claves en localStorage:', Object.keys(localStorage));
-      
-      const tempDataStr = localStorage.getItem(tempDataKey);
-      console.log('🔍 [VERIFICACIÓN] Datos encontrados:', tempDataStr ? 'SÍ' : 'NO');
-
-      if (!tempDataStr) {
-        console.error('❌ [VERIFICACIÓN] No se encontraron datos temporales para el token');
+      if (!user) {
+        console.error('❌ [VERIFICACIÓN] No se encontró usuario con este token');
         setStatus('expired');
         return;
       }
 
-      const tempData = JSON.parse(tempDataStr);
-      console.log('🔍 [VERIFICACIÓN] Datos temporales parseados:', {
-        nombre: tempData.nombre,
-        dni: tempData.dni,
-        expiresAt: tempData.expiresAt,
-        hasHashedPassword: !!tempData.hashedPassword
+      console.log('✅ [VERIFICACIÓN] Usuario encontrado:', {
+        nombre: user.nombre,
+        dni: user.dni,
+        verified: user.verified,
+        hasToken: !!user.verification_token,
+        expiresAt: user.verification_token_expires_at
       });
+
+      // Verificar si ya está verificado
+      if (user.verified) {
+        console.log('⚠️ [VERIFICACIÓN] Usuario ya verificado previamente');
+        setStatus('error');
+        return;
+      }
 
       // Verificar si el token ha expirado
-      const expiresAt = new Date(tempData.expiresAt);
-      const now = new Date();
-      console.log('🔍 [VERIFICACIÓN] Comparación de fechas:', {
-        expira: expiresAt.toISOString(),
-        ahora: now.toISOString(),
-        expirado: now > expiresAt
-      });
-      
-      if (now > expiresAt) {
-        console.error('❌ [VERIFICACIÓN] Token expirado');
-        localStorage.removeItem(tempDataKey);
-        setStatus('expired');
-        return;
-      }
-      
-      console.log('✅ [VERIFICACIÓN] Token válido, procediendo a verificar usuario...');
-
-      console.log('✅ [VERIFICACIÓN] Token válido, procediendo a verificar usuario...');
-
-      // Crear usuario verificado
-      const verifiedUser: UserData = {
-        nombre: tempData.nombre,
-        apellidos: tempData.apellidos,
-        dni: tempData.dni,
-        email: tempData.email,
-        verified: true,
-        registeredAt: new Date().toISOString(),
-      };
-
-      // Guardar usuario en localStorage (compatibilidad temporal)
-      const userKey = `user_${tempData.dni}`;
-      console.log('💾 [VERIFICACIÓN] Guardando usuario con clave:', userKey);
-      
-      const userDataToSave = {
-        ...verifiedUser,
-        password: tempData.hashedPassword, // Contraseña cifrada con bcrypt
-        requires_password_change: true, // Marcar para cambio obligatorio
-        nombre: tempData.nombre,
-        apellidos: tempData.apellidos,
-      };
-      
-      console.log('💾 [VERIFICACIÓN] Datos a guardar:', {
-        ...userDataToSave,
-        password: userDataToSave.password ? userDataToSave.password.substring(0, 20) + '...' : 'NO HAY PASSWORD'
-      });
-      
-      localStorage.setItem(userKey, JSON.stringify(userDataToSave));
-      console.log('✅ [VERIFICACIÓN] Usuario guardado en localStorage');
-
-      // Guardar en índice de usuarios (compatibilidad)
-      const usersIndex = JSON.parse(localStorage.getItem('users_index') || '[]');
-      usersIndex.push(tempData.dni);
-      localStorage.setItem('users_index', JSON.stringify(usersIndex));
-
-      // Actualizar usuario en Supabase para marcarlo como verificado
-      console.log('💾 [VERIFICACIÓN] Actualizando usuario en Supabase...');
-      const existingUser = await getUserByDni(tempData.dni);
-      if (existingUser) {
-        const updated = await updateUser(existingUser.id, {
-          verified: true,
-          requires_password_change: true,
+      if (user.verification_token_expires_at) {
+        const expiresAt = new Date(user.verification_token_expires_at);
+        const now = new Date();
+        
+        console.log('🔍 [VERIFICACIÓN] Comparación de fechas:', {
+          expira: expiresAt.toISOString(),
+          ahora: now.toISOString(),
+          expirado: now > expiresAt
         });
         
-        if (updated) {
-          console.log('✅ Usuario verificado en Supabase');
-        } else {
-          console.error('❌ Error al actualizar usuario en Supabase');
+        if (now > expiresAt) {
+          console.error('❌ [VERIFICACIÓN] Token expirado');
+          setStatus('expired');
+          return;
         }
-      } else {
-        console.error('❌ Usuario no encontrado en Supabase para verificar');
+      }
+      
+      console.log('✅ [VERIFICACIÓN] Token válido, procediendo a verificar usuario...');
+
+      // Verificar usuario en Supabase
+      const verified = await verifyUserEmail(user.id);
+      
+      if (!verified) {
+        console.error('❌ [VERIFICACIÓN] Error al actualizar usuario');
+        setStatus('error');
+        return;
       }
 
-      // Limpiar datos temporales
-      localStorage.removeItem(tempDataKey);
+      console.log('✅ Usuario verificado correctamente en Supabase');
+
+      // Preparar datos para mostrar (sin exponer la contraseña hasheada)
+      const verifiedUser: UserData = {
+        nombre: user.nombre,
+        apellidos: user.apellidos || '',
+        dni: user.dni || '',
+        email: user.email,
+        verified: true,
+        registeredAt: user.fecha_registro,
+      };
 
       setUserData(verifiedUser);
-      setTempPassword(tempData.tempPassword);
+      // La contraseña temporal ya fue enviada por email, no la mostramos aquí
+      setTempPassword('(Ver email)');
       setStatus('success');
 
     } catch (error) {
@@ -180,7 +146,7 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
 
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
             <p className="text-gray-700 text-center">
-              Este enlace de verificación ha expirado. Los enlaces son válidos durante 24 horas.
+              Este enlace de verificación ha expirado o ya fue utilizado. Los enlaces son válidos durante 7 días.
             </p>
           </div>
 
@@ -189,8 +155,11 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
               href="/"
               className="block w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-center"
             >
-              Volver al inicio y registrarse de nuevo
+              Volver al inicio
             </a>
+            <p className="text-sm text-gray-600 text-center">
+              Si necesitas ayuda, contacta con el administrador
+            </p>
           </div>
         </div>
       </div>
@@ -247,32 +216,32 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
 
         {userData && (
           <div className="space-y-4 mb-6">
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center mb-3">
-                <Mail className="w-5 h-5 text-gray-600 mr-2" />
-                <span className="font-semibold text-gray-800">Datos de acceso</span>
-              </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Usuario (DNI):</span>
-                  <span className="font-mono font-bold text-gray-800">{userData.dni}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Contraseña:</span>
-                  <span className="font-mono font-bold text-blue-600">{tempPassword}</span>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-blue-600 mr-2 mt-0.5" />
+                <div className="text-sm">
+                  <p className="text-gray-700 font-semibold mb-1">
+                    ¡Tu cuenta está activa!
+                  </p>
+                  <p className="text-gray-600">
+                    Puedes iniciar sesión con tu DNI: <strong>{userData.dni}</strong>
+                  </p>
+                  <p className="text-gray-600 mt-1">
+                    Tu contraseña temporal fue enviada a tu correo electrónico.
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <div className="flex items-start">
-                <Key className="w-5 h-5 text-blue-600 mr-2 mt-0.5" />
+                <Key className="w-5 h-5 text-yellow-600 mr-2 mt-0.5" />
                 <div className="text-sm">
                   <p className="text-gray-700 font-semibold mb-1">
-                    Guarda tu contraseña
+                    Recuerda cambiar tu contraseña
                   </p>
                   <p className="text-gray-600">
-                    Te recomendamos cambiarla después de tu primer inicio de sesión por seguridad.
+                    Te recomendamos cambiar tu contraseña temporal después de tu primer inicio de sesión por seguridad.
                   </p>
                 </div>
               </div>

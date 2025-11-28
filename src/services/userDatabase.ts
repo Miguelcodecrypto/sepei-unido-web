@@ -22,7 +22,57 @@ interface User {
   lastLogin?: string;
   last_login?: string;
   autorizado_votar?: boolean;
+  verification_token?: string;
+  verification_token_expires_at?: string;
 }
+
+// Obtener usuario por token de verificación
+export const getUserByVerificationToken = async (token: string): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('verification_token', token)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      console.error('Error al obtener usuario por token:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error en getUserByVerificationToken:', error);
+    return null;
+  }
+};
+
+// Verificar usuario y limpiar token
+export const verifyUserEmail = async (userId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({
+        verified: true,
+        verification_token: null,
+        verification_token_expires_at: null,
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('Error al verificar usuario:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error en verifyUserEmail:', error);
+    return false;
+  }
+};
 
 // Obtener todos los usuarios
 export const getAllUsers = async (): Promise<User[]> => {
@@ -45,7 +95,11 @@ export const getAllUsers = async (): Promise<User[]> => {
 };
 
 // Agregar nuevo usuario
-export const addUser = async (userData: Omit<User, 'id' | 'fecha_registro' | 'fecha_aceptacion_terminos' | 'version_terminos'> & { terminos_aceptados: boolean }): Promise<User | null> => {
+export const addUser = async (userData: Omit<User, 'id' | 'fecha_registro' | 'fecha_aceptacion_terminos' | 'version_terminos'> & { 
+  terminos_aceptados: boolean;
+  verification_token?: string;
+  verification_token_expires_at?: string;
+}): Promise<User | null> => {
   try {
     const { data, error } = await supabase
       .from('users')
@@ -64,6 +118,8 @@ export const addUser = async (userData: Omit<User, 'id' | 'fecha_registro' | 'fe
         certificado_valido: userData.certificado_valido,
         verified: userData.verified,
         requires_password_change: userData.requires_password_change,
+        verification_token: userData.verification_token,
+        verification_token_expires_at: userData.verification_token_expires_at,
         version_terminos: '1.0',
       }])
       .select()
