@@ -292,8 +292,8 @@ export default function SepeiUnido() {
   const roadmapItems = [
     { 
       icon: TrendingUp, 
-      title: "Reclasificación MCB C1", 
-      desc: "Reclasificación profesional para MCB C1 y las correspondientes escalas",
+      title: "Reclasificación C1", 
+      desc: "Reclasificación profesional para MCB, Cabo C1 y para el resto de escalas",
       priority: "ALTA"
     },
     { 
@@ -304,8 +304,8 @@ export default function SepeiUnido() {
     },
     { 
       icon: Clock, 
-      title: "Oposiciones", 
-      desc: "Ejecución de oposiciones en tiempo y forma",
+      title: "Oposiciones & Formación ", 
+      desc: "Ejecución de oposiciones en tiempo y forma.",
       priority: "ALTA"
     },
     { 
@@ -317,13 +317,13 @@ export default function SepeiUnido() {
     { 
       icon: BookOpen, 
       title: "Formación y Equipamiento", 
-      desc: "Formación para nueva incorporación y renovación de EPIs",
+      desc: "Formación para MCB de nueva incorporación y personal fijo / Equipamiento adecuado para todos los miembros del SEPEI",
       priority: "ALTA"
     },
     { 
       icon: Users, 
-      title: "Mínimos y Máximos", 
-      desc: "Plantillas mínimas y máximas para seguridad operativa",
+      title: "Mínimos Operativos y Protocolos de trabajo", 
+      desc: "Dotaciones mínimas, protocolos de movilización y procedimientos de trabajo seguro",
       priority: "CRÍTICA"
     },
     { 
