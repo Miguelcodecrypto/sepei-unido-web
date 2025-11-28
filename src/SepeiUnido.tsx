@@ -9,6 +9,7 @@ import { TraditionalRegistration, type UserData } from './components/Traditional
 import { UserLogin, type LoggedUserData } from './components/UserLogin';
 import { EmailVerification } from './components/EmailVerification';
 import { getCurrentUser, invalidateSession } from './services/sessionService';
+import { trackPageVisit } from './services/analyticsService';
 import AnnouncementsBoard from './components/AnnouncementsBoard';
 import VotingBoard from './components/VotingBoard';
 
@@ -42,6 +43,9 @@ export default function SepeiUnido() {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     
+    // Rastrear visita a la página
+    trackPageVisit(window.location.pathname);
+    
     // Verificar si la URL contiene un token de verificación
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -69,6 +73,7 @@ export default function SepeiUnido() {
           apellidos: user.apellidos || '',
           email: user.email,
           verified: user.verified,
+          lastLogin: new Date().toISOString(),
         });
       }
     };

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Send, AlertCircle, CheckCircle, Lightbulb, X } from 'lucide-react';
 import { addSuggestion } from '../services/suggestionDatabase';
 import { sendSuggestionConfirmationEmail, sendSuggestionNotificationEmail } from '../services/emailService';
+import { trackInteraction, useTrackSectionTime } from '../services/analyticsService';
 import type { BrowserCertificate } from '../services/browserCertificateService';
 import type { LoggedUserData } from './UserLogin';
 
@@ -37,6 +38,15 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
       }));
     }
   }, [userData]);
+  
+  // Rastrear visita a la sección de sugerencias
+  useEffect(() => {
+    trackInteraction('suggestions', 'view_suggestions_form');
+    
+    // Iniciar seguimiento de tiempo en la sección
+    const cleanup = useTrackSectionTime('suggestions');
+    return cleanup;
+  }, []);
 
   const [formStatus, setFormStatus] = useState(null as any);
 
@@ -118,6 +128,12 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
       ]);
 
       console.log('✅ Emails enviados correctamente');
+
+      // Rastrear envío exitoso de sugerencia
+      await trackInteraction('suggestions', 'submit_suggestion', undefined, {
+        categoria: formData.categoria,
+        lugar_trabajo: formData.lugarTrabajo
+      });
 
       setFormStatus({
         type: 'success',

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key } from 'lucide-react';
+import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award } from 'lucide-react';
 import { getAllUsers, deleteUser, clearDatabase, exportUsersToCSV, toggleVotingAuthorization, resetTempPassword } from '../services/userDatabase';
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
 import { hashPassword } from '../services/passwordService';
+import { trackInteraction, useTrackSectionTime } from '../services/analyticsService';
 import AnnouncementsManager from './AnnouncementsManager';
 import VotingManager from './VotingManager';
+import AnalyticsDashboard from './AnalyticsDashboard';
+import VotingResultsPanel from './VotingResultsPanel';
 
 interface User {
   id: string;
@@ -47,7 +50,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onLogout }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'users' | 'suggestions' | 'announcements' | 'voting'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'suggestions' | 'announcements' | 'voting' | 'analytics' | 'results'>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
@@ -59,6 +62,12 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     loadUsers();
     loadSuggestions();
     
+    // Rastrear acceso al panel de administrador
+    trackInteraction('admin', 'view_admin_panel');
+    
+    // Iniciar seguimiento de tiempo en la sección
+    const cleanup = useTrackSectionTime('admin');
+    
     // Actualizar tiempo de sesión cada minuto
     const interval = setInterval(() => {
       setSessionTime(getSessionTimeRemaining());
@@ -67,7 +76,10 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     // Mostrar tiempo inicial
     setSessionTime(getSessionTimeRemaining());
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      cleanup();
+    };
   }, []);
 
   const loadUsers = async () => {
@@ -285,10 +297,32 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
             <BarChart3 className="w-5 h-5" />
             Votaciones
           </button>
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
+              activeTab === 'analytics'
+                ? 'text-orange-500 border-b-2 border-orange-500'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <TrendingUp className="w-5 h-5" />
+            Analytics
+          </button>
+          <button
+            onClick={() => setActiveTab('results')}
+            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
+              activeTab === 'results'
+                ? 'text-orange-500 border-b-2 border-orange-500'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Award className="w-5 h-5" />
+            Resultados
+          </button>
         </div>
 
         {/* Stats */}
-        {activeTab !== 'announcements' && activeTab !== 'voting' && (
+        {activeTab !== 'announcements' && activeTab !== 'voting' && activeTab !== 'analytics' && activeTab !== 'results' && (
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-orange-500/20 mb-8">
             <div className="text-center">
               <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
@@ -595,6 +629,16 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
         {/* Voting Manager */}
         {activeTab === 'voting' && (
           <VotingManager />
+        )}
+
+        {/* Analytics Dashboard */}
+        {activeTab === 'analytics' && (
+          <AnalyticsDashboard onClose={() => setActiveTab('users')} />
+        )}
+
+        {/* Voting Results Panel */}
+        {activeTab === 'results' && (
+          <VotingResultsPanel onClose={() => setActiveTab('voting')} />
         )}
       </div>
     </div>
