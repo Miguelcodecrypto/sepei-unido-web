@@ -109,18 +109,6 @@ export async function trackInteraction(
     console.error('❌ [ANALYTICS] Error al registrar interacción:', error);
   }
 }
-      duration_seconds: durationSeconds || null
-    };
-
-    await supabase
-      .from('user_interactions')
-      .insert([interactionData]);
-
-    console.log(`📊 [ANALYTICS] Interacción registrada: ${section} - ${interactionType}`);
-  } catch (error) {
-    console.error('❌ [ANALYTICS] Error al registrar interacción:', error);
-  }
-}
 
 /**
  * Obtener estadísticas generales para el dashboard
@@ -129,6 +117,8 @@ export async function getAnalyticsSummary(days: number = 30): Promise<{
   totalVisits: number;
   uniqueUsers: number;
   authenticatedVisits: number;
+  anonymousVisits: number;
+  uniqueSessions: number;
   pageViews: number;
   visitsByDay: Array<{ date: string; visits: number }>;
 }> {
@@ -142,7 +132,7 @@ export async function getAnalyticsSummary(days: number = 30): Promise<{
       .select('*', { count: 'exact', head: true })
       .gte('visited_at', startDate.toISOString());
 
-    // Usuarios únicos
+    // Usuarios únicos autenticados
     const { data: uniqueUsersData } = await supabase
       .from('site_visits')
       .select('user_id')
@@ -151,11 +141,27 @@ export async function getAnalyticsSummary(days: number = 30): Promise<{
     
     const uniqueUsers = new Set(uniqueUsersData?.map(v => v.user_id) || []).size;
 
+    // Sesiones únicas anónimas
+    const { data: anonymousSessionsData } = await supabase
+      .from('site_visits')
+      .select('session_id')
+      .is('user_id', null)
+      .gte('visited_at', startDate.toISOString());
+    
+    const uniqueSessions = new Set(anonymousSessionsData?.map(v => v.session_id) || []).size;
+
     // Visitas autenticadas
     const { count: authenticatedVisits } = await supabase
       .from('site_visits')
       .select('*', { count: 'exact', head: true })
       .not('user_id', 'is', null)
+      .gte('visited_at', startDate.toISOString());
+
+    // Visitas anónimas
+    const { count: anonymousVisits } = await supabase
+      .from('site_visits')
+      .select('*', { count: 'exact', head: true })
+      .is('user_id', null)
       .gte('visited_at', startDate.toISOString());
 
     // Visitas por día
@@ -169,6 +175,8 @@ export async function getAnalyticsSummary(days: number = 30): Promise<{
       totalVisits: totalVisits || 0,
       uniqueUsers,
       authenticatedVisits: authenticatedVisits || 0,
+      anonymousVisits: anonymousVisits || 0,
+      uniqueSessions,
       pageViews: totalVisits || 0,
       visitsByDay: visitsByDay || []
     };
@@ -178,6 +186,8 @@ export async function getAnalyticsSummary(days: number = 30): Promise<{
       totalVisits: 0,
       uniqueUsers: 0,
       authenticatedVisits: 0,
+      anonymousVisits: 0,
+      uniqueSessions: 0,
       pageViews: 0,
       visitsByDay: []
     };

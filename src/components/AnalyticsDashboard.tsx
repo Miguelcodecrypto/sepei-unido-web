@@ -12,12 +12,16 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onClose }) => {
     totalVisits: number;
     uniqueUsers: number;
     authenticatedVisits: number;
+    anonymousVisits: number;
+    uniqueSessions: number;
     pageViews: number;
     visitsByDay: Array<{ date: string; visits: number }>;
   }>({
     totalVisits: 0,
     uniqueUsers: 0,
     authenticatedVisits: 0,
+    anonymousVisits: 0,
+    uniqueSessions: 0,
     pageViews: 0,
     visitsByDay: []
   });
@@ -121,7 +125,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onClose }) => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <StatCard
             icon={Eye}
             label="Total Visitas"
@@ -130,9 +134,15 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onClose }) => {
           />
           <StatCard
             icon={Users}
-            label="Usuarios Únicos"
+            label="Usuarios Logeados"
             value={summary.uniqueUsers.toLocaleString()}
             color="bg-green-600"
+          />
+          <StatCard
+            icon={Users}
+            label="Visitantes Anónimos"
+            value={summary.uniqueSessions.toLocaleString()}
+            color="bg-gray-600"
           />
           <StatCard
             icon={Activity}
@@ -142,8 +152,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onClose }) => {
           />
           <StatCard
             icon={TrendingUp}
-            label="Páginas Vistas"
-            value={summary.pageViews.toLocaleString()}
+            label="Visitas Anónimas"
+            value={summary.anonymousVisits.toLocaleString()}
             color="bg-orange-600"
           />
         </div>
