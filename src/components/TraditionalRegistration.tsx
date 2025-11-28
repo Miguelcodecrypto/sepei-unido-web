@@ -188,21 +188,11 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         registeredAt: new Date().toISOString(),
       };
 
-      // Guardar datos temporales para verificación (localStorage temporal)
-      const tempData = {
-        ...userData,
-        telefono: formData.telefono.trim(),
-        registration_ip: userIP,
-        tempPassword,
-        hashedPassword, // Guardar el hash para uso posterior
-        verificationToken,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 horas
-      };
+      // Calcular fecha de expiración del token (7 días)
+      const tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      localStorage.setItem(`temp_user_${verificationToken}`, JSON.stringify(tempData));
-
-      // Guardar en Supabase inmediatamente (no verificado aún)
-      console.log('💾 [REGISTRO] Guardando usuario en Supabase...');
+      // Guardar en Supabase inmediatamente con el token de verificación
+      console.log('💾 [REGISTRO] Guardando usuario en Supabase con token de verificación...');
       const supabaseUser = await addUser({
         nombre: userData.nombre,
         apellidos: userData.apellidos,
@@ -214,6 +204,8 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         terminos_aceptados: acceptedPrivacy,
         verified: false,
         requires_password_change: true, // Contraseña temporal requiere cambio
+        verification_token: verificationToken,
+        verification_token_expires_at: tokenExpiresAt,
         certificado_nif: null,
         certificado_thumbprint: null,
         certificado_fecha_validacion: null,
