@@ -8,6 +8,7 @@ import CertificateUpload from './components/CertificateUpload';
 import { TraditionalRegistration, type UserData } from './components/TraditionalRegistration';
 import { UserLogin, type LoggedUserData } from './components/UserLogin';
 import { EmailVerification } from './components/EmailVerification';
+import { getCurrentUser, invalidateSession } from './services/sessionService';
 import AnnouncementsBoard from './components/AnnouncementsBoard';
 import VotingBoard from './components/VotingBoard';
 
