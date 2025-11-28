@@ -43,9 +43,6 @@ export default function SepeiUnido() {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     
-    // Rastrear visita a la página
-    trackPageVisit(window.location.pathname);
-    
     // Verificar si la URL contiene un token de verificación
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -73,6 +70,18 @@ export default function SepeiUnido() {
           apellidos: user.apellidos || '',
           email: user.email,
           verified: user.verified,
+          lastLogin: new Date().toISOString(),
+        });
+      }
+      
+      // Rastrear visita DESPUÉS de verificar usuario
+      trackPageVisit(window.location.pathname);
+    };
+    
+    loadCurrentUser();
+    
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
           lastLogin: new Date().toISOString(),
         });
       }
@@ -311,7 +320,7 @@ export default function SepeiUnido() {
     { 
       icon: Clock, 
       title: "Implantación Horario", 
-      desc: "Establecimiento de horarios adaptados al servicio",
+      desc: "Establecimiento de horarios adaptados al servicio segun operativas reales y necesidades del servicio",
       priority: "MEDIA"
     },
     { 
