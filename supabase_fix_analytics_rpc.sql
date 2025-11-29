@@ -1,8 +1,10 @@
 -- Fix para la función RPC get_top_active_users
 -- El error 400 puede ser por tipo de dato incorrecto
 
--- Eliminar función anterior si existe
+-- Eliminar función anterior con todas las posibles firmas
 DROP FUNCTION IF EXISTS get_top_active_users(INTEGER);
+DROP FUNCTION IF EXISTS get_top_active_users();
+DROP FUNCTION IF EXISTS get_top_active_users;
 
 -- Recrear con tipos explícitos
 CREATE OR REPLACE FUNCTION get_top_active_users(limit_count INTEGER DEFAULT 10)
