@@ -82,15 +82,6 @@ export default function SepeiUnido() {
     
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-          lastLogin: new Date().toISOString(),
-        });
-      }
-    };
-    
-    loadCurrentUser();
-    
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const handleSubmit = () => {
     if (!formData.nombre || !formData.email) {
