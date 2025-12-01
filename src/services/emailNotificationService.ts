@@ -63,9 +63,16 @@ export async function sendAnnouncementNotification(
           }),
         });
 
-        return response.ok;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ Error al enviar email a ${recipient.nombre} (${recipient.email}):`, response.status, errorText);
+          return false;
+        }
+
+        console.log(`✅ Email enviado exitosamente a ${recipient.nombre} (${recipient.email})`);
+        return true;
       } catch (error) {
-        console.error(`❌ Error enviando a ${recipient.email}:`, error);
+        console.error(`❌ Excepción enviando a ${recipient.nombre} (${recipient.email}):`, error);
         return false;
       }
     });
@@ -121,9 +128,16 @@ export async function sendVotingNotification(
           }),
         });
 
-        return response.ok;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ Error al enviar email a ${recipient.nombre} (${recipient.email}):`, response.status, errorText);
+          return false;
+        }
+
+        console.log(`✅ Email enviado exitosamente a ${recipient.nombre} (${recipient.email})`);
+        return true;
       } catch (error) {
-        console.error(`❌ Error enviando a ${recipient.email}:`, error);
+        console.error(`❌ Excepción enviando a ${recipient.nombre} (${recipient.email}):`, error);
         return false;
       }
     });
