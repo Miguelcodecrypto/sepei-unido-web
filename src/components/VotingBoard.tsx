@@ -232,10 +232,6 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
                     <Calendar className="w-4 h-4" />
                     <span>{getTiempoRestante(votacion.fecha_fin)}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-300">
-                    <Users className="w-4 h-4" />
-                    <span>{votacion.total_votos} participantes</span>
-                  </div>
                   {votacion.multiple_respuestas && (
                     <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 border border-blue-500/50 rounded-full">
                       <AlertCircle className="w-4 h-4 text-blue-400" />
@@ -303,7 +299,7 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
                           <div className="flex justify-between text-white">
                             <span className="font-medium">{resultado.texto}</span>
                             <span className="font-bold text-orange-400">
-                              {resultado.total_votos} votos ({resultado.porcentaje}%)
+                              {resultado.porcentaje}%
                             </span>
                           </div>
                           <div className="relative w-full bg-slate-700 rounded-full h-6 overflow-hidden">
@@ -320,10 +316,6 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
                           </div>
                         </div>
                       ))}
-                      
-                      <div className="mt-6 pt-4 border-t border-slate-700 text-center text-gray-400 text-sm">
-                        Total de participantes: {votacion.total_votos}
-                      </div>
                     </div>
                   )}
                 </div>
