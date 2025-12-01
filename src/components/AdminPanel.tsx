@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award } from 'lucide-react';
-import { getAllUsers, deleteUser, clearDatabase, exportUsersToCSV, toggleVotingAuthorization, resetTempPassword } from '../services/userDatabase';
+import { getAllUsers, deleteUser, exportUsersToCSV, toggleVotingAuthorization, resetTempPassword } from '../services/userDatabase';
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
 import { hashPassword } from '../services/passwordService';
@@ -147,13 +147,6 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
   const handleLogout = () => {
     logout();
     onLogout();
-  };
-
-  const handleClearDatabase = async () => {
-    if (confirm('¿Estás seguro de eliminar TODOS los usuarios? Esta acción no se puede deshacer.')) {
-      await clearDatabase();
-      loadUsers();
-    }
   };
 
   const handleExport = async () => {
@@ -337,13 +330,15 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
             Exportar CSV
           </button>
           
-          <button
-            onClick={activeTab === 'users' ? handleClearDatabase : handleClearSuggestions}
-            className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition"
-          >
-            <Trash2 className="w-5 h-5" />
-            {activeTab === 'users' ? 'Limpiar Base de Datos' : 'Limpiar Sugerencias'}
-          </button>
+          {activeTab === 'suggestions' && (
+            <button
+              onClick={handleClearSuggestions}
+              className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition"
+            >
+              <Trash2 className="w-5 h-5" />
+              Limpiar Sugerencias
+            </button>
+          )}
         </div>
 
         {/* Users Table */}
