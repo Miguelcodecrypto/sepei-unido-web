@@ -264,7 +264,13 @@ export async function getTopActiveUsers(limit: number = 10): Promise<Array<{
       return [];
     }
 
-    return data || [];
+    return (data as Array<{
+      user_id: string;
+      user_name: string;
+      user_email: string;
+      total_interactions: number;
+      last_interaction: string;
+    }>) || [];
   } catch (error) {
     console.error('❌ [ANALYTICS] Error al obtener usuarios activos:', error);
     return [];
