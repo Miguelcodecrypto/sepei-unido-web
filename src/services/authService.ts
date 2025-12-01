@@ -1,7 +1,7 @@
 // Autenticación simple con contraseña para el panel admin
 // En producción, usar autenticación real (JWT, OAuth, etc.)
 
-const ADMIN_PASSWORD = 'sepei2024'; // Contraseña por defecto
+const ADMIN_PASSWORD = 'Sepei@Admin2025!Secure'; // Contraseña segura
 const AUTH_KEY = 'sepei_admin_auth';
 const AUTH_EXPIRY = 24 * 60 * 60 * 1000; // 24 horas
 
