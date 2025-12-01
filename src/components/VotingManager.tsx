@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Plus, Edit2, Trash2, Eye, EyeOff, CheckCircle, XCircle, Calendar, Users } from 'lucide-react';
+import { BarChart3, Plus, Edit2, Trash2, Eye, EyeOff, CheckCircle, XCircle, Calendar, Users, Mail } from 'lucide-react';
 import {
   getAllVotaciones,
   createVotacion,
@@ -11,6 +11,8 @@ import {
   VotacionCompleta,
   ResultadoVotacion
 } from '../services/votingDatabase';
+import { sendVotingNotification, type EmailRecipient } from '../services/emailNotificationService';
+import NotificationModal from './NotificationModal';
 
 const VotingManager: React.FC = () => {
   const [votaciones, setVotaciones] = useState<VotacionCompleta[]>([]);
@@ -19,6 +21,9 @@ const VotingManager: React.FC = () => {
   const [editingVotacion, setEditingVotacion] = useState<VotacionCompleta | null>(null);
   const [showResults, setShowResults] = useState<string | null>(null);
   const [resultados, setResultados] = useState<ResultadoVotacion[]>([]);
+  const [sendNotification, setSendNotification] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [pendingVotingData, setPendingVotingData] = useState<any>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -77,9 +82,22 @@ const VotingManager: React.FC = () => {
     } else {
       const id = await createVotacion(formData, opcionesFiltradas);
       if (id) {
-        alert('Votación creada correctamente');
-        resetForm();
-        loadVotaciones();
+        // Si se marcó notificación y está publicado, abrir modal
+        if (sendNotification && formData.publicado) {
+          setPendingVotingData({
+            id: id,
+            titulo: formData.titulo,
+            descripcion: formData.descripcion,
+            tipo: formData.tipo,
+            fecha_inicio: formData.fecha_inicio,
+            fecha_fin: formData.fecha_fin
+          });
+          setShowNotificationModal(true);
+        } else {
+          alert('Votación creada correctamente');
+          resetForm();
+          loadVotaciones();
+        }
       } else {
         alert('Error al crear la votación');
       }
@@ -135,6 +153,28 @@ const VotingManager: React.FC = () => {
     setShowResults(id);
   };
 
+  const handleSendNotifications = async (selectedUsers: EmailRecipient[]) => {
+    if (!pendingVotingData) return;
+
+    const { success, failed } = await sendVotingNotification(
+      selectedUsers,
+      {
+        titulo: pendingVotingData.titulo,
+        descripcion: pendingVotingData.descripcion,
+        tipo: pendingVotingData.tipo,
+        fecha_inicio: pendingVotingData.fecha_inicio,
+        fecha_fin: pendingVotingData.fecha_fin,
+        url: `https://www.sepeiunido.org/#voting`
+      }
+    );
+
+    alert(`✅ Notificaciones enviadas:\n${success} exitosas\n${failed} fallidas`);
+    setShowNotificationModal(false);
+    setPendingVotingData(null);
+    await loadVotaciones();
+    resetForm();
+  };
+
   const resetForm = () => {
     setFormData({
       titulo: '',
@@ -150,6 +190,7 @@ const VotingManager: React.FC = () => {
     setOpciones(['', '']);
     setEditingVotacion(null);
     setShowForm(false);
+    setSendNotification(false);
   };
 
   const addOpcion = () => {
@@ -347,6 +388,19 @@ const VotingManager: React.FC = () => {
                   />
                   <span>Permitir múltiples respuestas</span>
                 </label>
+
+                {!editingVotacion && (
+                  <label className="flex items-center gap-3 text-orange-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={sendNotification}
+                      onChange={(e) => setSendNotification(e.target.checked)}
+                      className="w-5 h-5 text-orange-500 focus:ring-orange-500 rounded"
+                    />
+                    <Mail className="w-5 h-5" />
+                    <span>Notificar por email</span>
+                  </label>
+                )}
               </div>
 
               {/* Botones */}
@@ -515,6 +569,16 @@ const VotingManager: React.FC = () => {
           })
         )}
       </div>
+
+      <NotificationModal
+        isOpen={showNotificationModal}
+        onClose={() => {
+          setShowNotificationModal(false);
+          setPendingVotingData(null);
+        }}
+        onConfirm={handleSendNotifications}
+        title="Notificar nueva votación"
+      />
     </div>
   );
 };

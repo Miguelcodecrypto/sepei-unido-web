@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Eye, EyeOff, Image, FileText, X, Upload, Star } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, EyeOff, Image, FileText, X, Upload, Star, Mail } from 'lucide-react';
 import {
   getAllAnnouncements,
   createAnnouncement,
@@ -9,6 +9,8 @@ import {
   uploadAnnouncementFile,
   type Announcement
 } from '../services/announcementDatabase';
+import { sendAnnouncementNotification, type EmailRecipient } from '../services/emailNotificationService';
+import NotificationModal from './NotificationModal';
 
 export default function AnnouncementsManager() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -26,6 +28,9 @@ export default function AnnouncementsManager() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState<string>('');
+  const [sendNotification, setSendNotification] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [pendingAnnouncementData, setPendingAnnouncementData] = useState<any>(null);
 
   useEffect(() => {
     loadAnnouncements();
@@ -96,12 +101,25 @@ export default function AnnouncementsManager() {
 
       if (editingId) {
         await updateAnnouncement(editingId, announcementData);
+        await loadAnnouncements();
+        resetForm();
       } else {
-        await createAnnouncement(announcementData);
+        const newAnnouncement = await createAnnouncement(announcementData);
+        
+        // Si se marcó enviar notificación y está publicado, abrir modal
+        if (sendNotification && formData.publicado && newAnnouncement) {
+          setPendingAnnouncementData({
+            id: newAnnouncement.id,
+            titulo: announcementData.titulo,
+            descripcion: announcementData.contenido,
+            categoria: announcementData.categoria
+          });
+          setShowNotificationModal(true);
+        } else {
+          await loadAnnouncements();
+          resetForm();
+        }
       }
-
-      await loadAnnouncements();
-      resetForm();
     } catch (error) {
       console.error('Error al guardar anuncio:', error);
       alert('Error al guardar el anuncio');
@@ -154,6 +172,36 @@ export default function AnnouncementsManager() {
     setAttachmentFile(null);
     setEditingId(null);
     setShowForm(false);
+    setSendNotification(false);
+  };
+
+  const handleSendNotifications = async (selectedUsers: EmailRecipient[]) => {
+    if (!pendingAnnouncementData) return;
+
+    setUploadProgress('Enviando notificaciones...');
+    
+    try {
+      const { success, failed } = await sendAnnouncementNotification(
+        selectedUsers,
+        {
+          titulo: pendingAnnouncementData.titulo,
+          descripcion: pendingAnnouncementData.descripcion,
+          categoria: pendingAnnouncementData.categoria,
+          url: `https://www.sepeiunido.org/#announcements`
+        }
+      );
+
+      alert(`✅ Notificaciones enviadas:\n${success} exitosas\n${failed} fallidas`);
+      
+      await loadAnnouncements();
+      resetForm();
+      setPendingAnnouncementData(null);
+    } catch (error) {
+      console.error('Error enviando notificaciones:', error);
+      alert('❌ Error al enviar notificaciones');
+    } finally {
+      setUploadProgress('');
+    }
   };
 
   const getCategoryColor = (categoria: string) => {
@@ -242,6 +290,18 @@ export default function AnnouncementsManager() {
                   />
                   Destacado
                 </label>
+                {!editingId && (
+                  <label className="flex items-center gap-2 text-orange-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={sendNotification}
+                      onChange={(e) => setSendNotification(e.target.checked)}
+                      className="w-5 h-5 text-orange-500 focus:ring-orange-500"
+                    />
+                    <Mail className="w-5 h-5" />
+                    Notificar por email
+                  </label>
+                )}
               </div>
             </div>
 
@@ -391,6 +451,16 @@ export default function AnnouncementsManager() {
           ))
         )}
       </div>
+
+      <NotificationModal
+        isOpen={showNotificationModal}
+        onClose={() => {
+          setShowNotificationModal(false);
+          setPendingAnnouncementData(null);
+        }}
+        onConfirm={handleSendNotifications}
+        title="Notificar nuevo anuncio"
+      />
     </div>
   );
 }
