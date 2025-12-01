@@ -154,9 +154,9 @@ export const UserLogin: React.FC<UserLoginProps> = ({
 
       // Login exitoso - preparar datos de usuario
       const loggedUser: LoggedUserData = {
-        dni: userData.dni,
+        dni: userData.dni || '',
         nombre: userData.nombre,
-        apellidos: userData.apellidos,
+        apellidos: userData.apellidos || '',
         email: userData.email,
         verified: userData.verified,
         lastLogin: new Date().toISOString(),

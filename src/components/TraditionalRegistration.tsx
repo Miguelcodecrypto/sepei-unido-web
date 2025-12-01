@@ -206,9 +206,9 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         requires_password_change: true, // Contraseña temporal requiere cambio
         verification_token: verificationToken,
         verification_token_expires_at: tokenExpiresAt,
-        certificado_nif: null,
-        certificado_thumbprint: null,
-        certificado_fecha_validacion: null,
+        certificado_nif: undefined,
+        certificado_thumbprint: undefined,
+        certificado_fecha_validacion: undefined,
         certificado_valido: false,
       });
 
@@ -240,10 +240,11 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
       setStep('verification');
 
       // Solo en desarrollo, mostrar la info en consola
-      if (import.meta.env.DEV) {
-        console.log('­ƒôº [DESARROLLO] Datos de verificaci├│n:');
+      // @ts-ignore - import.meta.env existe en Vite pero TypeScript no lo reconoce
+      if (import.meta.env?.DEV) {
+        console.log('💻 [DESARROLLO] Datos de verificación:');
         console.log('Email:', userData.email);
-        console.log('Contrase├▒a temporal:', tempPassword);
+        console.log('Contraseña temporal:', tempPassword);
         console.log('Token:', verificationToken);
       }
 

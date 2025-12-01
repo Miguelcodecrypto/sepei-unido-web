@@ -17,10 +17,6 @@ interface User {
   dni?: string;
   email: string;
   telefono?: string;
-  instagram?: string;
-  facebook?: string;
-  twitter?: string;
-  linkedin?: string;
   fechaRegistro: string;
   terminos_aceptados: boolean;
   fecha_aceptacion_terminos: string;
@@ -97,10 +93,6 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
         dni: user.dni,
         email: user.email,
         telefono: user.telefono,
-        instagram: user.instagram,
-        facebook: user.facebook,
-        twitter: user.twitter,
-        linkedin: user.linkedin,
         fechaRegistro: user.fecha_registro,
         terminos_aceptados: user.terminos_aceptados,
         fecha_aceptacion_terminos: user.fecha_aceptacion_terminos,
@@ -458,34 +450,6 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                                   </div>
                                 </div>
                               )}
-
-                              {/* Redes Sociales */}
-                              <div className="grid md:grid-cols-2 gap-4">
-                                {user.instagram && (
-                                  <div>
-                                    <span className="text-gray-400">Instagram: </span>
-                                    <span className="text-white">{user.instagram}</span>
-                                  </div>
-                                )}
-                                {user.facebook && (
-                                  <div>
-                                    <span className="text-gray-400">Facebook: </span>
-                                    <span className="text-white">{user.facebook}</span>
-                                  </div>
-                                )}
-                                {user.twitter && (
-                                  <div>
-                                    <span className="text-gray-400">Twitter: </span>
-                                    <span className="text-white">{user.twitter}</span>
-                                  </div>
-                                )}
-                                {user.linkedin && (
-                                  <div>
-                                    <span className="text-gray-400">LinkedIn: </span>
-                                    <span className="text-white">{user.linkedin}</span>
-                                  </div>
-                                )}
-                              </div>
                               
                               {/* Información de Consentimiento RGPD */}
                               <div className="border-t border-slate-700 pt-4 mt-4">
