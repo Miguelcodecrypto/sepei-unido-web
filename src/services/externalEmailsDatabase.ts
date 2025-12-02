@@ -3,7 +3,7 @@
  * Emails que recibirán notificaciones sin ser usuarios registrados
  */
 
-import { supabase } from './supabaseClient';
+import { supabase } from '../lib/supabase';
 
 export interface ExternalEmail {
   id: string;

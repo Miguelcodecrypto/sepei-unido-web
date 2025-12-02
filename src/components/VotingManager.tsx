@@ -214,11 +214,11 @@ const VotingManager: React.FC = () => {
     if (type === 'results') {
       // Para resultados, necesitamos cargar los datos completos
       getResultadosVotacion(votacion.id).then(resultados => {
-        const totalVotos = resultados.reduce((sum, r) => sum + r.votos, 0);
+        const totalVotos = resultados.reduce((sum, r) => sum + r.total_votos, 0);
         const resultadosFormateados = resultados.map(r => ({
-          opcion: r.texto_opcion,
-          votos: r.votos,
-          porcentaje: (r.votos / totalVotos) * 100
+          opcion: r.texto,
+          votos: r.total_votos,
+          porcentaje: r.porcentaje
         })).sort((a, b) => b.votos - a.votos);
 
         setPendingVotingData({
