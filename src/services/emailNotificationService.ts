@@ -24,6 +24,19 @@ export interface VotingNotificationData {
   url: string;
 }
 
+export interface VotingResultsNotificationData {
+  titulo: string;
+  descripcion: string;
+  tipo: string;
+  total_votos: number;
+  resultados: Array<{
+    opcion: string;
+    votos: number;
+    porcentaje: number;
+  }>;
+  url: string;
+}
+
 /**
  * Enviar notificación de nuevo anuncio
  */
@@ -387,5 +400,224 @@ Vota aquí: ${voting.url}
 
 ---
 © ${new Date().getFullYear()} SEPEI UNIDO
+  `;
+}
+
+/**
+ * Enviar notificación de resultados de votación
+ */
+export async function sendVotingResultsNotification(
+  recipients: EmailRecipient[],
+  results: VotingResultsNotificationData
+): Promise<{ success: number; failed: number }> {
+  console.log(`📊 [NOTIFICACIONES] Enviando resultados de votación a ${recipients.length} usuarios`);
+  
+  let success = 0;
+  let failed = 0;
+
+  for (let i = 0; i < recipients.length; i++) {
+    const recipient = recipients[i];
+    
+    try {
+      const html = generateVotingResultsEmailHTML(recipient, results);
+      const text = generateVotingResultsEmailText(recipient, results);
+
+      if (import.meta.env?.DEV) {
+        console.log(`📊 [DEV] Email de resultados simulado para: ${recipient.email}`);
+        success++;
+        continue;
+      }
+
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: recipient.email,
+          subject: `📊 Resultados: ${results.titulo}`,
+          html,
+          text,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Error al enviar resultados a ${recipient.nombre} (${recipient.email}):`, response.status, errorText);
+        failed++;
+      } else {
+        console.log(`✅ Resultados enviados exitosamente a ${recipient.nombre} (${recipient.email})`);
+        success++;
+      }
+    } catch (error) {
+      console.error(`❌ Excepción enviando resultados a ${recipient.nombre} (${recipient.email}):`, error);
+      failed++;
+    }
+
+    if (i < recipients.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+
+  console.log(`✅ Envío de resultados completado: ${success} éxitos, ${failed} fallos`);
+  return { success, failed };
+}
+
+/**
+ * HTML para notificación de resultados
+ */
+function generateVotingResultsEmailHTML(
+  recipient: EmailRecipient,
+  results: VotingResultsNotificationData
+): string {
+  const ganador = results.resultados[0];
+  
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          
+          <tr>
+            <td style="background: linear-gradient(135deg, #16a34a 0%, #059669 100%); padding: 40px 20px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px;">📊 SEPEI UNIDO</h1>
+              <p style="color: #d1fae5; margin: 10px 0 0 0; font-size: 16px;">Resultados de ${results.tipo}</p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding: 40px 30px;">
+              <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">
+                ${results.titulo}
+              </h2>
+              
+              <p style="color: #6b7280; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+                Hola ${recipient.nombre},
+              </p>
+
+              <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+                La votación ha finalizado. Aquí están los resultados oficiales:
+              </p>
+
+              ${results.descripcion ? `
+              <div style="background-color: #f9fafb; border-left: 4px solid #3b82f6; padding: 15px; margin: 0 0 30px 0; border-radius: 4px;">
+                <p style="color: #374151; margin: 0; font-size: 14px;">
+                  ${results.descripcion}
+                </p>
+              </div>
+              ` : ''}
+
+              <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 20px; margin: 0 0 20px 0; border-radius: 4px;">
+                <h3 style="color: #166534; margin: 0 0 15px 0; font-size: 18px;">
+                  🏆 Opción ganadora
+                </h3>
+                <p style="color: #15803d; font-size: 20px; font-weight: bold; margin: 0;">
+                  ${ganador.opcion}
+                </p>
+                <p style="color: #16a34a; font-size: 16px; margin: 10px 0 0 0;">
+                  ${ganador.votos} votos (${ganador.porcentaje.toFixed(1)}%)
+                </p>
+              </div>
+
+              <div style="margin: 0 0 30px 0;">
+                <h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px;">
+                  📊 Todos los resultados
+                </h3>
+                ${results.resultados.map((resultado, index) => `
+                  <div style="margin: 0 0 15px 0; background-color: #f9fafb; border-radius: 8px; overflow: hidden;">
+                    <div style="padding: 15px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="color: #1f2937; font-weight: bold; font-size: 16px;">${index + 1}. ${resultado.opcion}</span>
+                        <span style="color: #3b82f6; font-weight: bold; font-size: 16px;">${resultado.porcentaje.toFixed(1)}%</span>
+                      </div>
+                      <div style="background-color: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); height: 100%; width: ${resultado.porcentaje}%; transition: width 0.3s;"></div>
+                      </div>
+                      <span style="color: #6b7280; font-size: 14px;">${resultado.votos} votos</span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+
+              <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin: 0 0 20px 0; border-radius: 4px;">
+                <p style="color: #1e40af; margin: 0; font-size: 14px;">
+                  📈 Total de participantes: <strong>${results.total_votos}</strong>
+                </p>
+              </div>
+
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0 0 0;">
+                <tr>
+                  <td align="center">
+                    <a href="${results.url}" style="display: inline-block; background: linear-gradient(135deg, #16a34a 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-size: 16px; font-weight: bold;">
+                      Ver detalles completos
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="color: #6b7280; font-size: 13px; margin: 0 0 10px 0;">
+                Gracias por tu participación en SEPEI UNIDO
+              </p>
+              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                © ${new Date().getFullYear()} SEPEI UNIDO. Todos los derechos reservados.
+              </p>
+              <p style="color: #9ca3af; font-size: 12px; margin: 10px 0 0 0;">
+                <a href="https://www.sepeiunido.org" style="color: #3b82f6; text-decoration: none;">www.sepeiunido.org</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
+/**
+ * Texto plano para notificación de resultados
+ */
+function generateVotingResultsEmailText(
+  recipient: EmailRecipient,
+  results: VotingResultsNotificationData
+): string {
+  return `
+SEPEI UNIDO - Resultados de ${results.tipo}
+
+${results.titulo}
+${'='.repeat(results.titulo.length)}
+
+Hola ${recipient.nombre},
+
+La votación ha finalizado. Aquí están los resultados oficiales:
+
+${results.descripcion ? results.descripcion + '\n\n' : ''}
+
+🏆 OPCIÓN GANADORA:
+${results.resultados[0].opcion} - ${results.resultados[0].votos} votos (${results.resultados[0].porcentaje.toFixed(1)}%)
+
+📊 TODOS LOS RESULTADOS:
+${results.resultados.map((r, i) => 
+  `${i + 1}. ${r.opcion}: ${r.votos} votos (${r.porcentaje.toFixed(1)}%)`
+).join('\n')}
+
+📈 Total de participantes: ${results.total_votos}
+
+Ver detalles completos: ${results.url}
+
+---
+© ${new Date().getFullYear()} SEPEI UNIDO
+www.sepeiunido.org
   `;
 }

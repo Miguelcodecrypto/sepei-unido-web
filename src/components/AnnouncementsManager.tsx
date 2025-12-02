@@ -31,6 +31,7 @@ export default function AnnouncementsManager() {
   const [sendNotification, setSendNotification] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [pendingAnnouncementData, setPendingAnnouncementData] = useState<any>(null);
+  const [notifyingAnnouncementId, setNotifyingAnnouncementId] = useState<string | null>(null);
 
   useEffect(() => {
     loadAnnouncements();
@@ -192,16 +193,32 @@ export default function AnnouncementsManager() {
       );
 
       alert(`✅ Notificaciones enviadas:\n${success} exitosas\n${failed} fallidas`);
-      
-      await loadAnnouncements();
-      resetForm();
+      setShowNotificationModal(false);
       setPendingAnnouncementData(null);
+      setNotifyingAnnouncementId(null);
+      
+      // Solo resetear form si estábamos creando nuevo anuncio
+      if (editingId === null && !notifyingAnnouncementId) {
+        await loadAnnouncements();
+        resetForm();
+      }
     } catch (error) {
       console.error('Error enviando notificaciones:', error);
       alert('❌ Error al enviar notificaciones');
     } finally {
       setUploadProgress('');
     }
+  };
+
+  const handleNotifyExistingAnnouncement = (announcement: Announcement) => {
+    setPendingAnnouncementData({
+      id: announcement.id,
+      titulo: announcement.titulo,
+      descripcion: announcement.contenido,
+      categoria: announcement.categoria
+    });
+    setNotifyingAnnouncementId(announcement.id);
+    setShowNotificationModal(true);
   };
 
   const getCategoryColor = (categoria: string) => {
@@ -417,6 +434,13 @@ export default function AnnouncementsManager() {
                 </div>
 
                 <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => handleNotifyExistingAnnouncement(announcement)}
+                    className="p-2 bg-orange-600 hover:bg-orange-700 rounded-lg transition"
+                    title="Notificar por email"
+                  >
+                    <Mail className="w-5 h-5 text-white" />
+                  </button>
                   <button
                     onClick={() => toggleDestacado(announcement)}
                     className={`p-2 rounded-lg transition ${announcement.destacado ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-slate-700 hover:bg-slate-600'}`}

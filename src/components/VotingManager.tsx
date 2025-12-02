@@ -24,6 +24,8 @@ const VotingManager: React.FC = () => {
   const [sendNotification, setSendNotification] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [pendingVotingData, setPendingVotingData] = useState<any>(null);
+  const [notifyingVotingId, setNotifyingVotingId] = useState<string | null>(null);
+  const [notificationType, setNotificationType] = useState<'new' | 'results'>('new');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -156,23 +158,89 @@ const VotingManager: React.FC = () => {
   const handleSendNotifications = async (selectedUsers: EmailRecipient[]) => {
     if (!pendingVotingData) return;
 
-    const { success, failed } = await sendVotingNotification(
-      selectedUsers,
-      {
-        titulo: pendingVotingData.titulo,
-        descripcion: pendingVotingData.descripcion,
-        tipo: pendingVotingData.tipo,
-        fecha_inicio: pendingVotingData.fecha_inicio,
-        fecha_fin: pendingVotingData.fecha_fin,
-        url: `https://www.sepeiunido.org/#voting`
+    try {
+      let result;
+      
+      if (notificationType === 'results') {
+        // Importar la función de resultados
+        const { sendVotingResultsNotification } = await import('../services/emailNotificationService');
+        
+        result = await sendVotingResultsNotification(
+          selectedUsers,
+          {
+            titulo: pendingVotingData.titulo,
+            descripcion: pendingVotingData.descripcion,
+            tipo: pendingVotingData.tipo,
+            total_votos: pendingVotingData.total_votos,
+            resultados: pendingVotingData.resultados,
+            url: `https://www.sepeiunido.org/#voting`
+          }
+        );
+      } else {
+        result = await sendVotingNotification(
+          selectedUsers,
+          {
+            titulo: pendingVotingData.titulo,
+            descripcion: pendingVotingData.descripcion,
+            fecha_fin: pendingVotingData.fecha_fin,
+            url: `https://www.sepeiunido.org/#voting`
+          }
+        );
       }
-    );
 
-    alert(`✅ Notificaciones enviadas:\n${success} exitosas\n${failed} fallidas`);
-    setShowNotificationModal(false);
-    setPendingVotingData(null);
-    await loadVotaciones();
-    resetForm();
+      const { success, failed } = result;
+      alert(`✅ Notificaciones enviadas:\n${success} exitosas\n${failed} fallidas`);
+      
+      setShowNotificationModal(false);
+      setPendingVotingData(null);
+      setNotifyingVotingId(null);
+      setNotificationType('new');
+      
+      // Solo resetear form si estábamos creando nueva votación
+      if (!notifyingVotingId) {
+        await loadVotaciones();
+        resetForm();
+      }
+    } catch (error) {
+      console.error('Error enviando notificaciones:', error);
+      alert('❌ Error al enviar notificaciones');
+    }
+  };
+
+  const handleNotifyExistingVoting = (votacion: VotacionCompleta, type: 'new' | 'results') => {
+    setNotificationType(type);
+    setNotifyingVotingId(votacion.id);
+    
+    if (type === 'results') {
+      // Para resultados, necesitamos cargar los datos completos
+      getResultadosVotacion(votacion.id).then(resultados => {
+        const totalVotos = resultados.reduce((sum, r) => sum + r.votos, 0);
+        const resultadosFormateados = resultados.map(r => ({
+          opcion: r.texto_opcion,
+          votos: r.votos,
+          porcentaje: (r.votos / totalVotos) * 100
+        })).sort((a, b) => b.votos - a.votos);
+
+        setPendingVotingData({
+          id: votacion.id,
+          titulo: votacion.titulo,
+          descripcion: votacion.descripcion,
+          tipo: votacion.tipo,
+          total_votos: totalVotos,
+          resultados: resultadosFormateados
+        });
+        setShowNotificationModal(true);
+      });
+    } else {
+      setPendingVotingData({
+        id: votacion.id,
+        titulo: votacion.titulo,
+        descripcion: votacion.descripcion,
+        tipo: votacion.tipo,
+        fecha_fin: votacion.fecha_fin
+      });
+      setShowNotificationModal(true);
+    }
   };
 
   const resetForm = () => {
@@ -507,6 +575,24 @@ const VotingManager: React.FC = () => {
 
                   <div className="flex gap-2">
                     <button
+                      onClick={() => handleNotifyExistingVoting(votacion, 'new')}
+                      className="p-2 bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors"
+                      title="Notificar votación"
+                    >
+                      <Mail className="w-5 h-5" />
+                    </button>
+
+                    {new Date() > new Date(votacion.fecha_fin) && (
+                      <button
+                        onClick={() => handleNotifyExistingVoting(votacion, 'results')}
+                        className="p-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                        title="Enviar resultados"
+                      >
+                        <BarChart3 className="w-5 h-5" />
+                      </button>
+                    )}
+
+                    <button
                       onClick={() => handleTogglePublicado(votacion.id, votacion.publicado)}
                       className={`p-2 rounded-lg transition-colors ${
                         votacion.publicado
@@ -540,7 +626,7 @@ const VotingManager: React.FC = () => {
 
                     <button
                       onClick={() => handleEdit(votacion)}
-                      className="p-2 bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors"
+                      className="p-2 bg-slate-600 hover:bg-slate-700 rounded-lg transition-colors"
                       title="Editar"
                     >
                       <Edit2 className="w-5 h-5" />
@@ -575,9 +661,11 @@ const VotingManager: React.FC = () => {
         onClose={() => {
           setShowNotificationModal(false);
           setPendingVotingData(null);
+          setNotifyingVotingId(null);
+          setNotificationType('new');
         }}
         onConfirm={handleSendNotifications}
-        title="Notificar nueva votación"
+        title={notificationType === 'results' ? 'Enviar resultados de votación' : 'Notificar nueva votación'}
       />
     </div>
   );
