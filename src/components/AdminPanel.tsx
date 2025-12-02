@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award } from 'lucide-react';
+import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award, Mail } from 'lucide-react';
 import { getAllUsers, deleteUser, exportUsersToCSV, toggleVotingAuthorization, resetTempPassword } from '../services/userDatabase';
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
@@ -9,6 +9,7 @@ import AnnouncementsManager from './AnnouncementsManager';
 import VotingManager from './VotingManager';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import VotingResultsPanel from './VotingResultsPanel';
+import { ExternalEmailsManager } from './ExternalEmailsManager';
 
 interface User {
   id: string;
@@ -46,7 +47,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onLogout }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'users' | 'suggestions' | 'announcements' | 'voting' | 'analytics' | 'results'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'suggestions' | 'announcements' | 'voting' | 'analytics' | 'results' | 'external-emails'>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
@@ -303,6 +304,17 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
           >
             <Award className="w-5 h-5" />
             Resultados
+          </button>
+          <button
+            onClick={() => setActiveTab('external-emails')}
+            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
+              activeTab === 'external-emails'
+                ? 'text-orange-500 border-b-2 border-orange-500'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Mail className="w-5 h-5" />
+            Emails Externos
           </button>
         </div>
 
@@ -598,6 +610,11 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
         {/* Voting Results Panel */}
         {activeTab === 'results' && (
           <VotingResultsPanel onClose={() => setActiveTab('voting')} />
+        )}
+
+        {/* External Emails Manager */}
+        {activeTab === 'external-emails' && (
+          <ExternalEmailsManager />
         )}
       </div>
     </div>
