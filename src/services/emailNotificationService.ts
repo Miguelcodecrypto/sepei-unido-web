@@ -36,54 +36,48 @@ export async function sendAnnouncementNotification(
   let success = 0;
   let failed = 0;
 
-  // Enviar en lotes de 10 para no saturar
-  const batchSize = 10;
-  for (let i = 0; i < recipients.length; i += batchSize) {
-    const batch = recipients.slice(i, i + batchSize);
+  // Enviar secuencialmente con delay para respetar rate limit de Resend (2 emails/segundo)
+  for (let i = 0; i < recipients.length; i++) {
+    const recipient = recipients[i];
     
-    const promises = batch.map(async (recipient) => {
-      try {
-        const html = generateAnnouncementEmailHTML(recipient, announcement);
-        const text = generateAnnouncementEmailText(recipient, announcement);
+    try {
+      const html = generateAnnouncementEmailHTML(recipient, announcement);
+      const text = generateAnnouncementEmailText(recipient, announcement);
 
-        // En desarrollo, simular envío
-        if (import.meta.env?.DEV) {
-          console.log(`📧 [DEV] Email simulado para: ${recipient.email}`);
-          return true;
-        }
-
-        const response = await fetch('/api/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: recipient.email,
-            subject: `📢 Nuevo anuncio: ${announcement.titulo}`,
-            html,
-            text,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`❌ Error al enviar email a ${recipient.nombre} (${recipient.email}):`, response.status, errorText);
-          return false;
-        }
-
-        console.log(`✅ Email enviado exitosamente a ${recipient.nombre} (${recipient.email})`);
-        return true;
-      } catch (error) {
-        console.error(`❌ Excepción enviando a ${recipient.nombre} (${recipient.email}):`, error);
-        return false;
+      // En desarrollo, simular envío
+      if (import.meta.env?.DEV) {
+        console.log(`📧 [DEV] Email simulado para: ${recipient.email}`);
+        success++;
+        continue;
       }
-    });
 
-    const results = await Promise.all(promises);
-    success += results.filter(r => r).length;
-    failed += results.filter(r => !r).length;
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: recipient.email,
+          subject: `📢 Nuevo anuncio: ${announcement.titulo}`,
+          html,
+          text,
+        }),
+      });
 
-    // Pausa entre lotes
-    if (i + batchSize < recipients.length) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Error al enviar email a ${recipient.nombre} (${recipient.email}):`, response.status, errorText);
+        failed++;
+      } else {
+        console.log(`✅ Email enviado exitosamente a ${recipient.nombre} (${recipient.email})`);
+        success++;
+      }
+    } catch (error) {
+      console.error(`❌ Excepción enviando a ${recipient.nombre} (${recipient.email}):`, error);
+      failed++;
+    }
+
+    // Delay de 500ms entre cada email (2 emails/segundo = rate limit de Resend)
+    if (i < recipients.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
 
@@ -103,51 +97,47 @@ export async function sendVotingNotification(
   let success = 0;
   let failed = 0;
 
-  const batchSize = 10;
-  for (let i = 0; i < recipients.length; i += batchSize) {
-    const batch = recipients.slice(i, i + batchSize);
+  // Enviar secuencialmente con delay para respetar rate limit de Resend (2 emails/segundo)
+  for (let i = 0; i < recipients.length; i++) {
+    const recipient = recipients[i];
     
-    const promises = batch.map(async (recipient) => {
-      try {
-        const html = generateVotingEmailHTML(recipient, voting);
-        const text = generateVotingEmailText(recipient, voting);
+    try {
+      const html = generateVotingEmailHTML(recipient, voting);
+      const text = generateVotingEmailText(recipient, voting);
 
-        if (import.meta.env?.DEV) {
-          console.log(`📧 [DEV] Email simulado para: ${recipient.email}`);
-          return true;
-        }
-
-        const response = await fetch('/api/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: recipient.email,
-            subject: `🗳️ Nueva votación: ${voting.titulo}`,
-            html,
-            text,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`❌ Error al enviar email a ${recipient.nombre} (${recipient.email}):`, response.status, errorText);
-          return false;
-        }
-
-        console.log(`✅ Email enviado exitosamente a ${recipient.nombre} (${recipient.email})`);
-        return true;
-      } catch (error) {
-        console.error(`❌ Excepción enviando a ${recipient.nombre} (${recipient.email}):`, error);
-        return false;
+      if (import.meta.env?.DEV) {
+        console.log(`📧 [DEV] Email simulado para: ${recipient.email}`);
+        success++;
+        continue;
       }
-    });
 
-    const results = await Promise.all(promises);
-    success += results.filter(r => r).length;
-    failed += results.filter(r => !r).length;
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: recipient.email,
+          subject: `🗳️ Nueva votación: ${voting.titulo}`,
+          html,
+          text,
+        }),
+      });
 
-    if (i + batchSize < recipients.length) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Error al enviar email a ${recipient.nombre} (${recipient.email}):`, response.status, errorText);
+        failed++;
+      } else {
+        console.log(`✅ Email enviado exitosamente a ${recipient.nombre} (${recipient.email})`);
+        success++;
+      }
+    } catch (error) {
+      console.error(`❌ Excepción enviando a ${recipient.nombre} (${recipient.email}):`, error);
+      failed++;
+    }
+
+    // Delay de 500ms entre cada email (2 emails/segundo = rate limit de Resend)
+    if (i < recipients.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
 
