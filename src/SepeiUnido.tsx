@@ -12,6 +12,7 @@ import { getCurrentUser, invalidateSession } from './services/sessionService';
 import { trackPageVisit } from './services/analyticsService';
 import AnnouncementsBoard from './components/AnnouncementsBoard';
 import VotingBoard from './components/VotingBoard';
+import FloatingVotingButton from './components/FloatingVotingButton';
 
 export default function SepeiUnido() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -805,6 +806,14 @@ export default function SepeiUnido() {
           </p>
         </div>
       </section>
+
+      {/* Botón flotante para votaciones activas */}
+      <FloatingVotingButton 
+        onClick={() => {
+          const votacionesSection = document.getElementById('votaciones-section');
+          votacionesSection?.scrollIntoView({ behavior: 'smooth' });
+        }}
+      />
 
       {/* Botón flotante para sugerencias */}
       <button

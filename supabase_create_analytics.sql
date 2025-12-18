@@ -51,15 +51,19 @@ CREATE INDEX IF NOT EXISTS idx_interactions_user_id
 ON user_interactions(user_id) 
 WHERE user_id IS NOT NULL;
 
--- 4. Vista para estadísticas rápidas
-CREATE OR REPLACE VIEW analytics_summary AS
+-- 4. Vista para estadísticas rápidas (alineada con cálculos del dashboard)
+DROP VIEW IF EXISTS analytics_summary;
+
+CREATE VIEW analytics_summary AS
 SELECT 
-  COUNT(DISTINCT session_id) as total_visits,
-  COUNT(DISTINCT user_id) FILTER (WHERE user_id IS NOT NULL) as authenticated_visits,
-  COUNT(*) as total_page_views,
-  DATE_TRUNC('day', visited_at) as visit_date
+  COUNT(*) as visits,  -- Total de pageviews (alineado con totalVisits en código)
+  COUNT(DISTINCT session_id) as unique_sessions,  -- Sesiones únicas totales
+  COUNT(DISTINCT user_id) FILTER (WHERE user_id IS NOT NULL) as unique_users,  -- Usuarios únicos autenticados
+  COUNT(*) FILTER (WHERE user_id IS NOT NULL) as authenticated_visits,  -- Visitas autenticadas
+  COUNT(*) FILTER (WHERE user_id IS NULL) as anonymous_visits,  -- Visitas anónimas
+  DATE_TRUNC('day', visited_at)::date as visit_date
 FROM site_visits
-GROUP BY DATE_TRUNC('day', visited_at)
+GROUP BY visit_date
 ORDER BY visit_date DESC;
 
 -- 5. Vista para interacciones por sección

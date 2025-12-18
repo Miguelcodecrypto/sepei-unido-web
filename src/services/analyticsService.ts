@@ -167,7 +167,7 @@ export async function getAnalyticsSummary(days: number = 30): Promise<{
     // Visitas por día (usando la vista directamente)
     const { data: visitsByDay } = await supabase
       .from('analytics_summary')
-      .select('*')
+      .select('visit_date, visits')
       .gte('visit_date', startDate.toISOString().split('T')[0])
       .order('visit_date', { ascending: false })
       .limit(days);
@@ -179,7 +179,10 @@ export async function getAnalyticsSummary(days: number = 30): Promise<{
       anonymousVisits: anonymousVisits || 0,
       uniqueSessions,
       pageViews: totalVisits || 0,
-      visitsByDay: visitsByDay || []
+      visitsByDay: (visitsByDay || []).map(day => ({
+        date: day.visit_date,
+        visits: day.visits
+      }))
     };
   } catch (error) {
     console.error('❌ [ANALYTICS] Error al obtener resumen:', error);
