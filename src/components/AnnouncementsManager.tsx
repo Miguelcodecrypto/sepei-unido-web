@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Eye, EyeOff, Image, FileText, X, Upload, Star, Mail } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, EyeOff, Image, FileText, X, Upload, Star, Mail, Link2, Video, Music, FilePlus2, Trash } from 'lucide-react';
 import {
   getAllAnnouncements,
   createAnnouncement,
@@ -7,7 +7,10 @@ import {
   deleteAnnouncement,
   uploadAnnouncementImage,
   uploadAnnouncementFile,
-  type Announcement
+  addAnnouncementAttachment,
+  deleteAnnouncementAttachment,
+  type Announcement,
+  type AnnouncementAttachment
 } from '../services/announcementDatabase';
 import { sendAnnouncementNotification, type EmailRecipient } from '../services/emailNotificationService';
 import NotificationModal from './NotificationModal';
@@ -26,7 +29,10 @@ export default function AnnouncementsManager() {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  const [attachmentLinks, setAttachmentLinks] = useState<{ url: string; title: string }[]>([]);
+  const [linkInput, setLinkInput] = useState('');
+  const [linkTitleInput, setLinkTitleInput] = useState('');
   const [uploadProgress, setUploadProgress] = useState<string>('');
   const [sendNotification, setSendNotification] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
@@ -42,6 +48,12 @@ export default function AnnouncementsManager() {
     setAnnouncements(data);
   };
 
+  const categorizeAttachment = (file: File): AnnouncementAttachment['categoria'] => {
+    if (file.type.startsWith('video')) return 'video';
+    if (file.type.startsWith('audio')) return 'audio';
+    return 'documento';
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -55,9 +67,25 @@ export default function AnnouncementsManager() {
   };
 
   const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAttachmentFile(file);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length) {
+      setAttachmentFiles((prev) => [...prev, ...files]);
+    }
+  };
+
+  const handleRemoveNewFile = (name: string) => {
+    setAttachmentFiles((prev) => prev.filter((f) => f.name !== name));
+  };
+
+  const handleAddLink = () => {
+    if (!linkInput.trim()) return;
+    try {
+      const url = new URL(linkInput.trim());
+      setAttachmentLinks((prev) => [...prev, { url: url.toString(), title: linkTitleInput.trim() || url.host }]);
+      setLinkInput('');
+      setLinkTitleInput('');
+    } catch {
+      alert('Link no válido');
     }
   };
 
@@ -68,9 +96,6 @@ export default function AnnouncementsManager() {
 
     try {
       let imagen_url = editingId ? announcements.find(a => a.id === editingId)?.imagen_url : undefined;
-      let archivo_url = editingId ? announcements.find(a => a.id === editingId)?.archivo_url : undefined;
-      let archivo_nombre = editingId ? announcements.find(a => a.id === editingId)?.archivo_nombre : undefined;
-      let archivo_tipo = editingId ? announcements.find(a => a.id === editingId)?.archivo_tipo : undefined;
 
       // Subir imagen si hay una nueva
       if (imageFile) {
@@ -79,34 +104,21 @@ export default function AnnouncementsManager() {
         if (uploadedImageUrl) imagen_url = uploadedImageUrl;
       }
 
-      // Subir archivo adjunto si hay uno nuevo
-      if (attachmentFile) {
-        setUploadProgress('Subiendo archivo...');
-        const uploadedFileUrl = await uploadAnnouncementFile(attachmentFile);
-        if (uploadedFileUrl) {
-          archivo_url = uploadedFileUrl;
-          archivo_nombre = attachmentFile.name;
-          archivo_tipo = attachmentFile.type;
-        }
-      }
-
       const announcementData = {
         ...formData,
         imagen_url,
-        archivo_url,
-        archivo_nombre,
-        archivo_tipo,
         fecha_publicacion: new Date().toISOString(),
         autor: 'Administrador', // Puedes cambiarlo por el usuario actual
-      };
+      } as any;
+
+      let targetId = editingId;
 
       if (editingId) {
         await updateAnnouncement(editingId, announcementData);
-        await loadAnnouncements();
-        resetForm();
       } else {
         const newAnnouncement = await createAnnouncement(announcementData);
-        
+        targetId = newAnnouncement?.id || null;
+
         // Si se marcó enviar notificación y está publicado, abrir modal
         if (sendNotification && formData.publicado && newAnnouncement) {
           setPendingAnnouncementData({
@@ -116,11 +128,38 @@ export default function AnnouncementsManager() {
             categoria: announcementData.categoria
           });
           setShowNotificationModal(true);
-        } else {
-          await loadAnnouncements();
-          resetForm();
         }
       }
+
+      // Subir y registrar adjuntos nuevos
+      if (targetId) {
+        for (const file of attachmentFiles) {
+          setUploadProgress(`Subiendo ${file.name}...`);
+          const uploadedFileUrl = await uploadAnnouncementFile(file);
+          if (uploadedFileUrl) {
+            await addAnnouncementAttachment({
+              announcement_id: targetId,
+              url: uploadedFileUrl,
+              nombre: file.name,
+              tipo: file.type,
+              categoria: categorizeAttachment(file),
+            });
+          }
+        }
+
+        for (const link of attachmentLinks) {
+          await addAnnouncementAttachment({
+            announcement_id: targetId,
+            url: link.url,
+            nombre: link.title,
+            tipo: 'link',
+            categoria: 'link',
+          });
+        }
+      }
+
+      await loadAnnouncements();
+      resetForm();
     } catch (error) {
       console.error('Error al guardar anuncio:', error);
       alert('Error al guardar el anuncio');
@@ -170,10 +209,22 @@ export default function AnnouncementsManager() {
     });
     setImageFile(null);
     setImagePreview(null);
-    setAttachmentFile(null);
+    setAttachmentFiles([]);
+    setAttachmentLinks([]);
+    setLinkInput('');
+    setLinkTitleInput('');
     setEditingId(null);
     setShowForm(false);
     setSendNotification(false);
+  };
+
+  const editingAnnouncement = editingId ? announcements.find(a => a.id === editingId) : null;
+
+  const handleDeleteExistingAttachment = async (attachmentId: string) => {
+    const confirmed = confirm('¿Eliminar este adjunto?');
+    if (!confirmed) return;
+    await deleteAnnouncementAttachment(attachmentId);
+    await loadAnnouncements();
   };
 
   const handleSendNotifications = async (selectedUsers: EmailRecipient[]) => {
@@ -344,21 +395,95 @@ export default function AnnouncementsManager() {
               </div>
 
               <div>
-                <label className="block text-gray-300 mb-2">Archivo adjunto</label>
+                <label className="block text-gray-300 mb-2">Adjuntos (documentos, videos, audios)</label>
                 <div className="flex items-center gap-2">
                   <label className="flex items-center gap-2 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white cursor-pointer hover:bg-slate-600">
-                    <FileText className="w-5 h-5" />
-                    Seleccionar archivo
+                    <FilePlus2 className="w-5 h-5" />
+                    Añadir archivos
                     <input
                       type="file"
+                      multiple
                       onChange={handleAttachmentChange}
                       className="hidden"
                     />
                   </label>
-                  {attachmentFile && <span className="text-green-400 text-sm">{attachmentFile.name}</span>}
                 </div>
+                {attachmentFiles.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {attachmentFiles.map((file) => (
+                      <div key={file.name} className="flex items-center justify-between bg-slate-700/50 px-3 py-2 rounded-lg text-sm text-gray-200">
+                        <div className="flex items-center gap-2">
+                          {file.type.startsWith('video') ? <Video className="w-4 h-4 text-orange-400" /> : file.type.startsWith('audio') ? <Music className="w-4 h-4 text-green-400" /> : <FileText className="w-4 h-4 text-blue-400" />}
+                          <span className="truncate max-w-xs">{file.name}</span>
+                        </div>
+                        <button type="button" onClick={() => handleRemoveNewFile(file.name)} className="text-red-400 hover:text-red-300">
+                          <Trash className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-gray-300 mb-2">Enlaces</label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={linkInput}
+                    onChange={(e) => setLinkInput(e.target.value)}
+                    placeholder="https://..."
+                    className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  />
+                  <input
+                    type="text"
+                    value={linkTitleInput}
+                    onChange={(e) => setLinkTitleInput(e.target.value)}
+                    placeholder="Título (opcional)"
+                    className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddLink}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold"
+                  >
+                    Añadir link
+                  </button>
+                </div>
+                {attachmentLinks.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {attachmentLinks.map((link) => (
+                      <div key={link.url} className="flex items-center justify-between bg-slate-700/50 px-3 py-2 rounded-lg text-sm text-gray-200">
+                        <div className="flex items-center gap-2">
+                          <Link2 className="w-4 h-4 text-orange-400" />
+                          <span className="truncate max-w-xs">{link.title}</span>
+                        </div>
+                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-xs">Ver</a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {editingAnnouncement?.attachments && editingAnnouncement.attachments.length > 0 && (
+              <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg p-4 space-y-2">
+                <p className="text-sm text-gray-300 font-semibold">Adjuntos existentes</p>
+                {editingAnnouncement.attachments.map((att) => (
+                  <div key={att.id} className="flex items-center justify-between bg-slate-700/40 px-3 py-2 rounded-lg text-sm text-gray-200">
+                    <div className="flex items-center gap-2">
+                      {att.categoria === 'video' ? <Video className="w-4 h-4 text-orange-400" /> : att.categoria === 'audio' ? <Music className="w-4 h-4 text-green-400" /> : att.categoria === 'link' ? <Link2 className="w-4 h-4 text-orange-300" /> : <FileText className="w-4 h-4 text-blue-400" />}
+                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="truncate max-w-[220px] hover:underline text-blue-300">{att.nombre}</a>
+                    </div>
+                    <button type="button" onClick={() => handleDeleteExistingAttachment(att.id)} className="text-red-400 hover:text-red-300">
+                      <Trash className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {uploadProgress && (
               <div className="text-blue-400 text-sm">{uploadProgress}</div>
@@ -425,10 +550,20 @@ export default function AnnouncementsManager() {
                   {announcement.imagen_url && (
                     <img src={announcement.imagen_url} alt={announcement.titulo} className="mt-3 w-full h-48 object-cover rounded-lg" />
                   )}
-                  {announcement.archivo_url && (
-                    <div className="mt-3 flex items-center gap-2 text-blue-400">
-                      <FileText className="w-4 h-4" />
-                      <span className="text-sm">{announcement.archivo_nombre}</span>
+                  {announcement.attachments && announcement.attachments.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                      {announcement.attachments.map((att) => (
+                        <a
+                          key={att.id}
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-2 py-1 bg-slate-700 rounded-lg text-blue-300 hover:text-white hover:bg-slate-600"
+                        >
+                          {att.categoria === 'video' ? <Video className="w-4 h-4" /> : att.categoria === 'audio' ? <Music className="w-4 h-4" /> : att.categoria === 'link' ? <Link2 className="w-4 h-4" /> : <FileText className="w-4 h-4" />} 
+                          <span className="truncate max-w-[200px]">{att.nombre}</span>
+                        </a>
+                      ))}
                     </div>
                   )}
                 </div>

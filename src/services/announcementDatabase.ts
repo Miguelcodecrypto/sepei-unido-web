@@ -15,6 +15,17 @@ export interface Announcement {
   fecha_creacion: string;
   autor: string;
   vistas: number;
+  attachments?: AnnouncementAttachment[];
+}
+
+export interface AnnouncementAttachment {
+  id: string;
+  announcement_id: string;
+  url: string;
+  nombre: string;
+  tipo: string;
+  categoria: 'documento' | 'video' | 'audio' | 'link';
+  created_at: string;
 }
 
 // Obtener todos los anuncios
@@ -22,7 +33,7 @@ export const getAllAnnouncements = async (): Promise<Announcement[]> => {
   try {
     const { data, error } = await supabase
       .from('announcements')
-      .select('*')
+      .select('*, attachments:announcements_attachments(*)')
       .order('fecha_publicacion', { ascending: false });
 
     if (error) {
@@ -42,7 +53,7 @@ export const getPublishedAnnouncements = async (): Promise<Announcement[]> => {
   try {
     const { data, error } = await supabase
       .from('announcements')
-      .select('*')
+      .select('*, attachments:announcements_attachments(*)')
       .eq('publicado', true)
       .order('destacado', { ascending: false })
       .order('fecha_publicacion', { ascending: false });
@@ -80,7 +91,7 @@ export const createAnnouncement = async (
         autor: announcementData.autor,
         vistas: 0,
       }])
-      .select()
+      .select('*, attachments:announcements_attachments(*)')
       .single();
 
     if (error) {
@@ -206,5 +217,45 @@ export const uploadAnnouncementFile = async (file: File): Promise<string | null>
   } catch (error) {
     console.error('Error en uploadAnnouncementFile:', error);
     return null;
+  }
+};
+
+// Adjuntos múltiples
+export const addAnnouncementAttachment = async (attachment: Omit<AnnouncementAttachment, 'id' | 'created_at'>): Promise<AnnouncementAttachment | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('announcements_attachments')
+      .insert([attachment])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error al crear adjunto:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error en addAnnouncementAttachment:', error);
+    return null;
+  }
+};
+
+export const deleteAnnouncementAttachment = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('announcements_attachments')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error al eliminar adjunto:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error en deleteAnnouncementAttachment:', error);
+    return false;
   }
 };
