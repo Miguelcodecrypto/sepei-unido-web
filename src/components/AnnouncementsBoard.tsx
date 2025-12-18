@@ -121,11 +121,15 @@ export default function AnnouncementsBoard() {
                     {announcement.contenido}
                   </p>
 
-                  {/* Archivo adjunto */}
-                  {announcement.archivo_url && (
-                    <div className="flex items-center gap-2 text-blue-400 text-sm mb-4">
-                      <FileText className="w-4 h-4" />
-                      <span className="truncate">{announcement.archivo_nombre}</span>
+                  {/* Adjuntos */}
+                  {announcement.attachments && announcement.attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-2 text-sm mb-4">
+                      {announcement.attachments.map((att) => (
+                        <span key={att.id} className="flex items-center gap-1 px-2 py-1 bg-slate-700 rounded-lg text-blue-300">
+                          {att.categoria === 'video' ? '🎬' : att.categoria === 'audio' ? '🎧' : att.categoria === 'link' ? '🔗' : '📄'}
+                          <span className="truncate max-w-[160px]">{att.nombre}</span>
+                        </span>
+                      ))}
                     </div>
                   )}
 
@@ -208,8 +212,54 @@ export default function AnnouncementsBoard() {
                 </p>
               </div>
 
-              {/* Archivo adjunto */}
-              {selectedAnnouncement.archivo_url && (
+              {/* Adjuntos múltiples */}
+              {selectedAnnouncement.attachments && selectedAnnouncement.attachments.length > 0 && (
+                <div className="space-y-3">
+                  {selectedAnnouncement.attachments.map((att) => (
+                    <div key={att.id} className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-blue-600 rounded-lg">
+                            {att.categoria === 'video' ? '🎬' : att.categoria === 'audio' ? '🎧' : att.categoria === 'link' ? '🔗' : <FileText className="w-6 h-6 text-white" />} 
+                          </div>
+                          <div>
+                            <p className="text-white font-semibold">{att.nombre}</p>
+                            <p className="text-gray-400 text-sm uppercase">{att.categoria}</p>
+                          </div>
+                        </div>
+                        <a
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
+                        >
+                          <Download className="w-5 h-5" />
+                          Abrir
+                        </a>
+                      </div>
+
+                      {att.tipo === 'application/pdf' && att.categoria === 'documento' && (
+                        <div className="mt-4">
+                          <iframe
+                            src={att.url}
+                            className="w-full h-[600px] rounded-lg border border-slate-700"
+                            title={`Vista previa ${att.nombre}`}
+                          />
+                        </div>
+                      )}
+
+                      {att.categoria === 'video' && (
+                        <video controls className="mt-4 w-full rounded-lg border border-slate-700" src={att.url} />
+                      )}
+                      {att.categoria === 'audio' && (
+                        <audio controls className="mt-4 w-full" src={att.url} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!selectedAnnouncement.attachments?.length && selectedAnnouncement.archivo_url && (
                 <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -232,17 +282,6 @@ export default function AnnouncementsBoard() {
                       Descargar
                     </a>
                   </div>
-
-                  {/* Vista previa de PDF */}
-                  {selectedAnnouncement.archivo_tipo === 'application/pdf' && (
-                    <div className="mt-4">
-                      <iframe
-                        src={selectedAnnouncement.archivo_url}
-                        className="w-full h-[600px] rounded-lg border border-slate-700"
-                        title="Vista previa del documento"
-                      />
-                    </div>
-                  )}
                 </div>
               )}
             </div>
