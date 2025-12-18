@@ -185,27 +185,28 @@ export async function getVotacionesActivas(): Promise<VotacionCompleta[]> {
   }
 
   // Filtrar manualmente las votaciones activas
+  const ahora = new Date();
   const votacionesActivas = votaciones.filter(v => {
     const inicio = new Date(v.fecha_inicio);
     const fin = new Date(v.fecha_fin);
-    const ahora = new Date();
     const esActiva = ahora >= inicio && ahora <= fin;
-    console.log(`Votación "${v.titulo}":`, {
-      inicio: v.fecha_inicio,
-      fin: v.fecha_fin,
-      inicioDate: inicio.toISOString(),
-      finDate: fin.toISOString(),
-      ahoraDate: ahora.toISOString(),
-      ahoraMs: ahora.getTime(),
-      inicioMs: inicio.getTime(),
-      finMs: fin.getTime(),
-      comparacion: `${ahora.getTime()} >= ${inicio.getTime()} && ${ahora.getTime()} <= ${fin.getTime()}`,
-      activa: esActiva
+    
+    const minutosHastaInicio = Math.round((inicio.getTime() - ahora.getTime()) / 60000);
+    const minutosHastaFin = Math.round((fin.getTime() - ahora.getTime()) / 60000);
+    
+    console.log(`🗳️ [VOTACIÓN] "${v.titulo}":`, {
+      inicio_local: inicio.toLocaleString('es-ES'),
+      fin_local: fin.toLocaleString('es-ES'),
+      ahora_local: ahora.toLocaleString('es-ES'),
+      tiempo_hasta_inicio: minutosHastaInicio > 0 ? `Faltan ${minutosHastaInicio} minutos` : `Empezó hace ${Math.abs(minutosHastaInicio)} minutos`,
+      tiempo_hasta_fin: minutosHastaFin > 0 ? `Quedan ${minutosHastaFin} minutos` : 'Finalizada',
+      estado: esActiva ? '✅ ACTIVA' : '❌ NO ACTIVA'
     });
+    
     return esActiva;
   });
 
-  console.log(`Total votaciones activas: ${votacionesActivas.length}`);
+  console.log(`📊 [RESUMEN] Votaciones activas encontradas: ${votacionesActivas.length} de ${votaciones.length}`);
 
   const votacionesCompletas = await Promise.all(
     votacionesActivas.map(async (votacion) => {
@@ -242,6 +243,52 @@ export async function getVotacionesActivas(): Promise<VotacionCompleta[]> {
   );
 
   return votacionesCompletas;
+}
+
+// Verificar si hay votaciones activas y obtener días restantes
+export async function checkActiveVotings(): Promise<{
+  hasActiveVotings: boolean;
+  daysRemaining: number;
+  closestVoting: { titulo: string; fecha_fin: string } | null;
+}> {
+  const now = new Date().toISOString();
+  
+  const { data: votaciones, error } = await supabase
+    .from('votaciones')
+    .select('titulo, fecha_inicio, fecha_fin')
+    .eq('publicado', true)
+    .order('fecha_fin', { ascending: true });
+
+  if (error || !votaciones || votaciones.length === 0) {
+    return { hasActiveVotings: false, daysRemaining: 0, closestVoting: null };
+  }
+
+  // Filtrar votaciones activas
+  const ahora = new Date();
+  const votacionesActivas = votaciones.filter(v => {
+    const inicio = new Date(v.fecha_inicio);
+    const fin = new Date(v.fecha_fin);
+    return ahora >= inicio && ahora <= fin;
+  });
+
+  if (votacionesActivas.length === 0) {
+    return { hasActiveVotings: false, daysRemaining: 0, closestVoting: null };
+  }
+
+  // Obtener la votación que cierra más pronto
+  const closestVoting = votacionesActivas[0];
+  const fechaFin = new Date(closestVoting.fecha_fin);
+  const diffTime = fechaFin.getTime() - ahora.getTime();
+  const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  return {
+    hasActiveVotings: true,
+    daysRemaining: Math.max(0, daysRemaining),
+    closestVoting: {
+      titulo: closestVoting.titulo,
+      fecha_fin: closestVoting.fecha_fin
+    }
+  };
 }
 
 // Crear votación
