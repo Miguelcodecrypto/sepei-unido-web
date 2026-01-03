@@ -22,6 +22,13 @@ export interface SuggestionEmailData {
   descripcion: string;
 }
 
+export interface PasswordResetEmailData {
+  email: string;
+  nombre: string;
+  dni: string;
+  tempPassword: string;
+}
+
 /**
  * Enviar email de verificación
  */
@@ -372,6 +379,144 @@ export async function sendSuggestionNotificationEmail(data: SuggestionEmailData)
     console.error('Error al enviar notificación a admin:', error);
     return false;
   }
+}
+
+/**
+ * Enviar email de reseteo de contraseña
+ */
+export async function sendPasswordResetEmail(data: PasswordResetEmailData): Promise<boolean> {
+  try {
+    console.log('📧 [EMAIL] Enviando email de reseteo de contraseña a:', data.email);
+
+    if (import.meta.env.DEV) {
+      console.log('🔧 [DESARROLLO] Simulando envío de email de reseteo de contraseña');
+      console.log('📧 Para:', data.email);
+      console.log('📧 DNI:', data.dni);
+      console.log('📧 Nueva contraseña temporal:', data.tempPassword);
+      return true;
+    }
+
+    const html = generatePasswordResetHTML(data);
+    const text = generatePasswordResetText(data);
+
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: data.email,
+        subject: 'Restablecimiento de contraseña - SEPEI UNIDO',
+        html,
+        text,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('❌ [EMAIL] Error al enviar email de reseteo de contraseña:', response.statusText);
+      return false;
+    }
+
+    console.log('✅ [EMAIL] Email de reseteo de contraseña enviado correctamente');
+    return true;
+  } catch (error) {
+    console.error('❌ [EMAIL] Error al enviar email de reseteo de contraseña:', error);
+    return false;
+  }
+}
+
+function generatePasswordResetHTML(data: PasswordResetEmailData): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restablecimiento de contraseña - SEPEI UNIDO</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <tr>
+            <td style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 30px 20px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">SEPEI UNIDO</h1>
+              <p style="color: #e0e7ff; margin: 8px 0 0 0; font-size: 14px;">Restablecimiento de contraseña</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 30px 30px 40px 30px;">
+              <h2 style="color: #1f2937; margin: 0 0 16px 0; font-size: 20px;">Hola ${data.nombre},</h2>
+              <p style="color: #4b5563; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">
+                Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en <strong>SEPEI UNIDO</strong>.
+              </p>
+              <div style="background-color: #f3f4f6; border-left: 4px solid #3b82f6; padding: 16px; margin: 16px 0; border-radius: 4px;">
+                <p style="color: #1f2937; margin: 0 0 8px 0; font-size: 13px; font-weight: bold;">TUS NUEVAS CREDENCIALES TEMPORALES</p>
+                <table width="100%" cellpadding="5" cellspacing="0">
+                  <tr>
+                    <td style="color: #6b7280; font-size: 13px;">Usuario (DNI):</td>
+                    <td style="color: #1f2937; font-size: 13px; font-weight: bold; text-align: right;">${data.dni}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #6b7280; font-size: 13px;">Contraseña temporal:</td>
+                    <td style="color: #1f2937; font-size: 13px; font-weight: bold; text-align: right; font-family: monospace;">${data.tempPassword}</td>
+                  </tr>
+                </table>
+                <p style="color: #dc2626; margin: 12px 0 0 0; font-size: 11px;">
+                  ⚠️ <strong>Importante:</strong> Esta contraseña es temporal. Deberás cambiarla por una nueva y segura al iniciar sesión.
+                </p>
+              </div>
+              <p style="color: #6b7280; font-size: 13px; line-height: 1.6; margin: 16px 0 0 0;">
+                Si tú no has solicitado este cambio, te recomendamos que inicies sesión y cambies tu contraseña lo antes posible.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="color: #6b7280; font-size: 12px; margin: 0 0 8px 0;">
+                Si no has solicitado este cambio, puedes ignorar este email.
+              </p>
+              <p style="color: #9ca3af; font-size: 11px; margin: 0;">
+                © ${new Date().getFullYear()} SEPEI UNIDO. Todos los derechos reservados.
+              </p>
+              <p style="color: #9ca3af; font-size: 11px; margin: 6px 0 0 0;">
+                <a href="https://www.sepeiunido.org" style="color: #3b82f6; text-decoration: none;">www.sepeiunido.org</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
+function generatePasswordResetText(data: PasswordResetEmailData): string {
+  return `
+SEPEI UNIDO - Restablecimiento de contraseña
+
+Hola ${data.nombre},
+
+Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en SEPEI UNIDO.
+
+TUS NUEVAS CREDENCIALES TEMPORALES:
+-----------------------------------
+Usuario (DNI): ${data.dni}
+Contraseña temporal: ${data.tempPassword}
+
+IMPORTANTE:
+-----------
+- Esta contraseña es temporal.
+- Deberás cambiarla por una nueva y segura al iniciar sesión.
+
+Si tú no has solicitado este cambio, te recomendamos que inicies sesión y cambies tu contraseña lo antes posible.
+
+© ${new Date().getFullYear()} SEPEI UNIDO
+www.sepeiunido.org
+  `;
 }
 
 /**

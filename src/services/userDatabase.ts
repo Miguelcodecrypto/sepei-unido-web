@@ -190,7 +190,8 @@ export const getUserByEmail = async (email: string): Promise<User | null> => {
       .from('users')
       .select('*')
       .eq('email', email.toLowerCase())
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       // Si el error es que no existe el usuario, retornar null sin error
