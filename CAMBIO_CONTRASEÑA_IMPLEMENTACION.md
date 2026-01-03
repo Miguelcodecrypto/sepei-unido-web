@@ -166,3 +166,23 @@ Todos los cambios están implementados, testeados y desplegados en producción.
 
 **Commit:** `2d5b3d5`
 **Branch:** `main`
+
+---
+
+## 10. Recuperación de contraseña ("Olvidé mi contraseña")
+
+- Nuevo flujo accesible desde el botón **"¿Olvidaste tu contraseña?"** en el login de usuario.
+- Pide el **email de registro** y:
+  - Genera una **nueva contraseña temporal segura**.
+  - Actualiza la contraseña en Supabase (`password` + `requires_password_change = true`).
+  - Envía un **email de recuperación** con las nuevas credenciales temporales.
+- En el **siguiente inicio de sesión** con esa contraseña temporal:
+  - El sistema detecta `requires_password_change = true`.
+  - Se muestra el **ChangePasswordModal** obligatorio para forzar una contraseña definitiva.
+
+### Archivos Clave
+
+- [src/services/passwordResetService.ts](src/services/passwordResetService.ts)
+- [src/components/ForgotPasswordModal.tsx](src/components/ForgotPasswordModal.tsx)
+- [src/services/emailService.ts](src/services/emailService.ts) → `sendPasswordResetEmail`
+- [src/services/userDatabase.ts](src/services/userDatabase.ts) → `getUserByEmail`, `resetTempPassword`

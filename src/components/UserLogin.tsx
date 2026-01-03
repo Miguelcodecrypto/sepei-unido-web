@@ -4,6 +4,7 @@ import { verifyPassword } from '../services/passwordService';
 import { getUserByDni, updateUser } from '../services/userDatabase';
 import { ChangePasswordModal } from './ChangePasswordModal';
 import { createSession } from '../services/sessionService';
+import { ForgotPasswordModal } from './ForgotPasswordModal';
 
 interface UserLoginProps {
   onLoginSuccess: (userData: LoggedUserData) => void;
@@ -35,6 +36,7 @@ export const UserLogin: React.FC<UserLoginProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [tempUserData, setTempUserData] = useState<LoggedUserData | null>(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -227,6 +229,14 @@ export const UserLogin: React.FC<UserLoginProps> = ({
     );
   }
 
+  if (showForgotPassword) {
+    return (
+      <ForgotPasswordModal
+        onClose={() => setShowForgotPassword(false)}
+      />
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white p-8 rounded-lg shadow-2xl max-w-md w-full">
@@ -325,16 +335,14 @@ export const UserLogin: React.FC<UserLoginProps> = ({
 
           {/* Enlaces adicionales */}
           <div className="space-y-2 pt-2">
-            {onForgotPassword && (
-              <button
-                type="button"
-                onClick={onForgotPassword}
-                className="w-full text-sm text-blue-600 hover:text-blue-700 transition-colors"
-                disabled={isLoading}
-              >
-                ¿Olvidaste tu contraseña?
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(true)}
+              className="w-full text-sm text-blue-600 hover:text-blue-700 transition-colors"
+              disabled={isLoading}
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
             
             <button
               type="button"
