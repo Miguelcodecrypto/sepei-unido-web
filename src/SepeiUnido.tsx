@@ -13,6 +13,7 @@ import { trackPageVisit } from './services/analyticsService';
 import AnnouncementsBoard from './components/AnnouncementsBoard';
 import VotingBoard from './components/VotingBoard';
 import FloatingVotingButton from './components/FloatingVotingButton';
+import { getInterinosBibliografia, getInterinosContenido, type InterinosBibliografiaItem } from './services/interinosBibliografia';
 
 export default function SepeiUnido() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -39,6 +40,14 @@ export default function SepeiUnido() {
   });
   const [formStatus, setFormStatus] = useState(null as any);
   const [hoveredRoadmap, setHoveredRoadmap] = useState<number | null>(null);
+
+  const [interinosBibliografia, setInterinosBibliografia] = useState<InterinosBibliografiaItem[]>([]);
+  const [isLoadingBibliografia, setIsLoadingBibliografia] = useState(false);
+  const [interinosCursos, setInterinosCursos] = useState<InterinosBibliografiaItem[]>([]);
+  const [isLoadingCursos, setIsLoadingCursos] = useState(false);
+  const [interinosEnlaces, setInterinosEnlaces] = useState<InterinosBibliografiaItem[]>([]);
+  const [isLoadingEnlaces, setIsLoadingEnlaces] = useState(false);
+  
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -80,6 +89,31 @@ export default function SepeiUnido() {
     };
     
     loadCurrentUser();
+
+    const loadBibliografia = async () => {
+      setIsLoadingBibliografia(true);
+      const items = await getInterinosBibliografia();
+      setInterinosBibliografia(items);
+      setIsLoadingBibliografia(false);
+    };
+
+    const loadCursos = async () => {
+      setIsLoadingCursos(true);
+      const items = await getInterinosContenido('formacion_curso');
+      setInterinosCursos(items);
+      setIsLoadingCursos(false);
+    };
+
+    const loadEnlaces = async () => {
+      setIsLoadingEnlaces(true);
+      const items = await getInterinosContenido('formacion_enlace');
+      setInterinosEnlaces(items);
+      setIsLoadingEnlaces(false);
+    };
+
+    loadBibliografia();
+    loadCursos();
+    loadEnlaces();
     
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -347,6 +381,8 @@ export default function SepeiUnido() {
     { number: "1", label: "Voz Unida" }
   ];
 
+  const interinosHasNews = true;
+
   return (
     <div className="min-h-screen bg-slate-950">
       <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${scrolled ? 'bg-slate-900/98 backdrop-blur-xl shadow-2xl' : 'bg-transparent'}`}>
@@ -368,14 +404,34 @@ export default function SepeiUnido() {
                 { name: 'Inicio', id: 'inicio' },
                 { name: 'Manifiesto', id: 'manifiesto-section' },
                 { name: 'Objetivos', id: 'hoja-ruta-section' },
+                { name: 'Interinos', id: 'interinos-section' },
                 { name: 'Compartir Ideas', id: 'ideas-section' }
               ].map((item) => (
                 <button
                   key={item.id}
                   onClick={() => scrollToSection(item.id)}
-                  className="text-gray-300 hover:text-orange-400 font-semibold transition-all duration-300"
+                  className={`font-semibold transition-all duration-300 ${
+                    item.id === 'interinos-section' && interinosHasNews
+                      ? 'text-orange-300 hover:text-orange-100 animate-pulse'
+                      : 'text-gray-300 hover:text-orange-400'
+                  }`}
                 >
-                  {item.name}
+                  <span className="inline-flex items-center gap-1 relative">
+                    {item.id === 'interinos-section' && interinosHasNews && (
+                      <>
+                        <span className="absolute -inset-2 rounded-full bg-orange-500/10 blur-xl" />
+                        <Flame className="relative w-4 h-4 text-orange-400 animate-bounce" />
+                      </>
+                    )}
+                    <span className="relative z-10">
+                      {item.name}
+                    </span>
+                    {item.id === 'interinos-section' && interinosHasNews && (
+                      <span className="relative z-10 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-red-600 text-white uppercase tracking-wide">
+                        Nuevo
+                      </span>
+                    )}
+                  </span>
                 </button>
               ))}
               
@@ -428,6 +484,7 @@ export default function SepeiUnido() {
                 { name: 'Inicio', id: 'inicio' },
                 { name: 'Manifiesto', id: 'manifiesto-section' },
                 { name: 'Objetivos', id: 'hoja-ruta-section' },
+                { name: 'Interinos', id: 'interinos-section' },
                 { name: 'Compartir Ideas', id: 'ideas-section' }
               ].map((item) => (
                 <button
@@ -435,7 +492,9 @@ export default function SepeiUnido() {
                   onClick={() => scrollToSection(item.id)}
                   className="block w-full text-left text-gray-300 hover:text-orange-400 font-semibold py-2"
                 >
+                  {item.id === 'interinos-section' && interinosHasNews ? '🔥 ' : ''}
                   {item.name}
+                  {item.id === 'interinos-section' && interinosHasNews ? ' (Novedades)' : ''}
                 </button>
               ))}
               
@@ -629,6 +688,298 @@ export default function SepeiUnido() {
         </div>
       </section>
 
+      {/* Sección Interinos */}
+      <section id="interinos-section" className="py-24 px-4 bg-slate-900">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-4 mb-3">
+              <h2
+                className={`text-5xl md:text-6xl font-black mb-0 transition-transform duration-500 ${
+                  interinosHasNews
+                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-orange-300 via-yellow-300 to-red-500 animate-pulse'
+                    : 'text-white'
+                }`}
+              >
+                Interinos
+              </h2>
+
+              {interinosHasNews && (
+                <div className="relative flex items-center">
+                  <div className="absolute inset-0 rounded-full bg-orange-500/40 blur-xl opacity-70 animate-ping" />
+                  <div className="relative flex items-center gap-2 px-3 py-1 rounded-full bg-orange-600/90 border border-orange-300/80 shadow-lg">
+                    <Flame className="w-4 h-4 text-yellow-200 animate-bounce" />
+                    <span className="text-xs font-semibold text-white uppercase tracking-wide">
+                      Novedades
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-4">
+              Espacio pensado para apoyar a los bomberos interinos en su formación,
+              acceso a la información y procesos de oposición.
+            </p>
+            <div className="h-1.5 w-48 bg-gradient-to-r from-orange-400 to-red-500 mx-auto rounded-full"></div>
+          </div>
+
+          {!loggedUser && (
+            <div className="max-w-3xl mx-auto mb-12 bg-slate-800/90 border-2 border-red-500/40 rounded-3xl p-8 text-center">
+              <div className="flex flex-col items-center gap-3 mb-4">
+                <Shield className="w-10 h-10 text-red-400" />
+                <h3 className="text-2xl font-bold text-white">Área exclusiva para personal del SEPEI</h3>
+              </div>
+              <p className="text-sm md:text-base text-gray-300 mb-4">
+                Para acceder al área de Interinos y descargar documentos es
+                imprescindible estar registrado con tus datos reales:
+                <span className="font-semibold text-orange-300"> nombre, apellidos, DNI, teléfono y parque del SEPEI</span>.
+              </p>
+              <p className="text-xs text-gray-400 mb-6">
+                Esta información se utiliza únicamente para verificar tu vínculo
+                con el servicio y proteger el acceso a la documentación
+                interna.
+              </p>
+              <button
+                onClick={() => {
+                  setPendingAction(null);
+                  setAuthMode('login');
+                  setShowAuthMethodSelector(true);
+                }}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white text-sm font-semibold hover:from-orange-400 hover:to-red-500 transition-colors"
+              >
+                <LogIn className="w-4 h-4" />
+                Iniciar sesión / Registrarse
+              </button>
+            </div>
+          )}
+
+          {loggedUser && (
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Formación */}
+            <div className="bg-slate-800/90 p-8 rounded-3xl border-2 border-slate-700/60 hover:border-orange-500 transition-all">
+              <div className="flex items-center gap-3 mb-4">
+                <BookOpen className="w-8 h-8 text-orange-400" />
+                <h3 className="text-2xl font-bold text-white">Formación</h3>
+              </div>
+              <p className="text-gray-300 mb-6 text-sm">
+                Recursos formativos para prepararte mejor en tu día a día y
+                en tu futuro acceso como fijo.
+              </p>
+
+              <div className="space-y-4">
+                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60 space-y-3">
+                  <p className="text-sm font-semibold text-orange-300 mb-1">Bibliografía</p>
+
+                  {isLoadingBibliografia ? (
+                    <p className="text-xs text-gray-400">Cargando documentos...</p>
+                  ) : interinosBibliografia.length === 0 ? (
+                    <p className="text-xs text-gray-400">
+                      Aún no hay documentos disponibles en este apartado. El equipo administrador irá publicando aquí el material de referencia.
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                      {interinosBibliografia.map((item) => (
+                        <a
+                          key={item.id}
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between gap-2 text-xs bg-slate-900/80 rounded-lg px-2 py-1.5 hover:bg-slate-800/80 hover:text-orange-200 transition-colors"
+                        >
+                          <span className="flex-1 truncate">
+                            📄 {item.titulo}
+                          </span>
+                          <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
+                            {item.nombre}
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60 space-y-3">
+                  <p className="text-sm font-semibold text-orange-300 mb-1">Cursos</p>
+
+                  {isLoadingCursos ? (
+                    <p className="text-xs text-gray-400">Cargando cursos...</p>
+                  ) : interinosCursos.length === 0 ? (
+                    <p className="text-xs text-gray-300">
+                      Próximamente se irán añadiendo cursos internos y externos
+                      orientados a la preparación de bomberos interinos.
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                      {interinosCursos.map((item) => (
+                        <a
+                          key={item.id}
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={item.descripcion || item.url}
+                          className="flex flex-col text-xs bg-slate-900/80 rounded-lg px-2 py-1.5 hover:bg-slate-800/80 hover:text-orange-200 transition-colors"
+                        >
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <span className="flex-1 truncate">
+                              🎓 {item.titulo}
+                            </span>
+                            {item.nombre && (
+                              <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
+                                {item.nombre}
+                              </span>
+                            )}
+                          </div>
+                          {item.descripcion && (
+                            <span className="block w-full text-[10px] text-gray-400 mt-0.5 line-clamp-2">
+                              {item.descripcion}
+                            </span>
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60 space-y-3">
+                  <p className="text-sm font-semibold text-orange-300 mb-1">Enlaces de interés</p>
+
+                  {isLoadingEnlaces ? (
+                    <p className="text-xs text-gray-400">Cargando enlaces...</p>
+                  ) : interinosEnlaces.length === 0 ? (
+                    <p className="text-xs text-gray-300">
+                      Próximamente se irán añadiendo enlaces a normativa,
+                      documentación oficial y otros recursos online útiles
+                      para tu preparación.
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                      {interinosEnlaces.map((item) => (
+                        <a
+                          key={item.id}
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={item.descripcion || item.url}
+                          className="flex flex-col text-xs bg-slate-900/80 rounded-lg px-2 py-1.5 hover:bg-slate-800/80 hover:text-orange-200 transition-colors"
+                        >
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <span className="flex-1 truncate">
+                              🔗 {item.titulo}
+                            </span>
+                            {item.nombre && (
+                              <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
+                                {item.nombre}
+                              </span>
+                            )}
+                          </div>
+                          {item.descripcion && (
+                            <span className="block w-full text-[10px] text-gray-400 mt-0.5 line-clamp-2">
+                              {item.descripcion}
+                            </span>
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60">
+                  <p className="text-sm font-semibold text-orange-300 mb-1">Sugerencias</p>
+                  <p className="text-xs text-gray-300 mb-3">
+                    ¿Echas en falta algún recurso formativo? Envíanos tus
+                    propuestas para mejorar este espacio.
+                  </p>
+                  <button
+                    onClick={handleOpenSuggestionsForm}
+                    className="w-full py-2 text-xs font-semibold rounded-xl bg-gradient-to-r from-blue-500 to-cyan-600 text-white hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                  >
+                    <Lightbulb className="w-4 h-4" />
+                    Enviar sugerencia de formación
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Noticias destacadas */}
+            <div className="bg-slate-800/90 p-8 rounded-3xl border-2 border-slate-700/60 hover:border-orange-500 transition-all">
+              <div className="flex items-center gap-3 mb-4">
+                <TrendingUp className="w-8 h-8 text-orange-400" />
+                <h3 className="text-2xl font-bold text-white">Noticias destacadas</h3>
+              </div>
+              <p className="text-gray-300 mb-6 text-sm">
+                Actualidad que afecta directamente a interinos: acuerdos,
+                cambios normativos y comunicaciones relevantes.
+              </p>
+
+              <div className="space-y-4">
+                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60 flex items-start gap-3">
+                  <div className="mt-1">
+                    <AlertCircle className="w-4 h-4 text-orange-300" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white mb-1">
+                      Próximamente
+                    </p>
+                    <p className="text-xs text-gray-300">
+                      Aquí se mostrarán las noticias más importantes
+                      relacionadas con interinos del SEPEI.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60">
+                  <p className="text-xs text-gray-400">
+                    Mientras tanto, puedes consultar el tablón de
+                    <button
+                      onClick={() => scrollToSection('anuncios-section')}
+                      className="ml-1 text-orange-300 hover:text-orange-200 underline"
+                    >
+                      anuncios generales
+                    </button>
+                    {' '}para mantenerte al día.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Oposiciones */}
+            <div className="bg-slate-800/90 p-8 rounded-3xl border-2 border-slate-700/60 hover:border-orange-500 transition-all">
+              <div className="flex items-center gap-3 mb-4">
+                <Award className="w-8 h-8 text-orange-400" />
+                <h3 className="text-2xl font-bold text-white">Oposiciones</h3>
+              </div>
+              <p className="text-gray-300 mb-6 text-sm">
+                Información clave sobre procesos selectivos y academias para
+                ayudarte a planificar tu carrera profesional.
+              </p>
+
+              <div className="space-y-4">
+                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60">
+                  <p className="text-sm font-semibold text-orange-300 mb-1">
+                    Bases / procesos en curso
+                  </p>
+                  <p className="text-xs text-gray-300">
+                    Próximamente se centralizarán aquí las bases de
+                    oposiciones, convocatorias y procesos en marcha
+                    relacionados con el SEPEI.
+                  </p>
+                </div>
+
+                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60">
+                  <p className="text-sm font-semibold text-orange-300 mb-1">
+                    Academias
+                  </p>
+                  <p className="text-xs text-gray-300">
+                    Listado de academias y recursos recomendados por
+                    compañeros para preparar las oposiciones con garantías.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          )}
+        </div>
+      </section>
+
       <section id="manifiesto-section" className="py-24 px-4 bg-slate-900">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
@@ -643,7 +994,7 @@ export default function SepeiUnido() {
               </p>
               
               <p>
-                Se ha perdido la perspectiva de la función de los mismos: <span className="text-orange-400 font-bold">¡la defensa de los derechos de los trabajadores!</span>
+                Se ha perdido la perspectiva de la función de los sindicatos: <span className="text-orange-400 font-bold">¡la defensa de los derechos de los trabajadores!</span>
               </p>
               
               <p>
@@ -651,12 +1002,12 @@ export default function SepeiUnido() {
               </p>
               
               <p>
-                Años de no realizar una escucha activa han minado la confianza de los bomberos en los sindicatos.
+                Años de no realizar una escucha activa y ningun mejora en el servicio han minado la confianza de los bomberos en los sindicatos.
               </p>
               
               <div className="my-10 p-8 bg-orange-500/20 border-l-4 border-orange-500 rounded-r-2xl">
                 <p className="text-white font-bold text-xl text-justify">
-                  De ahí que nace <span className="text-orange-400 text-2xl">SEPEI UNIDO</span>.
+                  De este malestar, nace <span className="text-orange-400 text-2xl">SEPEI UNIDO</span>.
                 </p>
               </div>
               

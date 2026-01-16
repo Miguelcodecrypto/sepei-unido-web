@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, Mail, User, CreditCard, AlertCircle } from 'lucide-react';
+import { CheckCircle, Mail, User, CreditCard, AlertCircle, MapPin } from 'lucide-react';
 import { sendVerificationEmail } from '../services/emailService';
 import { hashPassword, generateTemporaryPassword } from '../services/passwordService';
 import { getUserByDni, addUser } from '../services/userDatabase';
@@ -28,6 +28,7 @@ interface FormData {
   dni: string;
   email: string;
   telefono: string;
+   parque: string;
 }
 
 interface ValidationErrors {
@@ -36,6 +37,7 @@ interface ValidationErrors {
   dni?: string;
   email?: string;
   telefono?: string;
+   parque?: string;
 }
 
 export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = ({
@@ -49,6 +51,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
     dni: '',
     email: initialData?.email || '',
     telefono: '',
+    parque: 'Hellín',
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -115,6 +118,14 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
       newErrors.email = 'El email es obligatorio';
     } else if (!validateEmail(formData.email)) {
       newErrors.email = 'Email inv├ílido';
+    }
+
+    if (!formData.telefono.trim()) {
+      newErrors.telefono = 'El teléfono es obligatorio';
+    }
+
+    if (!formData.parque.trim()) {
+      newErrors.parque = 'El parque del SEPEI es obligatorio';
     }
 
     setErrors(newErrors);
@@ -199,6 +210,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         dni: userData.dni,
         email: userData.email,
         telefono: formData.telefono.trim(),
+        parque_sepei: formData.parque.trim(),
         password: hashedPassword,
         registration_ip: userIP,
         terminos_aceptados: acceptedPrivacy,
@@ -435,7 +447,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         {/* Teléfono */}
         <div>
           <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-1">
-            Teléfono (opcional)
+            Teléfono *
           </label>
           <div className="relative">
             <input
@@ -452,6 +464,37 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
           </div>
           {errors.telefono && (
             <p className="text-red-500 text-sm mt-1">{errors.telefono}</p>
+          )}
+        </div>
+
+        {/* Parque SEPEI */}
+        <div>
+          <label htmlFor="parque" className="block text-sm font-medium text-gray-700 mb-1">
+            Parque del SEPEI donde trabajas actualmente *
+          </label>
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <select
+              id="parque"
+              name="parque"
+              value={formData.parque}
+              onChange={handleChange}
+              className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.parque ? 'border-red-500' : 'border-gray-300'
+              }`}
+            >
+              <option value="Hellín">Hellín</option>
+              <option value="Villarrobledo">Villarrobledo</option>
+              <option value="Almansa">Almansa</option>
+              <option value="La Roda">La Roda</option>
+              <option value="Casas Ibáñez">Casas Ibañez</option>
+              <option value="Molinicos">Molinicos</option>
+              <option value="Alcaraz">Alcaraz</option>
+              <option value="Central del Sepei">Central del Sepei</option>
+            </select>
+          </div>
+          {errors.parque && (
+            <p className="text-red-500 text-sm mt-1">{errors.parque}</p>
           )}
         </div>
 

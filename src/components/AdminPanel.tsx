@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award, Mail } from 'lucide-react';
+import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award, Mail, BookOpen } from 'lucide-react';
 import { getAllUsers, deleteUser, exportUsersToCSV, toggleVotingAuthorization, resetTempPassword } from '../services/userDatabase';
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
@@ -10,6 +10,7 @@ import VotingManager from './VotingManager';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import VotingResultsPanel from './VotingResultsPanel';
 import { ExternalEmailsManager } from './ExternalEmailsManager';
+import InterinosManager from './InterinosManager';
 
 interface User {
   id: string;
@@ -47,7 +48,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onLogout }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'users' | 'suggestions' | 'announcements' | 'voting' | 'analytics' | 'results' | 'external-emails'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'suggestions' | 'announcements' | 'voting' | 'analytics' | 'results' | 'external-emails' | 'interinos'>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
@@ -295,6 +296,17 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
             Analytics
           </button>
           <button
+            onClick={() => setActiveTab('interinos')}
+            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
+              activeTab === 'interinos'
+                ? 'text-orange-500 border-b-2 border-orange-500'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <BookOpen className="w-5 h-5" />
+            Interinos
+          </button>
+          <button
             onClick={() => setActiveTab('results')}
             className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
               activeTab === 'results'
@@ -319,7 +331,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
         </div>
 
         {/* Stats */}
-        {activeTab !== 'announcements' && activeTab !== 'voting' && activeTab !== 'analytics' && activeTab !== 'results' && (
+        {activeTab !== 'announcements' && activeTab !== 'voting' && activeTab !== 'analytics' && activeTab !== 'results' && activeTab !== 'external-emails' && activeTab !== 'interinos' && (
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-orange-500/20 mb-8">
             <div className="text-center">
               <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
@@ -333,25 +345,27 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
         )}
 
         {/* Actions */}
-        <div className="flex gap-4 mb-8">
-          <button
-            onClick={activeTab === 'users' ? handleExport : handleExportSuggestions}
-            className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
-          >
-            <Download className="w-5 h-5" />
-            Exportar CSV
-          </button>
-          
-          {activeTab === 'suggestions' && (
+        {(activeTab === 'users' || activeTab === 'suggestions') && (
+          <div className="flex gap-4 mb-8">
             <button
-              onClick={handleClearSuggestions}
-              className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition"
+              onClick={activeTab === 'users' ? handleExport : handleExportSuggestions}
+              className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
             >
-              <Trash2 className="w-5 h-5" />
-              Limpiar Sugerencias
+              <Download className="w-5 h-5" />
+              Exportar CSV
             </button>
-          )}
-        </div>
+            
+            {activeTab === 'suggestions' && (
+              <button
+                onClick={handleClearSuggestions}
+                className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition"
+              >
+                <Trash2 className="w-5 h-5" />
+                Limpiar Sugerencias
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Users Table */}
         {activeTab === 'users' && (
@@ -615,6 +629,10 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
         {/* External Emails Manager */}
         {activeTab === 'external-emails' && (
           <ExternalEmailsManager />
+        )}
+
+        {activeTab === 'interinos' && (
+          <InterinosManager />
         )}
       </div>
     </div>
