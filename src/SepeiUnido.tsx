@@ -816,10 +816,10 @@ export default function SepeiUnido() {
                           target="_blank"
                           rel="noopener noreferrer"
                           title={item.descripcion || item.url}
-                          className="flex flex-col text-xs bg-slate-900/80 rounded-lg px-2 py-1.5 hover:bg-slate-800/80 hover:text-orange-200 transition-colors"
+                          className="flex flex-col text-xs text-gray-100 bg-slate-900/80 rounded-lg px-2 py-1.5 hover:bg-slate-800/80 hover:text-orange-300 transition-colors"
                         >
                           <div className="flex items-center justify-between gap-2 w-full">
-                            <span className="flex-1 truncate">
+                            <span className="flex-1 truncate text-white font-medium">
                               🎓 {item.titulo}
                             </span>
                             {item.nombre && (
@@ -859,10 +859,10 @@ export default function SepeiUnido() {
                           target="_blank"
                           rel="noopener noreferrer"
                           title={item.descripcion || item.url}
-                          className="flex flex-col text-xs bg-slate-900/80 rounded-lg px-2 py-1.5 hover:bg-slate-800/80 hover:text-orange-200 transition-colors"
+                          className="flex flex-col text-xs text-gray-100 bg-slate-900/80 rounded-lg px-2 py-1.5 hover:bg-slate-800/80 hover:text-orange-300 transition-colors"
                         >
                           <div className="flex items-center justify-between gap-2 w-full">
-                            <span className="flex-1 truncate">
+                            <span className="flex-1 truncate text-white font-medium">
                               🔗 {item.titulo}
                             </span>
                             {item.nombre && (

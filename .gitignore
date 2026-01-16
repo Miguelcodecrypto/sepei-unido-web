@@ -29,3 +29,5 @@ dist/
 .tern-port
 coverage/
 .nyc_output/
+.vercel
+.env*.local
