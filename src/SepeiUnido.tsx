@@ -47,6 +47,10 @@ export default function SepeiUnido() {
   const [isLoadingCursos, setIsLoadingCursos] = useState(false);
   const [interinosEnlaces, setInterinosEnlaces] = useState<InterinosBibliografiaItem[]>([]);
   const [isLoadingEnlaces, setIsLoadingEnlaces] = useState(false);
+  const [interinosOposiciones, setInterinosOposiciones] = useState<InterinosBibliografiaItem[]>([]);
+  const [isLoadingOposiciones, setIsLoadingOposiciones] = useState(false);
+  const [interinosNoticias, setInterinosNoticias] = useState<InterinosBibliografiaItem[]>([]);
+  const [isLoadingNoticias, setIsLoadingNoticias] = useState(false);
   
 
   useEffect(() => {
@@ -111,9 +115,25 @@ export default function SepeiUnido() {
       setIsLoadingEnlaces(false);
     };
 
+    const loadOposiciones = async () => {
+      setIsLoadingOposiciones(true);
+      const items = await getInterinosContenido('oposiciones');
+      setInterinosOposiciones(items);
+      setIsLoadingOposiciones(false);
+    };
+
+    const loadNoticias = async () => {
+      setIsLoadingNoticias(true);
+      const items = await getInterinosContenido('noticias_destacadas');
+      setInterinosNoticias(items);
+      setIsLoadingNoticias(false);
+    };
+
     loadBibliografia();
     loadCursos();
     loadEnlaces();
+    loadOposiciones();
+    loadNoticias();
     
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -911,19 +931,54 @@ export default function SepeiUnido() {
               </p>
 
               <div className="space-y-4">
-                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60 flex items-start gap-3">
-                  <div className="mt-1">
-                    <AlertCircle className="w-4 h-4 text-orange-300" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-white mb-1">
-                      Próximamente
-                    </p>
-                    <p className="text-xs text-gray-300">
-                      Aquí se mostrarán las noticias más importantes
-                      relacionadas con interinos del SEPEI.
-                    </p>
-                  </div>
+                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60 space-y-3">
+                  {isLoadingNoticias ? (
+                    <p className="text-xs text-gray-400">Cargando noticias...</p>
+                  ) : interinosNoticias.length === 0 ? (
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1">
+                        <AlertCircle className="w-4 h-4 text-orange-300" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white mb-1">
+                          Próximamente
+                        </p>
+                        <p className="text-xs text-gray-300">
+                          Aquí se mostrarán las noticias más importantes
+                          relacionadas con interinos del SEPEI.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {interinosNoticias.map((item) => (
+                        <a
+                          key={item.id}
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={item.descripcion || item.url}
+                          className="flex flex-col text-xs text-gray-100 bg-slate-900/80 rounded-lg px-2 py-1.5 hover:bg-slate-800/80 hover:text-orange-300 transition-colors"
+                        >
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <span className="flex-1 truncate text-white font-medium">
+                              📰 {item.titulo}
+                            </span>
+                            {item.nombre && (
+                              <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
+                                {item.nombre}
+                              </span>
+                            )}
+                          </div>
+                          {item.descripcion && (
+                            <span className="block w-full text-[10px] text-gray-400 mt-0.5 line-clamp-2">
+                              {item.descripcion}
+                            </span>
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60">
@@ -953,15 +1008,49 @@ export default function SepeiUnido() {
               </p>
 
               <div className="space-y-4">
-                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60">
+                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60 space-y-3">
                   <p className="text-sm font-semibold text-orange-300 mb-1">
                     Bases / procesos en curso
                   </p>
-                  <p className="text-xs text-gray-300">
-                    Próximamente se centralizarán aquí las bases de
-                    oposiciones, convocatorias y procesos en marcha
-                    relacionados con el SEPEI.
-                  </p>
+
+                  {isLoadingOposiciones ? (
+                    <p className="text-xs text-gray-400">Cargando información...</p>
+                  ) : interinosOposiciones.length === 0 ? (
+                    <p className="text-xs text-gray-300">
+                      Próximamente se centralizarán aquí las bases de
+                      oposiciones, convocatorias y procesos en marcha
+                      relacionados con el SEPEI.
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {interinosOposiciones.map((item) => (
+                        <a
+                          key={item.id}
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={item.descripcion || item.url}
+                          className="flex flex-col text-xs text-gray-100 bg-slate-900/80 rounded-lg px-2 py-1.5 hover:bg-slate-800/80 hover:text-orange-300 transition-colors"
+                        >
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <span className="flex-1 truncate text-white font-medium">
+                              📋 {item.titulo}
+                            </span>
+                            {item.nombre && (
+                              <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
+                                {item.nombre}
+                              </span>
+                            )}
+                          </div>
+                          {item.descripcion && (
+                            <span className="block w-full text-[10px] text-gray-400 mt-0.5 line-clamp-2">
+                              {item.descripcion}
+                            </span>
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60">
