@@ -404,7 +404,7 @@ export default function SepeiUnido() {
   const interinosHasNews = true;
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-950 overflow-x-hidden">
       <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${scrolled ? 'bg-slate-900/98 backdrop-blur-xl shadow-2xl' : 'bg-transparent'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
@@ -565,7 +565,7 @@ export default function SepeiUnido() {
 
       <section id="inicio" className="relative pt-24 pb-12 md:pt-32 md:pb-24 px-3 md:px-4 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 via-transparent to-red-600/20"></div>
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/4 left-1/4 w-48 h-48 md:w-96 md:h-96 bg-orange-500/10 rounded-full blur-3xl"></div>
         
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-8 md:mb-16">

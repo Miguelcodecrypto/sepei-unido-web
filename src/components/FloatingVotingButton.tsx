@@ -38,7 +38,7 @@ const FloatingVotingButton: React.FC<FloatingVotingButtonProps> = ({ onClick }) 
   return (
     <button
       onClick={onClick}
-      className={`fixed bottom-44 right-8 z-40 transition-all duration-500 ${
+      className={`fixed bottom-36 md:bottom-44 right-4 md:right-8 z-40 transition-all duration-500 ${
         isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-50'
       }`}
       title="Votaciones activas - Click para participar"
@@ -55,8 +55,8 @@ const FloatingVotingButton: React.FC<FloatingVotingButtonProps> = ({ onClick }) 
         </div>
 
         {/* Botón principal */}
-        <div className="relative p-4 bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 text-white rounded-full shadow-2xl hover:shadow-orange-500/60 transform hover:scale-110 transition-all">
-          <Vote className="w-7 h-7 animate-bounce-subtle" />
+        <div className="relative p-3 md:p-4 bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 text-white rounded-full shadow-2xl hover:shadow-orange-500/60 transform hover:scale-110 transition-all">
+          <Vote className="w-5 h-5 md:w-7 md:h-7 animate-bounce-subtle" />
           
           {/* Badge con contador de días */}
           <div className="absolute -top-2 -right-2 min-w-[32px] h-8 px-2 bg-gradient-to-r from-red-600 to-red-700 border-2 border-white rounded-full flex items-center justify-center shadow-lg animate-pulse">
