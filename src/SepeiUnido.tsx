@@ -773,21 +773,21 @@ export default function SepeiUnido() {
           )}
 
           {loggedUser && (
-          <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
             {/* Formación */}
-            <div className="bg-slate-800/90 p-5 md:p-8 rounded-3xl border-2 border-slate-700/60 hover:border-orange-500 transition-all">
-              <div className="flex items-center gap-3 mb-4">
-                <BookOpen className="w-7 h-7 md:w-8 md:h-8 text-orange-400" />
-                <h3 className="text-xl md:text-2xl font-bold text-white">Formación</h3>
+            <div className="bg-slate-800/90 p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-3xl border-2 border-slate-700/60 hover:border-orange-500 transition-all">
+              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                <BookOpen className="w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 text-orange-400" />
+                <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-white">Formación</h3>
               </div>
-              <p className="text-gray-300 mb-4 md:mb-6 text-sm">
+              <p className="text-gray-300 mb-3 md:mb-4 lg:mb-6 text-xs md:text-sm">
                 Recursos formativos para prepararte mejor en tu día a día y
                 en tu futuro acceso como fijo.
               </p>
 
-              <div className="space-y-3 md:space-y-4">
-                <div className="bg-slate-900/60 rounded-2xl p-3 md:p-4 border border-slate-700/60 space-y-3">
-                  <p className="text-sm font-semibold text-orange-300 mb-1">Bibliografía</p>
+              <div className="space-y-2 md:space-y-3 lg:space-y-4">
+                <div className="bg-slate-900/60 rounded-xl md:rounded-2xl p-3 md:p-4 border border-slate-700/60 space-y-2 md:space-y-3">
+                  <p className="text-xs md:text-sm font-semibold text-orange-300 mb-1">Bibliografía</p>
 
                   {isLoadingBibliografia ? (
                     <p className="text-xs text-gray-400">Cargando documentos...</p>
@@ -796,7 +796,7 @@ export default function SepeiUnido() {
                       Aún no hay documentos disponibles en este apartado. El equipo administrador irá publicando aquí el material de referencia.
                     </p>
                   ) : (
-                    <div className="space-y-2 max-h-[50vh] md:max-h-40 overflow-y-auto pr-1">
+                    <div className="space-y-1.5 md:space-y-2 max-h-32 md:max-h-40 overflow-y-auto pr-1">
                       {interinosBibliografia.map((item) => (
                         <a
                           key={item.id}
@@ -817,8 +817,8 @@ export default function SepeiUnido() {
                   )}
                 </div>
 
-                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60 space-y-3">
-                  <p className="text-sm font-semibold text-orange-300 mb-1">Cursos</p>
+                <div className="bg-slate-900/60 rounded-xl md:rounded-2xl p-3 md:p-4 border border-slate-700/60 space-y-2 md:space-y-3">
+                  <p className="text-xs md:text-sm font-semibold text-orange-300 mb-1">Cursos</p>
 
                   {isLoadingCursos ? (
                     <p className="text-xs text-gray-400">Cargando cursos...</p>
@@ -828,7 +828,7 @@ export default function SepeiUnido() {
                       orientados a la preparación de bomberos interinos.
                     </p>
                   ) : (
-                    <div className="space-y-2 max-h-[50vh] md:max-h-40 overflow-y-auto pr-1">
+                    <div className="space-y-1.5 md:space-y-2 max-h-32 md:max-h-40 overflow-y-auto pr-1">
                       {interinosCursos.map((item) => (
                         <a
                           key={item.id}
@@ -859,8 +859,8 @@ export default function SepeiUnido() {
                   )}
                 </div>
 
-                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60 space-y-3">
-                  <p className="text-sm font-semibold text-orange-300 mb-1">Enlaces de interés</p>
+                <div className="bg-slate-900/60 rounded-xl md:rounded-2xl p-3 md:p-4 border border-slate-700/60 space-y-2 md:space-y-3">
+                  <p className="text-xs md:text-sm font-semibold text-orange-300 mb-1">Enlaces de interés</p>
 
                   {isLoadingEnlaces ? (
                     <p className="text-xs text-gray-400">Cargando enlaces...</p>
@@ -871,7 +871,7 @@ export default function SepeiUnido() {
                       para tu preparación.
                     </p>
                   ) : (
-                    <div className="space-y-2 max-h-[50vh] md:max-h-40 overflow-y-auto pr-1">
+                    <div className="space-y-1.5 md:space-y-2 max-h-32 md:max-h-40 overflow-y-auto pr-1">
                       {interinosEnlaces.map((item) => (
                         <a
                           key={item.id}
@@ -902,15 +902,15 @@ export default function SepeiUnido() {
                   )}
                 </div>
 
-                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60">
-                  <p className="text-sm font-semibold text-orange-300 mb-1">Sugerencias</p>
-                  <p className="text-xs text-gray-300 mb-3">
+                <div className="bg-slate-900/60 rounded-xl md:rounded-2xl p-3 md:p-4 border border-slate-700/60">
+                  <p className="text-xs md:text-sm font-semibold text-orange-300 mb-1">Sugerencias</p>
+                  <p className="text-xs text-gray-300 mb-2 md:mb-3">
                     ¿Echas en falta algún recurso formativo? Envíanos tus
                     propuestas para mejorar este espacio.
                   </p>
                   <button
                     onClick={handleOpenSuggestionsForm}
-                    className="w-full py-2 text-xs font-semibold rounded-xl bg-gradient-to-r from-blue-500 to-cyan-600 text-white hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                    className="w-full py-2 text-xs font-semibold rounded-lg md:rounded-xl bg-gradient-to-r from-blue-500 to-cyan-600 text-white hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
                   >
                     <Lightbulb className="w-4 h-4" />
                     Enviar sugerencia de formación
@@ -920,27 +920,27 @@ export default function SepeiUnido() {
             </div>
 
             {/* Noticias destacadas */}
-            <div className="bg-slate-800/90 p-5 md:p-8 rounded-3xl border-2 border-slate-700/60 hover:border-orange-500 transition-all">
-              <div className="flex items-center gap-3 mb-4">
-                <TrendingUp className="w-7 h-7 md:w-8 md:h-8 text-orange-400" />
-                <h3 className="text-xl md:text-2xl font-bold text-white">Noticias destacadas</h3>
+            <div className="bg-slate-800/90 p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-3xl border-2 border-slate-700/60 hover:border-orange-500 transition-all">
+              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                <TrendingUp className="w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 text-orange-400" />
+                <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-white">Noticias destacadas</h3>
               </div>
-              <p className="text-gray-300 mb-6 text-sm">
+              <p className="text-gray-300 mb-3 md:mb-4 lg:mb-6 text-xs md:text-sm">
                 Actualidad que afecta directamente a interinos: acuerdos,
                 cambios normativos y comunicaciones relevantes.
               </p>
 
-              <div className="space-y-4">
-                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60 space-y-3">
+              <div className="space-y-2 md:space-y-3 lg:space-y-4">
+                <div className="bg-slate-900/60 rounded-xl md:rounded-2xl p-3 md:p-4 border border-slate-700/60 space-y-2 md:space-y-3">
                   {isLoadingNoticias ? (
                     <p className="text-xs text-gray-400">Cargando noticias...</p>
                   ) : interinosNoticias.length === 0 ? (
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1">
+                    <div className="flex items-start gap-2 md:gap-3">
+                      <div className="mt-0.5 md:mt-1">
                         <AlertCircle className="w-4 h-4 text-orange-300" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-white mb-1">
+                        <p className="text-xs md:text-sm font-semibold text-white mb-1">
                           Próximamente
                         </p>
                         <p className="text-xs text-gray-300">
@@ -950,7 +950,7 @@ export default function SepeiUnido() {
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-2 max-h-[50vh] md:max-h-48 overflow-y-auto pr-1">
+                    <div className="space-y-1.5 md:space-y-2 max-h-32 md:max-h-48 overflow-y-auto pr-1">
                       {interinosNoticias.map((item) => (
                         <a
                           key={item.id}
@@ -981,7 +981,7 @@ export default function SepeiUnido() {
                   )}
                 </div>
 
-                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60">
+                <div className="bg-slate-900/60 rounded-xl md:rounded-2xl p-3 md:p-4 border border-slate-700/60">
                   <p className="text-xs text-gray-400">
                     Mientras tanto, puedes consultar el tablón de
                     <button
@@ -997,19 +997,19 @@ export default function SepeiUnido() {
             </div>
 
             {/* Oposiciones */}
-            <div className="bg-slate-800/90 p-5 md:p-8 rounded-3xl border-2 border-slate-700/60 hover:border-orange-500 transition-all">
-              <div className="flex items-center gap-3 mb-4">
-                <Award className="w-7 h-7 md:w-8 md:h-8 text-orange-400" />
-                <h3 className="text-xl md:text-2xl font-bold text-white">Oposiciones</h3>
+            <div className="bg-slate-800/90 p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-3xl border-2 border-slate-700/60 hover:border-orange-500 transition-all">
+              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                <Award className="w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 text-orange-400" />
+                <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-white">Oposiciones</h3>
               </div>
-              <p className="text-gray-300 mb-6 text-sm">
+              <p className="text-gray-300 mb-3 md:mb-4 lg:mb-6 text-xs md:text-sm">
                 Información clave sobre procesos selectivos y academias para
                 ayudarte a planificar tu carrera profesional.
               </p>
 
-              <div className="space-y-4">
-                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60 space-y-3">
-                  <p className="text-sm font-semibold text-orange-300 mb-1">
+              <div className="space-y-2 md:space-y-3 lg:space-y-4">
+                <div className="bg-slate-900/60 rounded-xl md:rounded-2xl p-3 md:p-4 border border-slate-700/60 space-y-2 md:space-y-3">
+                  <p className="text-xs md:text-sm font-semibold text-orange-300 mb-1">
                     Bases / procesos en curso
                   </p>
 
@@ -1022,7 +1022,7 @@ export default function SepeiUnido() {
                       relacionados con el SEPEI.
                     </p>
                   ) : (
-                    <div className="space-y-2 max-h-[50vh] md:max-h-48 overflow-y-auto pr-1">
+                    <div className="space-y-1.5 md:space-y-2 max-h-32 md:max-h-48 overflow-y-auto pr-1">
                       {interinosOposiciones.map((item) => (
                         <a
                           key={item.id}
@@ -1053,8 +1053,8 @@ export default function SepeiUnido() {
                   )}
                 </div>
 
-                <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-700/60">
-                  <p className="text-sm font-semibold text-orange-300 mb-1">
+                <div className="bg-slate-900/60 rounded-xl md:rounded-2xl p-3 md:p-4 border border-slate-700/60">
+                  <p className="text-xs md:text-sm font-semibold text-orange-300 mb-1">
                     Academias
                   </p>
                   <p className="text-xs text-gray-300">
