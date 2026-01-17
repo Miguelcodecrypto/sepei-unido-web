@@ -563,32 +563,32 @@ export default function SepeiUnido() {
         )}
       </nav>
 
-      <section id="inicio" className="relative pt-32 pb-24 px-4 overflow-hidden">
+      <section id="inicio" className="relative pt-24 pb-12 md:pt-32 md:pb-24 px-3 md:px-4 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 via-transparent to-red-600/20"></div>
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl"></div>
         
         <div className="max-w-7xl mx-auto relative z-10">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500/20 rounded-full border border-orange-500/50 mb-8">
+          <div className="text-center mb-8 md:mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-orange-500/20 rounded-full border border-orange-500/50 mb-6 md:mb-8">
               <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
               <span className="text-orange-400 font-bold text-sm">MOVIMIENTO ASINDICAL</span>
             </div>
             
-            <h1 className="text-6xl md:text-8xl font-black text-white mb-6">
+            <h1 className="text-4xl sm:text-5xl md:text-8xl font-black text-white mb-4 md:mb-6">
               SEPEI
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">
                 UNIDO
               </span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto mb-12">
+            <p className="text-base sm:text-lg md:text-2xl text-gray-300 max-w-4xl mx-auto mb-8 md:mb-12 px-2">
               La <span className="text-orange-400 font-bold">fuerza</span> de un colectivo que levanta su <span className="text-orange-400 font-bold">voz</span> unida para defender nuestros derechos
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-6 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center px-2">
               <button
                 onClick={() => scrollToSection('manifiesto-section')}
-                className="px-10 py-5 bg-gradient-to-r from-orange-500 to-red-600 text-white text-lg font-bold rounded-xl shadow-2xl hover:shadow-orange-500/50 transform hover:scale-105 transition-all flex items-center justify-center gap-2"
+                className="px-6 py-3 md:px-10 md:py-5 bg-gradient-to-r from-orange-500 to-red-600 text-white text-sm md:text-lg font-bold rounded-xl shadow-2xl hover:shadow-orange-500/50 transform hover:scale-105 transition-all flex items-center justify-center gap-2"
               >
                 Leer Manifiesto
                 <ChevronDown className="w-5 h-5" />
@@ -597,7 +597,7 @@ export default function SepeiUnido() {
               {/* Botón de Anuncios Moderno */}
               <button
                 onClick={() => scrollToSection('anuncios-section')}
-                className="group relative px-8 py-5 overflow-hidden rounded-2xl"
+                className="group relative px-6 py-3 md:px-8 md:py-5 overflow-hidden rounded-2xl"
               >
                 {/* Fondo animado con gradiente */}
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 opacity-90 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -611,18 +611,18 @@ export default function SepeiUnido() {
                 <div className="absolute bottom-1/3 left-1/2 w-1 h-1 bg-purple-300/40 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
                 
                 {/* Contenido del botón */}
-                <div className="relative flex items-center gap-3 text-white font-bold text-lg">
+                <div className="relative flex items-center gap-2 md:gap-3 text-white font-bold text-sm md:text-lg">
                   {/* Icono con rotación */}
                   <div className="relative">
                     <div className="absolute inset-0 bg-white/20 rounded-full blur-md group-hover:bg-white/30 transition-all"></div>
-                    <div className="relative w-10 h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 group-hover:rotate-12 transition-transform duration-300">
-                      <span className="text-2xl group-hover:scale-110 transition-transform">📰</span>
+                    <div className="relative w-8 h-8 md:w-10 md:h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 group-hover:rotate-12 transition-transform duration-300">
+                      <span className="text-xl md:text-2xl group-hover:scale-110 transition-transform">📰</span>
                     </div>
                   </div>
                   
                   <div className="flex flex-col items-start">
-                    <span className="text-xs text-cyan-100 font-normal uppercase tracking-wider">Últimas</span>
-                    <span className="leading-tight group-hover:tracking-wide transition-all">Noticias</span>
+                    <span className="text-[10px] md:text-xs text-cyan-100 font-normal uppercase tracking-wider">Últimas</span>
+                    <span className="leading-tight group-hover:tracking-wide transition-all text-sm md:text-base">Noticias</span>
                   </div>
                   
                   {/* Badge animado */}
@@ -649,45 +649,45 @@ export default function SepeiUnido() {
               
               <button
                 onClick={handleOpenRegistration}
-                className="px-10 py-5 bg-white/5 text-white text-lg font-bold rounded-xl border-2 border-white/20 hover:bg-white/10 transform hover:scale-105 transition-all"
+                className="px-6 py-3 md:px-10 md:py-5 bg-white/5 text-white text-sm md:text-lg font-bold rounded-xl border-2 border-white/20 hover:bg-white/10 transform hover:scale-105 transition-all"
               >
                 Únete Ahora
               </button>
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 mt-20">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 mt-10 md:mt-20">
             {stats.map((stat, idx) => (
-              <div key={idx} className="text-center p-8 bg-slate-800/50 rounded-2xl border border-orange-500/20 hover:border-orange-500/50 transition-all">
-                <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
+              <div key={idx} className="text-center p-4 md:p-8 bg-slate-800/50 rounded-2xl border border-orange-500/20 hover:border-orange-500/50 transition-all">
+                <div className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
                   {stat.number}
                 </div>
-                <div className="text-gray-400 font-semibold">{stat.label}</div>
+                <div className="text-sm md:text-base text-gray-400 font-semibold">{stat.label}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-24 px-4 bg-slate-900">
+      <section className="py-12 md:py-24 px-3 md:px-4 bg-slate-900">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-4">Nuestros Pilares</h2>
-            <div className="h-1.5 w-32 bg-gradient-to-r from-orange-400 to-red-500 mx-auto rounded-full"></div>
+          <div className="text-center mb-8 md:mb-16">
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white mb-4">Nuestros Pilares</h2>
+            <div className="h-1 md:h-1.5 w-24 md:w-32 bg-gradient-to-r from-orange-400 to-red-500 mx-auto rounded-full"></div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-4 md:gap-8">
             {[
               { icon: Users, title: "Unidad", desc: "La fuerza está en la unión del colectivo" },
               { icon: Target, title: "Claridad", desc: "Objetivos claros definidos por mayoría" },
               { icon: Shield, title: "Defensa", desc: "Protección de los derechos de todos" }
             ].map((item, idx) => (
-              <div key={idx} className="bg-slate-800/80 p-10 rounded-3xl border-2 border-slate-700/50 hover:border-orange-500 transition-all hover:scale-105">
-                <div className="w-16 h-16 bg-orange-500/20 rounded-2xl mb-6 flex items-center justify-center">
-                  <item.icon className="w-8 h-8 text-orange-400" />
+              <div key={idx} className="bg-slate-800/80 p-6 md:p-10 rounded-2xl md:rounded-3xl border-2 border-slate-700/50 hover:border-orange-500 transition-all hover:scale-105">
+                <div className="w-12 h-12 md:w-16 md:h-16 bg-orange-500/20 rounded-xl md:rounded-2xl mb-4 md:mb-6 flex items-center justify-center">
+                  <item.icon className="w-6 h-6 md:w-8 md:h-8 text-orange-400" />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-4">{item.title}</h3>
-                <p className="text-gray-300">{item.desc}</p>
+                <h3 className="text-lg md:text-2xl font-bold text-white mb-2 md:mb-4">{item.title}</h3>
+                <p className="text-sm md:text-base text-gray-300">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -695,26 +695,26 @@ export default function SepeiUnido() {
       </section>
 
       {/* Tablón de Anuncios */}
-      <section id="anuncios-section" className="py-24 px-4 bg-slate-900">
+      <section id="anuncios-section" className="py-12 md:py-24 px-3 md:px-4 bg-slate-900">
         <div className="max-w-7xl mx-auto">
           <AnnouncementsBoard />
         </div>
       </section>
 
       {/* Votaciones Activas */}
-      <section id="votaciones-section" className="py-24 px-4 bg-slate-950">
+      <section id="votaciones-section" className="py-12 md:py-24 px-3 md:px-4 bg-slate-950">
         <div className="max-w-7xl mx-auto">
           <VotingBoard onLoginRequired={() => setShowUserLogin(true)} />
         </div>
       </section>
 
       {/* Sección Interinos */}
-      <section id="interinos-section" className="py-24 px-4 bg-slate-900">
+      <section id="interinos-section" className="py-12 md:py-24 px-3 md:px-4 bg-slate-900">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-4 mb-3">
+          <div className="text-center mb-8 md:mb-16">
+            <div className="inline-flex items-center gap-2 md:gap-4 mb-3 flex-wrap justify-center">
               <h2
-                className={`text-5xl md:text-6xl font-black mb-0 transition-transform duration-500 ${
+                className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-0 transition-transform duration-500 ${
                   interinosHasNews
                     ? 'text-transparent bg-clip-text bg-gradient-to-r from-orange-300 via-yellow-300 to-red-500 animate-pulse'
                     : 'text-white'
@@ -735,18 +735,18 @@ export default function SepeiUnido() {
                 </div>
               )}
             </div>
-            <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-4">
+            <p className="text-base md:text-lg lg:text-xl text-gray-300 max-w-3xl mx-auto mb-4 px-2">
               Espacio pensado para apoyar a los bomberos interinos en su formación,
               acceso a la información y procesos de oposición.
             </p>
-            <div className="h-1.5 w-48 bg-gradient-to-r from-orange-400 to-red-500 mx-auto rounded-full"></div>
+            <div className="h-1 md:h-1.5 w-32 md:w-48 bg-gradient-to-r from-orange-400 to-red-500 mx-auto rounded-full"></div>
           </div>
 
           {!loggedUser && (
-            <div className="max-w-3xl mx-auto mb-12 bg-slate-800/90 border-2 border-red-500/40 rounded-3xl p-8 text-center">
-              <div className="flex flex-col items-center gap-3 mb-4">
-                <Shield className="w-10 h-10 text-red-400" />
-                <h3 className="text-2xl font-bold text-white">Área exclusiva para personal del SEPEI</h3>
+            <div className="max-w-3xl mx-auto mb-8 md:mb-12 bg-slate-800/90 border-2 border-red-500/40 rounded-2xl md:rounded-3xl p-5 md:p-8 text-center">
+              <div className="flex flex-col items-center gap-2 md:gap-3 mb-4">
+                <Shield className="w-8 h-8 md:w-10 md:h-10 text-red-400" />
+                <h3 className="text-lg md:text-2xl font-bold text-white">Área exclusiva para personal del SEPEI</h3>
               </div>
               <p className="text-sm md:text-base text-gray-300 mb-4">
                 Para acceder al área de Interinos y descargar documentos es
@@ -1069,16 +1069,16 @@ export default function SepeiUnido() {
         </div>
       </section>
 
-      <section id="manifiesto-section" className="py-24 px-4 bg-slate-900">
+      <section id="manifiesto-section" className="py-12 md:py-24 px-3 md:px-4 bg-slate-900">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl md:text-6xl font-black text-white mb-6">Nuestro Manifiesto</h2>
-            <div className="h-1.5 w-40 bg-gradient-to-r from-orange-400 to-red-500 mx-auto rounded-full"></div>
+          <div className="text-center mb-8 md:mb-16">
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-white mb-4 md:mb-6">Nuestro Manifiesto</h2>
+            <div className="h-1 md:h-1.5 w-24 md:w-40 bg-gradient-to-r from-orange-400 to-red-500 mx-auto rounded-full"></div>
           </div>
 
-          <div className="bg-slate-800/90 p-10 md:p-14 rounded-3xl border-2 border-orange-500/30">
-            <div className="space-y-7 text-gray-200 text-lg text-justify">
-              <p className="text-orange-400 font-bold text-2xl mb-8 text-center">
+          <div className="bg-slate-800/90 p-5 md:p-10 lg:p-14 rounded-2xl md:rounded-3xl border-2 border-orange-500/30">
+            <div className="space-y-5 md:space-y-7 text-gray-200 text-sm md:text-lg text-justify">
+              <p className="text-orange-400 font-bold text-lg md:text-2xl mb-6 md:mb-8 text-center">
                 Tras años de continuas guerras sindicales...
               </p>
               
@@ -1094,9 +1094,9 @@ export default function SepeiUnido() {
                 Años de no realizar una escucha activa y ningun mejora en el servicio han minado la confianza de los bomberos en los sindicatos.
               </p>
               
-              <div className="my-10 p-8 bg-orange-500/20 border-l-4 border-orange-500 rounded-r-2xl">
-                <p className="text-white font-bold text-xl text-justify">
-                  De este malestar, nace <span className="text-orange-400 text-2xl">SEPEI UNIDO</span>.
+              <div className="my-6 md:my-10 p-4 md:p-8 bg-orange-500/20 border-l-4 border-orange-500 rounded-r-xl md:rounded-r-2xl">
+                <p className="text-white font-bold text-base md:text-xl text-justify">
+                  De este malestar, nace <span className="text-orange-400 text-lg md:text-2xl">SEPEI UNIDO</span>.
                 </p>
               </div>
               
@@ -1104,16 +1104,16 @@ export default function SepeiUnido() {
                 Un movimiento que no cuestiona a ningún sindicato. Recogemos las inquietudes de los bomberos del SEPEI para ponerlas en conocimiento de todos los sindicatos.
               </p>
               
-              <div className="my-10 text-center py-8">
-                <p className="text-3xl font-black text-white mb-4">
+              <div className="my-6 md:my-10 text-center py-4 md:py-8">
+                <p className="text-xl md:text-3xl font-black text-white mb-3 md:mb-4">
                   Ellos son nuestra <span className="text-orange-400">VOZ</span>
                 </p>
-                <p className="text-3xl font-black text-white">
+                <p className="text-xl md:text-3xl font-black text-white">
                   Nosotros unidos tenemos la <span className="text-red-500">FUERZA</span>
                 </p>
               </div>
               
-              <p className="text-xl font-semibold text-white">
+              <p className="text-base md:text-xl font-semibold text-white">
                 UNIDOS nuestra voz suena más fuerte para reivindicar todos nuestros derechos en una hoja de ruta COMÚN.
               </p>
             </div>
@@ -1121,34 +1121,34 @@ export default function SepeiUnido() {
         </div>
       </section>
 
-      <section id="hoja-ruta-section" className="py-24 px-4 bg-slate-900">
+      <section id="hoja-ruta-section" className="py-12 md:py-24 px-3 md:px-4 bg-slate-900">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-black text-white mb-6">Hoja de Ruta</h2>
-            <div className="h-1.5 w-40 bg-gradient-to-r from-orange-400 to-red-500 mx-auto rounded-full"></div>
+          <div className="text-center mb-8 md:mb-16">
+            <h2 className="text-3xl md:text-5xl font-black text-white mb-4 md:mb-6">Hoja de Ruta</h2>
+            <div className="h-1 md:h-1.5 w-24 md:w-40 bg-gradient-to-r from-orange-400 to-red-500 mx-auto rounded-full"></div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4 md:gap-6">
             {roadmapItems.map((item, idx) => (
               <div
                 key={idx}
                 onMouseEnter={() => setHoveredRoadmap(idx)}
                 onMouseLeave={() => setHoveredRoadmap(null)}
-                className={`bg-slate-800/80 p-8 rounded-2xl border-2 transition-all cursor-pointer ${
+                className={`bg-slate-800/80 p-4 md:p-8 rounded-xl md:rounded-2xl border-2 transition-all cursor-pointer ${
                   hoveredRoadmap === idx ? 'border-orange-500 shadow-2xl scale-105' : 'border-slate-700/50'
                 }`}
               >
-                <div className="flex items-start gap-6">
-                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${
+                <div className="flex items-start gap-3 md:gap-6">
+                  <div className={`w-10 h-10 md:w-16 md:h-16 rounded-lg md:rounded-xl flex items-center justify-center flex-shrink-0 ${
                     hoveredRoadmap === idx ? 'bg-gradient-to-br from-orange-500 to-red-600' : 'bg-orange-500/20'
                   }`}>
-                    <item.icon className={`w-8 h-8 ${hoveredRoadmap === idx ? 'text-white' : 'text-orange-400'}`} />
+                    <item.icon className={`w-5 h-5 md:w-8 md:h-8 ${hoveredRoadmap === idx ? 'text-white' : 'text-orange-400'}`} />
                   </div>
                   
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-orange-400 font-black">#{idx + 1}</span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3 flex-wrap">
+                      <span className="text-orange-400 font-black text-sm md:text-base">#{idx + 1}</span>
+                      <span className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-bold ${
                         item.priority === 'CRÍTICA' ? 'bg-red-500/20 text-red-400' :
                         item.priority === 'ALTA' ? 'bg-orange-500/20 text-orange-400' :
                         'bg-blue-500/20 text-blue-400'
@@ -1156,8 +1156,8 @@ export default function SepeiUnido() {
                         {item.priority}
                       </span>
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-3">{item.title}</h3>
-                    <p className="text-gray-400">{item.desc}</p>
+                    <h3 className="text-base md:text-xl font-bold text-white mb-1 md:mb-3">{item.title}</h3>
+                    <p className="text-xs md:text-base text-gray-400">{item.desc}</p>
                   </div>
                 </div>
               </div>
@@ -1166,20 +1166,20 @@ export default function SepeiUnido() {
         </div>
       </section>
 
-      <section id="ideas-section" className="py-24 px-4 bg-gradient-to-b from-slate-900 to-slate-950">
+      <section id="ideas-section" className="py-12 md:py-24 px-3 md:px-4 bg-gradient-to-b from-slate-900 to-slate-950">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <Lightbulb className="w-12 h-12 text-yellow-400" />
-              <h2 className="text-5xl font-black text-white">Compartir Ideas</h2>
+          <div className="text-center mb-8 md:mb-12">
+            <div className="flex items-center justify-center gap-2 md:gap-3 mb-4 md:mb-6">
+              <Lightbulb className="w-8 h-8 md:w-12 md:h-12 text-yellow-400" />
+              <h2 className="text-2xl md:text-5xl font-black text-white">Compartir Ideas</h2>
             </div>
-            <p className="text-xl text-gray-400">Expresa tus propuestas y contribuye al futuro de SEPEI UNIDO</p>
-            <div className="h-1.5 w-40 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full mt-6"></div>
+            <p className="text-sm md:text-xl text-gray-400 px-2">Expresa tus propuestas y contribuye al futuro de SEPEI UNIDO</p>
+            <div className="h-1 md:h-1.5 w-24 md:w-40 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full mt-4 md:mt-6"></div>
           </div>
 
           {loggedUser ? (
             // Usuario logueado: mostrar formulario inline
-            <div id="ideas-form-section" className="bg-slate-800/90 p-8 rounded-3xl border-2 border-green-500/30">
+            <div id="ideas-form-section" className="bg-slate-800/90 p-5 md:p-8 rounded-2xl md:rounded-3xl border-2 border-green-500/30">
               <div className="bg-green-500/10 border-2 border-green-500/30 rounded-xl p-4 mb-6 text-center">
                 <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
                 <p className="text-green-300 font-bold">✓ Sesión activa - {loggedUser.nombre}</p>
@@ -1227,21 +1227,21 @@ export default function SepeiUnido() {
         </div>
       </section>
 
-      <section id="contacto-section" className="py-24 px-4 bg-slate-950">
+      <section id="contacto-section" className="py-12 md:py-24 px-3 md:px-4 bg-slate-950">
         <div className="max-w-4xl mx-auto">
           <div className="text-center">
-            <p className="text-xl text-gray-400">Tu voz cuenta, tu participación es fundamental</p>
+            <p className="text-base md:text-xl text-gray-400">Tu voz cuenta, tu participación es fundamental</p>
           </div>
         </div>
       </section>
 
-      <section className="py-20 px-4 bg-gradient-to-br from-orange-600 to-red-700">
+      <section className="py-12 md:py-20 px-3 md:px-4 bg-gradient-to-br from-orange-600 to-red-700">
         <div className="max-w-4xl mx-auto text-center">
-          <Users className="w-20 h-20 text-white mx-auto mb-6" />
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
+          <Users className="w-12 h-12 md:w-20 md:h-20 text-white mx-auto mb-4 md:mb-6" />
+          <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white mb-4 md:mb-6">
             La Fuerza Está en la Unión
           </h2>
-          <p className="text-2xl text-orange-100 mb-8 font-semibold">
+          <p className="text-base md:text-2xl text-orange-100 mb-6 md:mb-8 font-semibold px-2">
             Juntos definimos nuestro futuro. Unidos somos más fuertes.
           </p>
         </div>
@@ -1258,20 +1258,20 @@ export default function SepeiUnido() {
       {/* Botón flotante para sugerencias */}
       <button
         onClick={handleOpenSuggestionsForm}
-        className="fixed bottom-24 right-8 z-40 p-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-full shadow-2xl hover:shadow-blue-500/50 transform hover:scale-110 transition-all flex items-center gap-2"
+        className="fixed bottom-20 md:bottom-24 right-4 md:right-8 z-40 p-3 md:p-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-full shadow-2xl hover:shadow-blue-500/50 transform hover:scale-110 transition-all flex items-center gap-2"
         title="Enviar sugerencia o propuesta"
       >
-        <Lightbulb className="w-6 h-6" />
+        <Lightbulb className="w-5 h-5 md:w-6 md:h-6" />
       </button>
 
-      <footer className="bg-slate-900 py-8 px-4">
+      <footer className="bg-slate-900 py-6 md:py-8 px-3 md:px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Flame className="w-8 h-8 text-orange-500" />
-            <span className="text-xl font-bold text-white">SEPEI UNIDO</span>
+          <div className="flex items-center justify-center gap-2 md:gap-3 mb-3 md:mb-4">
+            <Flame className="w-6 h-6 md:w-8 md:h-8 text-orange-500" />
+            <span className="text-lg md:text-xl font-bold text-white">SEPEI UNIDO</span>
           </div>
-          <p className="text-gray-400">Movimiento Asindical - Bomberos Diputación de Albacete</p>
-          <p className="text-gray-500 text-sm mt-2">Unidos por nuestros derechos</p>
+          <p className="text-sm md:text-base text-gray-400">Movimiento Asindical - Bomberos Diputación de Albacete</p>
+          <p className="text-gray-500 text-xs md:text-sm mt-2">Unidos por nuestros derechos</p>
         </div>
       </footer>
 
