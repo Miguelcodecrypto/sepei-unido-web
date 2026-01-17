@@ -60,7 +60,7 @@ export default function AnnouncementsBoard() {
 
   if (isLoading) {
     return (
-      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-8 border-2 border-slate-700/50">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl md:rounded-3xl p-4 md:p-8 border-2 border-slate-700/50">
         <p className="text-white text-center">Cargando anuncios...</p>
       </div>
     );
@@ -68,19 +68,19 @@ export default function AnnouncementsBoard() {
 
   return (
     <>
-      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-8 border-2 border-slate-700/50">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl md:rounded-3xl p-4 md:p-8 border-2 border-slate-700/50">
+        <div className="flex items-center justify-between mb-4 md:mb-6">
+          <h2 className="text-xl md:text-3xl font-bold text-white flex items-center gap-2 md:gap-3">
             📋 Tablón de Anuncios
           </h2>
         </div>
 
         {announcements.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-400 text-lg">No hay anuncios publicados en este momento</p>
+          <div className="text-center py-8 md:py-12">
+            <p className="text-gray-400 text-base md:text-lg">No hay anuncios publicados en este momento</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {announcements.map((announcement) => (
               <div
                 key={announcement.id}
@@ -103,21 +103,21 @@ export default function AnnouncementsBoard() {
                   </div>
                 )}
 
-                <div className="p-6">
+                <div className="p-4 md:p-6">
                   {/* Categoría y badge destacado */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className={`${getCategoryColor(announcement.categoria)} px-3 py-1 rounded-full text-white text-xs font-semibold flex items-center gap-1`}>
+                  <div className="flex items-center gap-2 mb-2 md:mb-3">
+                    <span className={`${getCategoryColor(announcement.categoria)} px-2 md:px-3 py-1 rounded-full text-white text-[10px] md:text-xs font-semibold flex items-center gap-1`}>
                       {getCategoryIcon(announcement.categoria)} {announcement.categoria.toUpperCase()}
                     </span>
                   </div>
 
                   {/* Título */}
-                  <h3 className="text-xl font-bold text-white mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors">
+                  <h3 className="text-base md:text-xl font-bold text-white mb-2 md:mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors">
                     {announcement.titulo}
                   </h3>
 
                   {/* Contenido preview */}
-                  <p className="text-gray-400 text-sm mb-4 line-clamp-3">
+                  <p className="text-gray-400 text-xs md:text-sm mb-3 md:mb-4 line-clamp-3">
                     {announcement.contenido}
                   </p>
 

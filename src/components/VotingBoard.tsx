@@ -170,26 +170,26 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
 
   if (votaciones.length === 0) {
     return (
-      <div className="text-center py-16 bg-slate-800/30 rounded-2xl border border-slate-700">
-        <BarChart3 className="w-20 h-20 text-gray-500 mx-auto mb-4" />
-        <h3 className="text-2xl font-bold text-white mb-2">No hay votaciones activas</h3>
-        <p className="text-gray-400">Vuelve pronto para participar en futuras votaciones</p>
+      <div className="text-center py-8 md:py-16 bg-slate-800/30 rounded-xl md:rounded-2xl border border-slate-700">
+        <BarChart3 className="w-12 h-12 md:w-20 md:h-20 text-gray-500 mx-auto mb-3 md:mb-4" />
+        <h3 className="text-lg md:text-2xl font-bold text-white mb-2">No hay votaciones activas</h3>
+        <p className="text-sm md:text-base text-gray-400">Vuelve pronto para participar en futuras votaciones</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="text-center mb-12">
-        <h2 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-4">
+    <div className="space-y-6 md:space-y-8">
+      <div className="text-center mb-8 md:mb-12">
+        <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-3 md:mb-4">
           Votaciones Activas
         </h2>
-        <p className="text-gray-300 text-lg max-w-3xl mx-auto">
+        <p className="text-gray-300 text-sm md:text-lg max-w-3xl mx-auto px-2">
           Participa en las decisiones del movimiento. Tu voz cuenta.
         </p>
       </div>
 
-      <div className="grid gap-8">
+      <div className="grid gap-6 md:gap-8">
         {votaciones.map((votacion) => {
           const yaVoto = votacion.usuario_ya_voto;
           const puedeVotar = !yaVoto;
@@ -200,34 +200,34 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
           return (
             <div
               key={votacion.id}
-              className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-orange-500/20"
+              className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl md:rounded-2xl shadow-2xl overflow-hidden border border-orange-500/20"
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-orange-500/20 to-red-500/20 p-6 border-b border-orange-500/30">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl">{getTipoIcon(votacion.tipo)}</span>
+              <div className="bg-gradient-to-r from-orange-500/20 to-red-500/20 p-4 md:p-6 border-b border-orange-500/30">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <span className="text-2xl md:text-4xl">{getTipoIcon(votacion.tipo)}</span>
                     <div>
-                      <h3 className="text-2xl font-bold text-white">{votacion.titulo}</h3>
-                      <p className="text-orange-400 text-sm font-semibold uppercase">
+                      <h3 className="text-lg md:text-2xl font-bold text-white">{votacion.titulo}</h3>
+                      <p className="text-orange-400 text-xs md:text-sm font-semibold uppercase">
                         {votacion.tipo}
                       </p>
                     </div>
                   </div>
                   
                   {yaVoto && (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/50 rounded-full">
-                      <CheckCircle className="w-5 h-5 text-green-400" />
-                      <span className="text-green-400 font-semibold">Ya votaste</span>
+                    <div className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1 md:py-2 bg-green-500/20 border border-green-500/50 rounded-full">
+                      <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
+                      <span className="text-xs md:text-base text-green-400 font-semibold">Ya votaste</span>
                     </div>
                   )}
                 </div>
 
                 {votacion.descripcion && (
-                  <p className="text-gray-300 mb-4">{votacion.descripcion}</p>
+                  <p className="text-sm md:text-base text-gray-300 mb-3 md:mb-4">{votacion.descripcion}</p>
                 )}
 
-                <div className="flex flex-wrap gap-4 text-sm">
+                <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm">
                   <div className="flex items-center gap-2 text-gray-300">
                     <Calendar className="w-4 h-4" />
                     <span>{getTiempoRestante(votacion.fecha_fin)}</span>
@@ -243,8 +243,8 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
 
               {/* Opciones de votación */}
               {puedeVotar && (
-                <div className="p-6 space-y-3">
-                  <h4 className="text-white font-bold text-lg mb-4">
+                <div className="p-4 md:p-6 space-y-2 md:space-y-3">
+                  <h4 className="text-white font-bold text-sm md:text-lg mb-3 md:mb-4">
                     {votacion.multiple_respuestas ? 'Selecciona una o más opciones:' : 'Selecciona una opción:'}
                   </h4>
                   
@@ -253,7 +253,7 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
                     return (
                       <label
                         key={opcion.id}
-                        className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all ${
+                        className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-lg md:rounded-xl cursor-pointer transition-all ${
                           isSelected
                             ? 'bg-gradient-to-r from-orange-500/30 to-red-500/30 border-2 border-orange-500'
                             : 'bg-slate-800/50 border-2 border-slate-700 hover:border-orange-500/50'
@@ -264,9 +264,9 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
                           name={`votacion-${votacion.id}`}
                           checked={isSelected}
                           onChange={() => handleOptionSelect(votacion.id, opcion.id, votacion.multiple_respuestas)}
-                          className="w-5 h-5 text-orange-500 focus:ring-orange-500"
+                          className="w-4 h-4 md:w-5 md:h-5 text-orange-500 focus:ring-orange-500"
                         />
-                        <span className="text-white font-medium flex-1">{opcion.texto}</span>
+                        <span className="text-sm md:text-base text-white font-medium flex-1">{opcion.texto}</span>
                       </label>
                     );
                   })}
