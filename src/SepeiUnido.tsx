@@ -9,7 +9,7 @@ import { TraditionalRegistration, type UserData } from './components/Traditional
 import { UserLogin, type LoggedUserData } from './components/UserLogin';
 import { EmailVerification } from './components/EmailVerification';
 import { getCurrentUser, invalidateSession } from './services/sessionService';
-import { trackPageVisit } from './services/analyticsService';
+import { trackPageVisit, trackInteraction } from './services/analyticsService';
 import AnnouncementsBoard from './components/AnnouncementsBoard';
 import VotingBoard from './components/VotingBoard';
 import FloatingVotingButton from './components/FloatingVotingButton';
@@ -51,6 +51,12 @@ export default function SepeiUnido() {
   const [isLoadingOposiciones, setIsLoadingOposiciones] = useState(false);
   const [interinosNoticias, setInterinosNoticias] = useState<InterinosBibliografiaItem[]>([]);
   const [isLoadingNoticias, setIsLoadingNoticias] = useState(false);
+  const [interinosSectionViewed, setInterinosSectionViewed] = useState(false);
+
+  // Función para rastrear interacciones en Interinos
+  const trackInterinosClick = (type: string, itemId?: string, itemTitle?: string) => {
+    trackInteraction('interinos', type, itemId, { titulo: itemTitle });
+  };
   
 
   useEffect(() => {
@@ -137,6 +143,30 @@ export default function SepeiUnido() {
     
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Efecto para trackear cuando el usuario visualiza la sección Interinos
+  useEffect(() => {
+    const interinosSection = document.getElementById('interinos-section');
+    if (!interinosSection) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !interinosSectionViewed) {
+            setInterinosSectionViewed(true);
+            trackInteraction('interinos', 'section_view', undefined, { loggedIn: !!loggedUser });
+          }
+        });
+      },
+      { threshold: 0.3 } // Se dispara cuando el 30% de la sección es visible
+    );
+
+    observer.observe(interinosSection);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [interinosSectionViewed, loggedUser]);
 
   const handleSubmit = () => {
     if (!formData.nombre || !formData.email) {
@@ -803,6 +833,7 @@ export default function SepeiUnido() {
                           href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={() => trackInterinosClick('bibliografia_click', item.id, item.titulo)}
                           className="flex items-center justify-between gap-2 text-xs bg-slate-900/80 rounded-lg px-2 py-1.5 hover:bg-slate-800/80 hover:text-orange-200 transition-colors"
                         >
                           <span className="flex-1 truncate">
@@ -836,6 +867,7 @@ export default function SepeiUnido() {
                           target="_blank"
                           rel="noopener noreferrer"
                           title={item.descripcion || item.url}
+                          onClick={() => trackInterinosClick('curso_click', item.id, item.titulo)}
                           className="flex flex-col text-xs text-gray-100 bg-slate-900/80 rounded-lg px-2 py-1.5 hover:bg-slate-800/80 hover:text-orange-300 transition-colors"
                         >
                           <div className="flex items-center justify-between gap-2 w-full">
@@ -879,6 +911,7 @@ export default function SepeiUnido() {
                           target="_blank"
                           rel="noopener noreferrer"
                           title={item.descripcion || item.url}
+                          onClick={() => trackInterinosClick('enlace_click', item.id, item.titulo)}
                           className="flex flex-col text-xs text-gray-100 bg-slate-900/80 rounded-lg px-2 py-1.5 hover:bg-slate-800/80 hover:text-orange-300 transition-colors"
                         >
                           <div className="flex items-center justify-between gap-2 w-full">
@@ -958,6 +991,7 @@ export default function SepeiUnido() {
                           target="_blank"
                           rel="noopener noreferrer"
                           title={item.descripcion || item.url}
+                          onClick={() => trackInterinosClick('noticia_click', item.id, item.titulo)}
                           className="flex flex-col text-xs text-gray-100 bg-slate-900/80 rounded-lg px-2 py-1.5 hover:bg-slate-800/80 hover:text-orange-300 transition-colors"
                         >
                           <div className="flex items-center justify-between gap-2 w-full">
@@ -1030,6 +1064,7 @@ export default function SepeiUnido() {
                           target="_blank"
                           rel="noopener noreferrer"
                           title={item.descripcion || item.url}
+                          onClick={() => trackInterinosClick('oposicion_click', item.id, item.titulo)}
                           className="flex flex-col text-xs text-gray-100 bg-slate-900/80 rounded-lg px-2 py-1.5 hover:bg-slate-800/80 hover:text-orange-300 transition-colors"
                         >
                           <div className="flex items-center justify-between gap-2 w-full">
