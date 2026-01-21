@@ -11,6 +11,7 @@ import AnalyticsDashboard from './AnalyticsDashboard';
 import VotingResultsPanel from './VotingResultsPanel';
 import { ExternalEmailsManager } from './ExternalEmailsManager';
 import InterinosManager from './InterinosManager';
+import InterinosAnalyticsDashboard from './InterinosAnalyticsDashboard';
 
 interface User {
   id: string;
@@ -632,7 +633,12 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
         )}
 
         {activeTab === 'interinos' && (
-          <InterinosManager />
+          <div className="space-y-8">
+            <InterinosManager />
+            <div className="border-t border-slate-700 pt-8">
+              <InterinosAnalyticsDashboard />
+            </div>
+          </div>
         )}
       </div>
     </div>

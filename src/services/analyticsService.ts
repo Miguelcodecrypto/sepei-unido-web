@@ -69,7 +69,7 @@ export async function trackPageVisit(pageUrl?: string): Promise<void> {
  * Registrar interacción con una sección específica
  */
 export async function trackInteraction(
-  section: 'announcements' | 'voting' | 'suggestions' | 'profile' | 'admin',
+  section: 'announcements' | 'voting' | 'suggestions' | 'profile' | 'admin' | 'interinos',
   interactionType: string,
   itemId?: string,
   additionalData?: Record<string, any>,
@@ -206,6 +206,7 @@ export async function getSectionInteractions(days: number = 30): Promise<{
   voting: number;
   suggestions: number;
   admin: number;
+  interinos: number;
 }> {
   try {
     const startDate = new Date();
@@ -220,7 +221,8 @@ export async function getSectionInteractions(days: number = 30): Promise<{
       announcements: 0,
       voting: 0,
       suggestions: 0,
-      admin: 0
+      admin: 0,
+      interinos: 0
     };
 
     interactions?.forEach(interaction => {
@@ -236,7 +238,8 @@ export async function getSectionInteractions(days: number = 30): Promise<{
       announcements: 0,
       voting: 0,
       suggestions: 0,
-      admin: 0
+      admin: 0,
+      interinos: 0
     };
   }
 }
@@ -283,7 +286,7 @@ export async function getTopActiveUsers(limit: number = 10): Promise<Array<{
 /**
  * Hook para rastrear tiempo en sección (usar en componentes)
  */
-export function useTrackSectionTime(section: 'announcements' | 'voting' | 'suggestions' | 'admin') {
+export function useTrackSectionTime(section: 'announcements' | 'voting' | 'suggestions' | 'admin' | 'interinos') {
   let startTime = Date.now();
 
   const trackTime = () => {
@@ -295,4 +298,175 @@ export function useTrackSectionTime(section: 'announcements' | 'voting' | 'sugge
 
   // Retornar función de limpieza
   return trackTime;
+}
+
+/**
+ * Obtener métricas específicas de la sección Interinos
+ */
+export async function getInterinosAnalytics(days: number = 30): Promise<{
+  totalVisits: number;
+  uniqueUsers: number;
+  totalInteractions: number;
+  interactionsByType: Record<string, number>;
+  averageTimeSeconds: number;
+  topUsers: Array<{ user_id: string; user_name: string; interactions: number }>;
+  visitsByDay: Array<{ date: string; visits: number }>;
+  documentDownloads: number;
+  linkClicks: number;
+  courseViews: number;
+}> {
+  try {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Interacciones de Interinos
+    const { data: interactions } = await supabase
+      .from('user_interactions')
+      .select('*')
+      .eq('section', 'interinos')
+      .gte('created_at', startDate.toISOString());
+
+    const totalInteractions = interactions?.length || 0;
+
+    // Usuarios únicos
+    const uniqueUserIds = new Set(interactions?.filter(i => i.user_id).map(i => i.user_id) || []);
+    const uniqueUsers = uniqueUserIds.size;
+
+    // Interacciones por tipo
+    const interactionsByType: Record<string, number> = {};
+    interactions?.forEach(i => {
+      interactionsByType[i.interaction_type] = (interactionsByType[i.interaction_type] || 0) + 1;
+    });
+
+    // Tiempo promedio
+    const timesWithDuration = interactions?.filter(i => i.duration_seconds) || [];
+    const averageTimeSeconds = timesWithDuration.length > 0
+      ? Math.round(timesWithDuration.reduce((acc, i) => acc + (i.duration_seconds || 0), 0) / timesWithDuration.length)
+      : 0;
+
+    // Contadores específicos
+    const documentDownloads = interactionsByType['download_document'] || interactionsByType['view_bibliography'] || 0;
+    const linkClicks = interactionsByType['click_link'] || interactionsByType['view_link'] || 0;
+    const courseViews = interactionsByType['view_course'] || interactionsByType['click_course'] || 0;
+
+    // Top usuarios (por interacciones en Interinos)
+    const userInteractionCount: Record<string, number> = {};
+    interactions?.filter(i => i.user_id).forEach(i => {
+      userInteractionCount[i.user_id] = (userInteractionCount[i.user_id] || 0) + 1;
+    });
+
+    // Obtener nombres de usuarios
+    const userIds = Object.keys(userInteractionCount);
+    let topUsers: Array<{ user_id: string; user_name: string; interactions: number }> = [];
+    
+    if (userIds.length > 0) {
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('id, nombre, apellidos')
+        .in('id', userIds);
+
+      topUsers = Object.entries(userInteractionCount)
+        .map(([userId, count]) => {
+          const user = usersData?.find(u => u.id === userId);
+          return {
+            user_id: userId,
+            user_name: user ? `${user.nombre} ${user.apellidos || ''}`.trim() : 'Usuario',
+            interactions: count
+          };
+        })
+        .sort((a, b) => b.interactions - a.interactions)
+        .slice(0, 10);
+    }
+
+    // Visitas por día a la sección
+    const visitsByDayMap: Record<string, number> = {};
+    interactions?.forEach(i => {
+      const date = new Date(i.created_at).toISOString().split('T')[0];
+      visitsByDayMap[date] = (visitsByDayMap[date] || 0) + 1;
+    });
+
+    const visitsByDay = Object.entries(visitsByDayMap)
+      .map(([date, visits]) => ({ date, visits }))
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, days);
+
+    // Total de visitas (interacciones de tipo view)
+    const totalVisits = interactionsByType['view_interinos'] || interactionsByType['enter_section'] || totalInteractions;
+
+    return {
+      totalVisits,
+      uniqueUsers,
+      totalInteractions,
+      interactionsByType,
+      averageTimeSeconds,
+      topUsers,
+      visitsByDay,
+      documentDownloads,
+      linkClicks,
+      courseViews
+    };
+  } catch (error) {
+    console.error('❌ [ANALYTICS] Error al obtener métricas de Interinos:', error);
+    return {
+      totalVisits: 0,
+      uniqueUsers: 0,
+      totalInteractions: 0,
+      interactionsByType: {},
+      averageTimeSeconds: 0,
+      topUsers: [],
+      visitsByDay: [],
+      documentDownloads: 0,
+      linkClicks: 0,
+      courseViews: 0
+    };
+  }
+}
+
+/**
+ * Obtener estadísticas de contenido de Interinos
+ */
+export async function getInterinosContentStats(): Promise<{
+  totalDocuments: number;
+  totalCourses: number;
+  totalLinks: number;
+  totalNews: number;
+  totalOposiciones: number;
+  documentsByCategory: Record<string, number>;
+}> {
+  try {
+    const { data: content } = await supabase
+      .from('interinos_bibliografia')
+      .select('categoria, activo')
+      .eq('activo', true);
+
+    const totalDocuments = content?.filter(c => c.categoria === 'formacion_bibliografia').length || 0;
+    const totalCourses = content?.filter(c => c.categoria === 'formacion_curso').length || 0;
+    const totalLinks = content?.filter(c => c.categoria === 'formacion_enlace').length || 0;
+    const totalNews = content?.filter(c => c.categoria === 'noticias_destacadas').length || 0;
+    const totalOposiciones = content?.filter(c => c.categoria === 'oposiciones').length || 0;
+
+    const documentsByCategory: Record<string, number> = {};
+    content?.forEach(c => {
+      documentsByCategory[c.categoria] = (documentsByCategory[c.categoria] || 0) + 1;
+    });
+
+    return {
+      totalDocuments,
+      totalCourses,
+      totalLinks,
+      totalNews,
+      totalOposiciones,
+      documentsByCategory
+    };
+  } catch (error) {
+    console.error('❌ [ANALYTICS] Error al obtener estadísticas de contenido:', error);
+    return {
+      totalDocuments: 0,
+      totalCourses: 0,
+      totalLinks: 0,
+      totalNews: 0,
+      totalOposiciones: 0,
+      documentsByCategory: {}
+    };
+  }
 }
