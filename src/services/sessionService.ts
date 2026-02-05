@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { getClientIP, generateSecureToken } from '../utils/network';
 
 /**
  * Servicio de sesión centralizado para reemplazar localStorage
@@ -29,33 +30,11 @@ export interface SessionUser {
 }
 
 /**
- * Generar token de sesión seguro
- */
-function generateSessionToken(): string {
-  const randomBytes = new Uint8Array(32);
-  crypto.getRandomValues(randomBytes);
-  return Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
-}
-
-/**
- * Obtener IP del cliente
- */
-async function getClientIP(): Promise<string> {
-  try {
-    const response = await fetch('https://api.ipify.org?format=json');
-    const data = await response.json();
-    return data.ip;
-  } catch {
-    return 'unknown';
-  }
-}
-
-/**
  * Crear nueva sesión de usuario
  */
 export async function createSession(userId: string): Promise<string | null> {
   try {
-    const sessionToken = generateSessionToken();
+    const sessionToken = generateSecureToken(32);
     const expiresAt = new Date(Date.now() + SESSION_DURATION).toISOString();
     const ip = await getClientIP();
     const userAgent = navigator.userAgent;

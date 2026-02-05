@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './sessionService';
+import { getClientIP } from '../utils/network';
 
 /**
  * Servicio de Analytics para rastrear visitas e interacciones
@@ -13,17 +14,6 @@ function getOrCreateSessionId(): string {
     sessionStorage.setItem('analytics_session_id', sessionId);
   }
   return sessionId;
-}
-
-// Obtener IP del cliente
-async function getClientIP(): Promise<string> {
-  try {
-    const response = await fetch('https://api.ipify.org?format=json');
-    const data = await response.json();
-    return data.ip;
-  } catch {
-    return 'unknown';
-  }
 }
 
 /**
@@ -284,10 +274,11 @@ export async function getTopActiveUsers(limit: number = 10): Promise<Array<{
 }
 
 /**
- * Hook para rastrear tiempo en sección (usar en componentes)
+ * Crear rastreador de tiempo en sección (NO es un hook de React)
+ * Uso: const cleanup = createSectionTimeTracker('section'); return cleanup;
  */
-export function useTrackSectionTime(section: 'announcements' | 'voting' | 'suggestions' | 'admin' | 'interinos') {
-  let startTime = Date.now();
+export function createSectionTimeTracker(section: 'announcements' | 'voting' | 'suggestions' | 'admin' | 'interinos') {
+  const startTime = Date.now();
 
   const trackTime = () => {
     const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
@@ -299,6 +290,9 @@ export function useTrackSectionTime(section: 'announcements' | 'voting' | 'sugge
   // Retornar función de limpieza
   return trackTime;
 }
+
+// Alias para compatibilidad (deprecado, usar createSectionTimeTracker)
+export const useTrackSectionTime = createSectionTimeTracker;
 
 /**
  * Obtener métricas específicas de la sección Interinos

@@ -8,7 +8,7 @@ import {
   ResultadoVotacion
 } from '../services/votingDatabase';
 import { getCurrentUser } from '../services/sessionService';
-import { trackInteraction, useTrackSectionTime } from '../services/analyticsService';
+import { trackInteraction, createSectionTimeTracker } from '../services/analyticsService';
 
 interface VotingBoardProps {
   onLoginRequired?: () => void;
@@ -29,7 +29,7 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
     trackInteraction('voting', 'view_voting');
     
     // Iniciar seguimiento de tiempo en la sección
-    const cleanup = useTrackSectionTime('voting');
+    const cleanup = createSectionTimeTracker('voting');
     return cleanup;
   }, []);
 

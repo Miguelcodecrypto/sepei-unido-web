@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Send, AlertCircle, CheckCircle, Lightbulb, X } from 'lucide-react';
 import { addSuggestion } from '../services/suggestionDatabase';
 import { sendSuggestionConfirmationEmail, sendSuggestionNotificationEmail } from '../services/emailService';
-import { trackInteraction, useTrackSectionTime } from '../services/analyticsService';
+import { trackInteraction, createSectionTimeTracker } from '../services/analyticsService';
 import type { BrowserCertificate } from '../services/browserCertificateService';
 import type { LoggedUserData } from './UserLogin';
 
@@ -44,7 +44,7 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
     trackInteraction('suggestions', 'view_suggestions_form');
     
     // Iniciar seguimiento de tiempo en la sección
-    const cleanup = useTrackSectionTime('suggestions');
+    const cleanup = createSectionTimeTracker('suggestions');
     return cleanup;
   }, []);
 

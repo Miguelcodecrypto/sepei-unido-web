@@ -418,11 +418,6 @@ export async function emitirVoto(
 
     // 1.5 VERIFICAR AUTORIZACIÓN PARA VOTAR
     if (!currentUser.autorizado_votar) {
-      console.warn('⚠️ [VOTO] Usuario no autorizado para votar');
-      return false;
-    }
-
-    if (!currentUser.autorizado_votar) {
       console.warn('⚠️ [VOTO] Usuario no autorizado para votar por el administrador');
       return false;
     }

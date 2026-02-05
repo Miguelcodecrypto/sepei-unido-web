@@ -1,9 +1,15 @@
 // Autenticación simple con contraseña para el panel admin
-// En producción, usar autenticación real (JWT, OAuth, etc.)
+// IMPORTANTE: La contraseña debe estar configurada en variables de entorno
 
-const ADMIN_PASSWORD = 'Sepei@Admin2025!Secure'; // Contraseña segura
+// Obtener contraseña de variable de entorno (VITE_ para cliente Vite)
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
 const AUTH_KEY = 'sepei_admin_auth';
 const AUTH_EXPIRY = 24 * 60 * 60 * 1000; // 24 horas
+
+// Verificar que la contraseña está configurada
+if (!ADMIN_PASSWORD && import.meta.env.MODE !== 'development') {
+  console.error('⚠️ [AUTH] VITE_ADMIN_PASSWORD no está configurada en las variables de entorno');
+}
 
 interface AuthSession {
   token: string;
