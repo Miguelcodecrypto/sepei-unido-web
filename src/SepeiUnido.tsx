@@ -754,7 +754,13 @@ export default function SepeiUnido() {
       {/* Tablón de Anuncios */}
       <section id="anuncios-section" className="py-12 md:py-24 px-3 md:px-4 bg-slate-900">
         <div className="max-w-7xl mx-auto">
-          <AnnouncementsBoard />
+          <AnnouncementsBoard 
+            loggedUser={loggedUser} 
+            onLoginRequired={() => {
+              setAuthMode('login');
+              setShowAuthMethodSelector(true);
+            }} 
+          />
         </div>
       </section>
 
