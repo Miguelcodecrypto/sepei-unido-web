@@ -4,7 +4,7 @@ import { getAllUsers, deleteUser, exportUsersToCSV, toggleVotingAuthorization, r
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
 import { hashPassword } from '../services/passwordService';
-import { trackInteraction, useTrackSectionTime } from '../services/analyticsService';
+import { trackInteraction, createSectionTimeTracker } from '../services/analyticsService';
 import AnnouncementsManager from './AnnouncementsManager';
 import VotingManager from './VotingManager';
 import AnalyticsDashboard from './AnalyticsDashboard';
@@ -65,7 +65,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     trackInteraction('admin', 'view_admin_panel');
     
     // Iniciar seguimiento de tiempo en la sección
-    const cleanup = useTrackSectionTime('admin');
+    const cleanup = createSectionTimeTracker('admin');
     
     // Actualizar tiempo de sesión cada minuto
     const interval = setInterval(() => {

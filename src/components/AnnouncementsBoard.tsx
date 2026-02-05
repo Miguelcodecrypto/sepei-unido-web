@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Eye, FileText, Download, X, Star, ChevronRight } from 'lucide-react';
 import { getPublishedAnnouncements, incrementViews, type Announcement } from '../services/announcementDatabase';
-import { trackInteraction, useTrackSectionTime } from '../services/analyticsService';
+import { trackInteraction, createSectionTimeTracker } from '../services/analyticsService';
 
 export default function AnnouncementsBoard() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -15,7 +15,7 @@ export default function AnnouncementsBoard() {
     trackInteraction('announcements', 'view_announcements');
     
     // Iniciar seguimiento de tiempo en la sección
-    const cleanup = useTrackSectionTime('announcements');
+    const cleanup = createSectionTimeTracker('announcements');
     return cleanup;
   }, []);
 

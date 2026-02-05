@@ -12,16 +12,31 @@ const FloatingVotingButton: React.FC<FloatingVotingButtonProps> = ({ onClick }) 
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const checkVotings = async () => {
-      const result = await checkActiveVotings();
-      setHasActiveVotings(result.hasActiveVotings);
-      setDaysRemaining(result.daysRemaining);
-      
-      // Mostrar el botón con animación de entrada
-      if (result.hasActiveVotings) {
-        setTimeout(() => setIsVisible(true), 300);
-      } else {
-        setIsVisible(false);
+      try {
+        const result = await checkActiveVotings();
+        
+        if (!isMounted) return;
+        
+        setHasActiveVotings(result.hasActiveVotings);
+        setDaysRemaining(result.daysRemaining);
+        
+        // Mostrar el botón con animación de entrada
+        if (result.hasActiveVotings) {
+          setTimeout(() => {
+            if (isMounted) setIsVisible(true);
+          }, 300);
+        } else {
+          setIsVisible(false);
+        }
+      } catch (error) {
+        console.error('Error checking active votings:', error);
+        if (isMounted) {
+          setHasActiveVotings(false);
+          setIsVisible(false);
+        }
       }
     };
 
@@ -30,7 +45,10 @@ const FloatingVotingButton: React.FC<FloatingVotingButtonProps> = ({ onClick }) 
     // Actualizar cada 5 minutos
     const interval = setInterval(checkVotings, 5 * 60 * 1000);
     
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   if (!hasActiveVotings) return null;
