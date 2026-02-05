@@ -696,38 +696,6 @@ export default function SepeiUnido() {
               </div>
             ))}
           </div>
-
-          {/* Tarjeta destacada para Interinos */}
-          <div className="mt-8 md:mt-12">
-            <button
-              onClick={() => scrollToSection('interinos-section')}
-              className="group w-full max-w-2xl mx-auto block p-4 md:p-6 bg-gradient-to-r from-orange-500/20 via-red-500/20 to-orange-500/20 rounded-2xl border-2 border-orange-500/40 hover:border-orange-400 transition-all hover:scale-[1.02] transform cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 md:gap-4">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-orange-500 rounded-full blur-lg opacity-50 animate-pulse"></div>
-                    <div className="relative w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center">
-                      <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                    </div>
-                  </div>
-                  <div className="text-left">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg md:text-xl font-bold text-white">Sección Interinos</h3>
-                      <span className="px-2 py-0.5 bg-gradient-to-r from-orange-500 to-red-600 text-white text-[10px] md:text-xs font-bold rounded-full animate-pulse">
-                        NUEVO
-                      </span>
-                    </div>
-                    <p className="text-sm md:text-base text-gray-400">Bibliografía, cursos, enlaces y recursos para oposiciones</p>
-                  </div>
-                </div>
-                <div className="hidden sm:flex items-center gap-2 text-orange-400 group-hover:translate-x-2 transition-transform">
-                  <span className="text-sm font-semibold">Ver más</span>
-                  <ChevronDown className="w-5 h-5 rotate-[-90deg]" />
-                </div>
-              </div>
-            </button>
-          </div>
         </div>
       </section>
 
@@ -760,6 +728,40 @@ export default function SepeiUnido() {
       <section id="anuncios-section" className="py-12 md:py-24 px-3 md:px-4 bg-slate-900">
         <div className="max-w-7xl mx-auto">
           <AnnouncementsBoard />
+        </div>
+      </section>
+
+      {/* Banner destacado Sección Interinos */}
+      <section className="py-8 md:py-12 px-3 md:px-4 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950">
+        <div className="max-w-4xl mx-auto">
+          <button
+            onClick={() => scrollToSection('interinos-section')}
+            className="group w-full p-5 md:p-8 bg-gradient-to-r from-orange-500/20 via-red-500/20 to-orange-500/20 rounded-2xl md:rounded-3xl border-2 border-orange-500/40 hover:border-orange-400 transition-all hover:scale-[1.01] transform cursor-pointer shadow-2xl shadow-orange-500/10"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-orange-500 rounded-full blur-xl opacity-60 animate-pulse"></div>
+                  <div className="relative w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center">
+                    <BookOpen className="w-8 h-8 md:w-10 md:h-10 text-white" />
+                  </div>
+                </div>
+                <div className="text-center sm:text-left">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
+                    <h3 className="text-xl md:text-2xl lg:text-3xl font-bold text-white">Sección Interinos</h3>
+                    <span className="px-3 py-1 bg-gradient-to-r from-orange-500 to-red-600 text-white text-xs md:text-sm font-bold rounded-full animate-pulse">
+                      ¡NUEVO!
+                    </span>
+                  </div>
+                  <p className="text-sm md:text-base lg:text-lg text-gray-300">Bibliografía, cursos, enlaces útiles y recursos para preparar oposiciones</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-orange-400 group-hover:translate-x-2 transition-transform">
+                <span className="text-base md:text-lg font-semibold">Acceder</span>
+                <ChevronDown className="w-6 h-6 rotate-[-90deg]" />
+              </div>
+            </div>
+          </button>
         </div>
       </section>
 
