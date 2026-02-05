@@ -339,17 +339,17 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
   }
 
   return (
-    <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+    <div className="bg-white p-4 sm:p-8 rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="text-center mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
           Registro con Email
         </h2>
-        <p className="text-gray-600">
+        <p className="text-sm sm:text-base text-gray-600">
           Completa tus datos para crear tu cuenta
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
         {/* Nombre */}
         <div>
           <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">
@@ -533,18 +533,18 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         </div>
 
         {/* Botones */}
-        <div className="flex gap-3 pt-4">
+        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4 pb-2">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+            className="flex-1 px-4 sm:px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm sm:text-base"
             disabled={isLoading}
           >
             Cancelar
           </button>
           <button
             type="submit"
-            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="flex-1 px-4 sm:px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
             disabled={isLoading || !acceptedPrivacy}
           >
             {isLoading ? 'Enviando...' : 'Registrarse'}
@@ -552,7 +552,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         </div>
       </form>
 
-      <div className="mt-6 pt-6 border-t border-gray-200">
+      <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200">
         <p className="text-xs text-gray-500 text-center">
           Tus datos están protegidos según la normativa RGPD
         </p>
