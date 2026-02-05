@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Eye, FileText, Download, X, Star, ChevronRight } from 'lucide-react';
+import { Calendar, Eye, FileText, Download, X, Star, ChevronRight, Shield, LogIn, Lock } from 'lucide-react';
 import { getPublishedAnnouncements, incrementViews, type Announcement } from '../services/announcementDatabase';
 import { trackInteraction, createSectionTimeTracker } from '../services/analyticsService';
 
-export default function AnnouncementsBoard() {
+interface AnnouncementsBoardProps {
+  loggedUser?: { nombre: string; dni: string } | null;
+  onLoginRequired?: () => void;
+}
+
+export default function AnnouncementsBoard({ loggedUser, onLoginRequired }: AnnouncementsBoardProps) {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +32,12 @@ export default function AnnouncementsBoard() {
   };
 
   const handleOpenAnnouncement = async (announcement: Announcement) => {
+    // Si no está logueado, mostrar modal de login
+    if (!loggedUser) {
+      onLoginRequired?.();
+      return;
+    }
+    
     setSelectedAnnouncement(announcement);
     await incrementViews(announcement.id);
     // Actualizar localmente las vistas
@@ -145,11 +156,38 @@ export default function AnnouncementsBoard() {
                         {announcement.vistas}
                       </span>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-blue-400 group-hover:translate-x-1 transition-transform" />
+                    {!loggedUser ? (
+                      <div className="flex items-center gap-1 text-orange-400">
+                        <Lock className="w-4 h-4" />
+                        <span className="text-[10px] font-medium">Inicia sesión</span>
+                      </div>
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-blue-400 group-hover:translate-x-1 transition-transform" />
+                    )}
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Mensaje para usuarios no logueados */}
+        {!loggedUser && announcements.length > 0 && (
+          <div className="mt-6 bg-slate-800/80 border-2 border-orange-500/30 rounded-xl p-4 md:p-6 text-center">
+            <div className="flex flex-col items-center gap-3">
+              <Shield className="w-8 h-8 text-orange-400" />
+              <div>
+                <p className="text-white font-semibold mb-1">Contenido exclusivo para miembros</p>
+                <p className="text-gray-400 text-sm mb-4">Inicia sesión o regístrate para leer los anuncios completos y descargar documentos</p>
+              </div>
+              <button
+                onClick={onLoginRequired}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold hover:from-orange-400 hover:to-red-500 transition-all"
+              >
+                <LogIn className="w-4 h-4" />
+                Iniciar sesión / Registrarse
+              </button>
+            </div>
           </div>
         )}
       </div>
