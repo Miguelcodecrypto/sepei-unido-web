@@ -684,6 +684,33 @@ export default function SepeiUnido() {
                 Únete Ahora
               </button>
             </div>
+
+            {/* Tarjeta Interinos - Solo visible en móvil */}
+            <button
+              onClick={() => scrollToSection('interinos-section')}
+              className="md:hidden mt-4 w-full p-4 bg-gradient-to-r from-orange-500/20 via-red-500/20 to-orange-500/20 rounded-xl border-2 border-orange-500/40 hover:border-orange-400 transition-all"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-orange-500 rounded-full blur-md opacity-50 animate-pulse"></div>
+                    <div className="relative w-10 h-10 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center">
+                      <BookOpen className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                  <div className="text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-white">Sección Interinos</span>
+                      <span className="px-2 py-0.5 bg-gradient-to-r from-orange-500 to-red-600 text-white text-[9px] font-bold rounded-full animate-pulse">
+                        NUEVO
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400">Recursos para oposiciones</p>
+                  </div>
+                </div>
+                <ChevronDown className="w-5 h-5 text-orange-400 rotate-[-90deg]" />
+              </div>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 mt-10 md:mt-20">
@@ -731,8 +758,8 @@ export default function SepeiUnido() {
         </div>
       </section>
 
-      {/* Banner destacado Sección Interinos */}
-      <section className="py-8 md:py-12 px-3 md:px-4 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950">
+      {/* Banner destacado Sección Interinos - Solo visible en desktop */}
+      <section className="hidden md:block py-8 md:py-12 px-3 md:px-4 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950">
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => scrollToSection('interinos-section')}
