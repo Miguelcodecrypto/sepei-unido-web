@@ -696,6 +696,38 @@ export default function SepeiUnido() {
               </div>
             ))}
           </div>
+
+          {/* Tarjeta destacada para Interinos */}
+          <div className="mt-8 md:mt-12">
+            <button
+              onClick={() => scrollToSection('interinos-section')}
+              className="group w-full max-w-2xl mx-auto block p-4 md:p-6 bg-gradient-to-r from-orange-500/20 via-red-500/20 to-orange-500/20 rounded-2xl border-2 border-orange-500/40 hover:border-orange-400 transition-all hover:scale-[1.02] transform cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-orange-500 rounded-full blur-lg opacity-50 animate-pulse"></div>
+                    <div className="relative w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center">
+                      <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                    </div>
+                  </div>
+                  <div className="text-left">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg md:text-xl font-bold text-white">Sección Interinos</h3>
+                      <span className="px-2 py-0.5 bg-gradient-to-r from-orange-500 to-red-600 text-white text-[10px] md:text-xs font-bold rounded-full animate-pulse">
+                        NUEVO
+                      </span>
+                    </div>
+                    <p className="text-sm md:text-base text-gray-400">Bibliografía, cursos, enlaces y recursos para oposiciones</p>
+                  </div>
+                </div>
+                <div className="hidden sm:flex items-center gap-2 text-orange-400 group-hover:translate-x-2 transition-transform">
+                  <span className="text-sm font-semibold">Ver más</span>
+                  <ChevronDown className="w-5 h-5 rotate-[-90deg]" />
+                </div>
+              </div>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -1306,6 +1338,19 @@ export default function SepeiUnido() {
             <span className="text-lg md:text-xl font-bold text-white">SEPEI UNIDO</span>
           </div>
           <p className="text-sm md:text-base text-gray-400">Movimiento Asindical - Bomberos Diputación de Albacete</p>
+          
+          {/* Email de contacto */}
+          <div className="mt-4 mb-3">
+            <a 
+              href="mailto:sepeiunido@gmail.com" 
+              className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 rounded-full border border-orange-500/50 transition-all group"
+            >
+              <Mail className="w-4 h-4 text-orange-400 group-hover:scale-110 transition-transform" />
+              <span className="text-orange-300 font-medium text-sm">sepeiunido@gmail.com</span>
+            </a>
+            <p className="text-gray-500 text-xs mt-2">¿Dudas, problemas o consultas? Escríbenos</p>
+          </div>
+          
           <p className="text-gray-500 text-xs md:text-sm mt-2">Unidos por nuestros derechos</p>
         </div>
       </footer>
