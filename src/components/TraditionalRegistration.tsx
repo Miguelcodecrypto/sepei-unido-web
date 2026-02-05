@@ -204,7 +204,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
 
       // Guardar en Supabase inmediatamente con el token de verificación
       console.log('💾 [REGISTRO] Guardando usuario en Supabase con token de verificación...');
-      const supabaseUser = await addUser({
+      const result = await addUser({
         nombre: userData.nombre,
         apellidos: userData.apellidos,
         dni: userData.dni,
@@ -224,13 +224,22 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         certificado_valido: false,
       });
 
-      if (!supabaseUser) {
-        console.error('❌ Error al guardar usuario en Supabase');
-        setErrors({ email: 'Error al procesar el registro en la base de datos. Intenta de nuevo.' });
+      if (!result.user) {
+        console.error('❌ Error al guardar usuario en Supabase:', result.error);
+        
+        // Mostrar error específico según el tipo
+        if (result.error === 'email_duplicado') {
+          setErrors({ email: 'Este email ya está registrado. Usa otro email o recupera tu contraseña.' });
+        } else if (result.error === 'dni_duplicado') {
+          setErrors({ dni: 'Este DNI ya está registrado.' });
+        } else {
+          setErrors({ email: 'Error al procesar el registro en la base de datos. Intenta de nuevo.' });
+        }
         setIsLoading(false);
         return;
       }
 
+      const supabaseUser = result.user;
       console.log('✅ Usuario guardado en Supabase:', supabaseUser.id);
 
       // Enviar email de verificaci├│n usando el servicio real

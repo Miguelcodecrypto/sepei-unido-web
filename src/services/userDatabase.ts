@@ -97,7 +97,7 @@ export const addUser = async (userData: Omit<User, 'id' | 'fecha_registro' | 'fe
   terminos_aceptados: boolean;
   verification_token?: string;
   verification_token_expires_at?: string;
-}): Promise<User | null> => {
+}): Promise<{ user: User | null; error?: string }> => {
   try {
     const { data, error } = await supabase
       .from('users')
@@ -126,13 +126,25 @@ export const addUser = async (userData: Omit<User, 'id' | 'fecha_registro' | 'fe
 
     if (error) {
       console.error('Error al agregar usuario:', error);
-      return null;
+      
+      // Detectar errores específicos de constraints
+      if (error.code === '23505') {
+        if (error.message?.includes('email')) {
+          return { user: null, error: 'email_duplicado' };
+        }
+        if (error.message?.includes('dni')) {
+          return { user: null, error: 'dni_duplicado' };
+        }
+        return { user: null, error: 'duplicado' };
+      }
+      
+      return { user: null, error: error.message || 'error_desconocido' };
     }
 
-    return data;
+    return { user: data };
   } catch (error) {
     console.error('Error en addUser:', error);
-    return null;
+    return { user: null, error: 'error_excepcion' };
   }
 };
 
