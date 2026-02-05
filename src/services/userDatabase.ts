@@ -34,12 +34,9 @@ export const getUserByVerificationToken = async (token: string): Promise<User | 
       .from('users')
       .select('*')
       .eq('verification_token', token)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return null;
-      }
       console.error('Error al obtener usuario por token:', error);
       return null;
     }
@@ -146,7 +143,7 @@ export const getUserById = async (id: string): Promise<User | null> => {
       .from('users')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error al obtener usuario:', error);
@@ -167,13 +164,9 @@ export const getUserByDni = async (dni: string): Promise<User | null> => {
       .from('users')
       .select('*')
       .eq('dni', dni.toUpperCase())
-      .single();
+      .maybeSingle();
 
     if (error) {
-      // Si el error es que no existe el usuario, retornar null sin error
-      if (error.code === 'PGRST116') {
-        return null;
-      }
       console.error('Error al obtener usuario por DNI:', error);
       return null;
     }
