@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle, Mail, User, CreditCard, AlertCircle, MapPin } from 'lucide-react';
-import { sendVerificationEmail } from '../services/emailService';
+import { sendVerificationEmail, sendNewUserNotificationToAdmin } from '../services/emailService';
 import { hashPassword, generateTemporaryPassword } from '../services/passwordService';
 import { getUserByDni, addUser } from '../services/userDatabase';
 
@@ -256,6 +256,19 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         setIsLoading(false);
         return;
       }
+
+      // Enviar notificación a admin de nuevo usuario registrado
+      sendNewUserNotificationToAdmin({
+        nombre: userData.nombre,
+        apellidos: userData.apellidos,
+        dni: userData.dni,
+        email: userData.email,
+        telefono: formData.telefono.trim(),
+        parque_sepei: formData.parque.trim(),
+      }).catch(error => {
+        // No bloquear el flujo si falla la notificación
+        console.error('Error al enviar notificación a admin:', error);
+      });
 
       setVerificationSent(true);
       setStep('verification');

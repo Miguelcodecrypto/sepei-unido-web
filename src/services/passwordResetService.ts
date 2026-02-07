@@ -1,6 +1,6 @@
 import { generateTemporaryPassword, hashPassword } from './passwordService';
 import { getUserByEmail, resetTempPassword } from './userDatabase';
-import { sendPasswordResetEmail } from './emailService';
+import { sendPasswordResetEmail, sendPasswordResetNotificationToAdmin } from './emailService';
 
 interface PasswordResetResult {
   success: boolean;
@@ -79,6 +79,17 @@ export async function requestPasswordResetByEmail(email: string): Promise<Passwo
         message: 'La contraseña se ha restablecido, pero hubo un error al enviar el email. Inténtalo de nuevo en unos minutos.',
       };
     }
+
+    // Enviar notificación a admin de cambio de contraseña solicitado
+    sendPasswordResetNotificationToAdmin({
+      nombre: user.nombre,
+      apellidos: user.apellidos,
+      dni: user.dni || '',
+      email: user.email,
+    }).catch(error => {
+      // No bloquear el flujo si falla la notificación
+      console.error('Error al enviar notificación de cambio de contraseña a admin:', error);
+    });
 
     return {
       success: true,

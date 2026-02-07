@@ -786,3 +786,336 @@ https://www.sepeiunido.org
   `;
 }
 
+// ============================================
+// NOTIFICACIONES A ADMIN (sepeiunido@gmail.com)
+// ============================================
+
+export interface NewUserNotificationData {
+  nombre: string;
+  apellidos: string;
+  dni: string;
+  email: string;
+  telefono: string;
+  parque_sepei: string;
+}
+
+export interface PasswordResetNotificationData {
+  nombre: string;
+  apellidos?: string;
+  dni: string;
+  email: string;
+}
+
+/**
+ * Enviar notificación a admin cuando se registra un nuevo usuario
+ */
+export async function sendNewUserNotificationToAdmin(data: NewUserNotificationData): Promise<boolean> {
+  try {
+    console.log('📧 [EMAIL] Enviando notificación de nuevo usuario a admin');
+    
+    if (import.meta.env.DEV) {
+      console.log('🔧 [DESARROLLO] Simulando envío de notificación de nuevo usuario');
+      console.log('📧 Usuario:', data.nombre, data.apellidos);
+      console.log('📧 DNI:', data.dni);
+      console.log('📧 Email:', data.email);
+      return true;
+    }
+
+    const html = generateNewUserNotificationHTML(data);
+    const text = generateNewUserNotificationText(data);
+
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: 'sepeiunido@gmail.com',
+        subject: `🆕 Nuevo usuario registrado: ${data.nombre} ${data.apellidos}`,
+        html,
+        text,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Error al enviar notificación de nuevo usuario a admin:', response.statusText);
+      return false;
+    }
+
+    console.log('✅ Notificación de nuevo usuario enviada a admin');
+    return true;
+  } catch (error) {
+    console.error('Error al enviar notificación de nuevo usuario a admin:', error);
+    return false;
+  }
+}
+
+/**
+ * Enviar notificación a admin cuando se solicita un cambio de contraseña
+ */
+export async function sendPasswordResetNotificationToAdmin(data: PasswordResetNotificationData): Promise<boolean> {
+  try {
+    console.log('📧 [EMAIL] Enviando notificación de cambio de contraseña a admin');
+    
+    if (import.meta.env.DEV) {
+      console.log('🔧 [DESARROLLO] Simulando envío de notificación de cambio de contraseña');
+      console.log('📧 Usuario:', data.nombre);
+      console.log('📧 DNI:', data.dni);
+      console.log('📧 Email:', data.email);
+      return true;
+    }
+
+    const html = generatePasswordResetNotificationHTML(data);
+    const text = generatePasswordResetNotificationText(data);
+
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: 'sepeiunido@gmail.com',
+        subject: `🔑 Solicitud de cambio de contraseña: ${data.nombre}`,
+        html,
+        text,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Error al enviar notificación de cambio de contraseña a admin:', response.statusText);
+      return false;
+    }
+
+    console.log('✅ Notificación de cambio de contraseña enviada a admin');
+    return true;
+  } catch (error) {
+    console.error('Error al enviar notificación de cambio de contraseña a admin:', error);
+    return false;
+  }
+}
+
+/**
+ * HTML para notificación de nuevo usuario
+ */
+function generateNewUserNotificationHTML(data: NewUserNotificationData): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f3f4f6;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">
+                🆕 Nuevo Usuario Registrado
+              </h1>
+              <p style="color: #d1fae5; margin: 10px 0 0 0; font-size: 14px;">
+                Panel de Administración - SEPEI UNIDO
+              </p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+                Se ha registrado un nuevo usuario en la plataforma SEPEI UNIDO.
+              </p>
+
+              <!-- Usuario Info -->
+              <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 20px; margin: 0 0 20px 0; border-radius: 4px;">
+                <h3 style="color: #166534; margin: 0 0 15px 0; font-size: 16px;">
+                  👤 Datos del nuevo usuario:
+                </h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="color: #6b7280; font-size: 14px; padding: 5px 0;"><strong>Nombre:</strong></td>
+                    <td style="color: #1f2937; font-size: 14px; padding: 5px 0;">${data.nombre} ${data.apellidos}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #6b7280; font-size: 14px; padding: 5px 0;"><strong>DNI:</strong></td>
+                    <td style="color: #1f2937; font-size: 14px; padding: 5px 0;">${data.dni}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #6b7280; font-size: 14px; padding: 5px 0;"><strong>Email:</strong></td>
+                    <td style="color: #1f2937; font-size: 14px; padding: 5px 0;"><a href="mailto:${data.email}" style="color: #3b82f6;">${data.email}</a></td>
+                  </tr>
+                  <tr>
+                    <td style="color: #6b7280; font-size: 14px; padding: 5px 0;"><strong>Teléfono:</strong></td>
+                    <td style="color: #1f2937; font-size: 14px; padding: 5px 0;">${data.telefono}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #6b7280; font-size: 14px; padding: 5px 0;"><strong>Parque SEPEI:</strong></td>
+                    <td style="color: #1f2937; font-size: 14px; padding: 5px 0;">${data.parque_sepei}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Action Box -->
+              <table role="presentation" style="width: 100%; margin: 30px 0 0 0;">
+                <tr>
+                  <td align="center">
+                    <a href="https://www.sepeiunido.org" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                      Ver en Panel de Administración
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                © ${new Date().getFullYear()} SEPEI UNIDO - Panel de Administración
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
+/**
+ * Texto plano para notificación de nuevo usuario
+ */
+function generateNewUserNotificationText(data: NewUserNotificationData): string {
+  return `
+SEPEI UNIDO - Nuevo Usuario Registrado
+
+DATOS DEL NUEVO USUARIO:
+------------------------
+Nombre: ${data.nombre} ${data.apellidos}
+DNI: ${data.dni}
+Email: ${data.email}
+Teléfono: ${data.telefono}
+Parque SEPEI: ${data.parque_sepei}
+
+---
+
+Accede al panel de administración para ver más detalles:
+https://www.sepeiunido.org
+
+© ${new Date().getFullYear()} SEPEI UNIDO
+  `;
+}
+
+/**
+ * HTML para notificación de cambio de contraseña
+ */
+function generatePasswordResetNotificationHTML(data: PasswordResetNotificationData): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f3f4f6;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">
+                🔑 Solicitud de Cambio de Contraseña
+              </h1>
+              <p style="color: #fef3c7; margin: 10px 0 0 0; font-size: 14px;">
+                Panel de Administración - SEPEI UNIDO
+              </p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+                Un usuario ha solicitado el restablecimiento de su contraseña.
+              </p>
+
+              <!-- Usuario Info -->
+              <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 20px; margin: 0 0 20px 0; border-radius: 4px;">
+                <h3 style="color: #92400e; margin: 0 0 15px 0; font-size: 16px;">
+                  👤 Datos del usuario:
+                </h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="color: #6b7280; font-size: 14px; padding: 5px 0;"><strong>Nombre:</strong></td>
+                    <td style="color: #1f2937; font-size: 14px; padding: 5px 0;">${data.nombre}${data.apellidos ? ' ' + data.apellidos : ''}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #6b7280; font-size: 14px; padding: 5px 0;"><strong>DNI:</strong></td>
+                    <td style="color: #1f2937; font-size: 14px; padding: 5px 0;">${data.dni}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #6b7280; font-size: 14px; padding: 5px 0;"><strong>Email:</strong></td>
+                    <td style="color: #1f2937; font-size: 14px; padding: 5px 0;"><a href="mailto:${data.email}" style="color: #3b82f6;">${data.email}</a></td>
+                  </tr>
+                </table>
+              </div>
+
+              <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin: 0; border-radius: 4px;">
+                <p style="color: #1e40af; margin: 0; font-size: 14px;">
+                  ℹ️ Se ha enviado una contraseña temporal al usuario. Deberá cambiarla en su próximo inicio de sesión.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                © ${new Date().getFullYear()} SEPEI UNIDO - Panel de Administración
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
+/**
+ * Texto plano para notificación de cambio de contraseña
+ */
+function generatePasswordResetNotificationText(data: PasswordResetNotificationData): string {
+  return `
+SEPEI UNIDO - Solicitud de Cambio de Contraseña
+
+DATOS DEL USUARIO:
+------------------
+Nombre: ${data.nombre}${data.apellidos ? ' ' + data.apellidos : ''}
+DNI: ${data.dni}
+Email: ${data.email}
+
+Se ha enviado una contraseña temporal al usuario.
+Deberá cambiarla en su próximo inicio de sesión.
+
+---
+
+© ${new Date().getFullYear()} SEPEI UNIDO
+  `;
+}
+

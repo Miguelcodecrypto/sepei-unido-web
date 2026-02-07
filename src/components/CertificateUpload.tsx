@@ -6,6 +6,7 @@ import { parseCertificateFile, isValidCertificateFile, getCertificateFileTypeMes
 import { isCertificateRegistered } from '../services/fnmtService';
 import { initializeTestCertificates } from '../data/testCertificates';
 import { addUser } from '../services/userDatabase';
+import { sendNewUserNotificationToAdmin } from '../services/emailService';
 
 interface CertificateUploadProps {
   onCertificateLoaded: (data: BrowserCertificate) => void;
@@ -162,6 +163,18 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
         certificado_thumbprint: certificateData.thumbprint,
         certificado_fecha_validacion: new Date().toISOString(),
         certificado_valido: true,
+      });
+
+      // Enviar notificación a admin de nuevo usuario registrado con certificado
+      sendNewUserNotificationToAdmin({
+        nombre: certificateData.nombre,
+        apellidos: '',
+        dni: certificateData.nif || '',
+        email: certificateData.email || '',
+        telefono: '',
+        parque_sepei: '',
+      }).catch(error => {
+        console.error('Error al enviar notificación a admin:', error);
       });
       
       onCertificateLoaded(certificateData);
