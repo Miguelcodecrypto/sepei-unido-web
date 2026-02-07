@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Flame, Users, Shield, Target, Mail, Phone, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, Lightbulb, LogIn } from 'lucide-react';
 import { addUser } from './services/userDatabase';
 import { getCertificateFromSession, clearCertificateSession, type BrowserCertificate } from './services/browserCertificateService';
+import { sendNewUserNotificationToAdmin } from './services/emailService';
 import TermsModal from './components/TermsModal';
 import SuggestionsForm from './components/SuggestionsForm';
 import CertificateUpload from './components/CertificateUpload';
@@ -219,6 +220,18 @@ export default function SepeiUnido() {
         certificado_thumbprint: certificateData.thumbprint,
         certificado_fecha_validacion: new Date(certificateData.notAfter).toISOString().split('T')[0],
         certificado_valido: true,
+      });
+
+      // Enviar notificación a admin de nuevo usuario registrado con certificado
+      sendNewUserNotificationToAdmin({
+        nombre: pendingUserData.nombre,
+        apellidos: '',
+        dni: certificateData.nif || '',
+        email: pendingUserData.email,
+        telefono: pendingUserData.telefono || '',
+        parque_sepei: '',
+      }).catch(error => {
+        console.error('Error al enviar notificación a admin:', error);
       });
 
       console.log('Usuario registrado con certificado FNMT validado:', certificateData.nif);

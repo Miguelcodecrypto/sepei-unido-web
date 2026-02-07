@@ -54,7 +54,6 @@ module.exports = async function handler(req: any, res: any) {
     const emailPayload = {
       from: 'SEPEI UNIDO <noreply@sepeiunido.org>',
       to: [to],
-      bcc: ['sorianobdv@gmail.com'], // Copia oculta de todos los emails
       subject: subject,
       html: html,
       text: text,
