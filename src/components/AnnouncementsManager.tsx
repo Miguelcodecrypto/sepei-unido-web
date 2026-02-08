@@ -13,6 +13,8 @@ import {
   type AnnouncementAttachment
 } from '../services/announcementDatabase';
 import { sendAnnouncementNotification, type EmailRecipient } from '../services/emailNotificationService';
+import { sendAnnouncementTelegram, type TelegramRecipient } from '../services/telegramNotificationService';
+import { supabase } from '../lib/supabase';
 import NotificationModal from './NotificationModal';
 
 export default function AnnouncementsManager() {
@@ -233,7 +235,8 @@ export default function AnnouncementsManager() {
     setUploadProgress('Enviando notificaciones...');
     
     try {
-      const { success, failed } = await sendAnnouncementNotification(
+      // Enviar notificaciones por EMAIL
+      const { success: emailSuccess, failed: emailFailed } = await sendAnnouncementNotification(
         selectedUsers,
         {
           titulo: pendingAnnouncementData.titulo,
@@ -243,7 +246,55 @@ export default function AnnouncementsManager() {
         }
       );
 
-      alert(`✅ Notificaciones enviadas:\n${success} exitosas\n${failed} fallidas`);
+      // Obtener usuarios seleccionados que tienen Telegram vinculado
+      const userIds = selectedUsers
+        .filter(u => u.id && !u.id.startsWith('external_'))
+        .map(u => u.id);
+      
+      let telegramSuccess = 0;
+      let telegramFailed = 0;
+      
+      if (userIds.length > 0) {
+        // Buscar usuarios con telegram_chat_id
+        const { data: telegramUsers } = await supabase
+          .from('users')
+          .select('id, nombre, apellidos, telegram_chat_id')
+          .in('id', userIds)
+          .not('telegram_chat_id', 'is', null);
+        
+        if (telegramUsers && telegramUsers.length > 0) {
+          setUploadProgress('Enviando notificaciones por Telegram...');
+          
+          const telegramRecipients: TelegramRecipient[] = telegramUsers.map(u => ({
+            id: u.id,
+            telegram_chat_id: u.telegram_chat_id,
+            nombre: u.nombre,
+            apellidos: u.apellidos
+          }));
+          
+          const telegramResult = await sendAnnouncementTelegram(
+            telegramRecipients,
+            {
+              titulo: pendingAnnouncementData.titulo,
+              descripcion: pendingAnnouncementData.descripcion,
+              categoria: pendingAnnouncementData.categoria,
+              url: `https://www.sepeiunido.org/#announcements`
+            }
+          );
+          
+          telegramSuccess = telegramResult.success;
+          telegramFailed = telegramResult.failed;
+        }
+      }
+
+      // Mostrar resumen de ambos canales
+      let message = `✅ Notificaciones enviadas:\n\n`;
+      message += `📧 Email: ${emailSuccess} exitosas, ${emailFailed} fallidas\n`;
+      if (telegramSuccess > 0 || telegramFailed > 0) {
+        message += `📱 Telegram: ${telegramSuccess} exitosas, ${telegramFailed} fallidas`;
+      }
+      
+      alert(message);
       setShowNotificationModal(false);
       setPendingAnnouncementData(null);
       setNotifyingAnnouncementId(null);
