@@ -12,6 +12,8 @@ import {
   ResultadoVotacion
 } from '../services/votingDatabase';
 import { sendVotingNotification, type EmailRecipient } from '../services/emailNotificationService';
+import { sendVotingTelegram, sendVotingResultsTelegram, type TelegramRecipient } from '../services/telegramNotificationService';
+import { supabase } from '../lib/supabase';
 import NotificationModal from './NotificationModal';
 
 const VotingManager: React.FC = () => {
@@ -159,13 +161,13 @@ const VotingManager: React.FC = () => {
     if (!pendingVotingData) return;
 
     try {
-      let result;
+      let emailResult;
       
+      // ENVIAR POR EMAIL
       if (notificationType === 'results') {
-        // Importar la función de resultados
         const { sendVotingResultsNotification } = await import('../services/emailNotificationService');
         
-        result = await sendVotingResultsNotification(
+        emailResult = await sendVotingResultsNotification(
           selectedUsers,
           {
             titulo: pendingVotingData.titulo,
@@ -177,7 +179,7 @@ const VotingManager: React.FC = () => {
           }
         );
       } else {
-        result = await sendVotingNotification(
+        emailResult = await sendVotingNotification(
           selectedUsers,
           {
             titulo: pendingVotingData.titulo,
@@ -188,8 +190,69 @@ const VotingManager: React.FC = () => {
         );
       }
 
-      const { success, failed } = result;
-      alert(`✅ Notificaciones enviadas:\n${success} exitosas\n${failed} fallidas`);
+      // ENVIAR POR TELEGRAM
+      const userIds = selectedUsers
+        .filter(u => u.id && !u.id.startsWith('external_'))
+        .map(u => u.id);
+      
+      let telegramSuccess = 0;
+      let telegramFailed = 0;
+      
+      if (userIds.length > 0) {
+        // Buscar usuarios con telegram_chat_id
+        const { data: telegramUsers } = await supabase
+          .from('users')
+          .select('id, nombre, apellidos, telegram_chat_id')
+          .in('id', userIds)
+          .not('telegram_chat_id', 'is', null);
+        
+        if (telegramUsers && telegramUsers.length > 0) {
+          const telegramRecipients: TelegramRecipient[] = telegramUsers.map(u => ({
+            id: u.id,
+            telegram_chat_id: u.telegram_chat_id,
+            nombre: u.nombre,
+            apellidos: u.apellidos
+          }));
+          
+          let telegramResult;
+          
+          if (notificationType === 'results') {
+            telegramResult = await sendVotingResultsTelegram(
+              telegramRecipients,
+              {
+                titulo: pendingVotingData.titulo,
+                descripcion: pendingVotingData.descripcion,
+                total_votos: pendingVotingData.total_votos,
+                resultados: pendingVotingData.resultados,
+                url: `https://www.sepeiunido.org/#voting`
+              }
+            );
+          } else {
+            telegramResult = await sendVotingTelegram(
+              telegramRecipients,
+              {
+                titulo: pendingVotingData.titulo,
+                descripcion: pendingVotingData.descripcion,
+                fecha_fin: pendingVotingData.fecha_fin,
+                url: `https://www.sepeiunido.org/#voting`
+              }
+            );
+          }
+          
+          telegramSuccess = telegramResult.success;
+          telegramFailed = telegramResult.failed;
+        }
+      }
+
+      // Mostrar resumen de ambos canales
+      const { success: emailSuccess, failed: emailFailed } = emailResult;
+      let message = `✅ Notificaciones enviadas:\n\n`;
+      message += `📧 Email: ${emailSuccess} exitosas, ${emailFailed} fallidas\n`;
+      if (telegramSuccess > 0 || telegramFailed > 0) {
+        message += `📱 Telegram: ${telegramSuccess} exitosas, ${telegramFailed} fallidas`;
+      }
+      
+      alert(message);
       
       setShowNotificationModal(false);
       setPendingVotingData(null);
