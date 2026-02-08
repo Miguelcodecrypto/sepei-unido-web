@@ -15,6 +15,7 @@ import AnnouncementsBoard from './components/AnnouncementsBoard';
 import VotingBoard from './components/VotingBoard';
 import FloatingVotingButton from './components/FloatingVotingButton';
 import { getInterinosBibliografia, getInterinosContenido, type InterinosBibliografiaItem } from './services/interinosBibliografia';
+import UserProfilePanel from './components/UserProfilePanel';
 
 export default function SepeiUnido() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -24,6 +25,7 @@ export default function SepeiUnido() {
   const [showCertificateUpload, setShowCertificateUpload] = useState(false);
   const [showTraditionalRegistration, setShowTraditionalRegistration] = useState(false);
   const [showUserLogin, setShowUserLogin] = useState(false);
+  const [showUserProfile, setShowUserProfile] = useState(false);
   const [showAuthMethodSelector, setShowAuthMethodSelector] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
   const [verificationToken, setVerificationToken] = useState<string | null>(null);
@@ -508,18 +510,20 @@ export default function SepeiUnido() {
               
               {/* Botón de Login/Usuario */}
               {loggedUser ? (
-                <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowUserProfile(true)}
+                  className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                >
                   <div className="text-right">
                     <p className="text-white font-semibold text-sm">{loggedUser.nombre}</p>
                     <p className="text-gray-400 text-xs">{loggedUser.dni}</p>
                   </div>
-                  <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
-                  >
-                    Salir
-                  </button>
-                </div>
+                  <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">
+                      {loggedUser.nombre.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                </button>
               ) : (
                 <button
                   onClick={() => setShowUserLogin(true)}
@@ -579,6 +583,15 @@ export default function SepeiUnido() {
                     <p className="text-white font-semibold">{loggedUser.nombre}</p>
                     <p className="text-gray-400 text-sm">{loggedUser.dni}</p>
                   </div>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setShowUserProfile(true);
+                    }}
+                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium mb-2"
+                  >
+                    Mi Perfil
+                  </button>
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
@@ -1583,6 +1596,16 @@ export default function SepeiUnido() {
         <UserLogin
           onLoginSuccess={handleLoginSuccess}
           onCancel={() => setShowUserLogin(false)}
+        />
+      )}
+
+      {/* User Profile Panel */}
+      {loggedUser && (
+        <UserProfilePanel
+          isOpen={showUserProfile}
+          onClose={() => setShowUserProfile(false)}
+          user={loggedUser}
+          onLogout={handleLogout}
         />
       )}
     </div>
