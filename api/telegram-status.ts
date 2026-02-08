@@ -28,7 +28,7 @@ module.exports = async function handler(req: any, res: any) {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { data, error } = await supabase
-      .from('usuarios')
+      .from('users')
       .select('telegram_chat_id, telegram_username, telegram_linked_at')
       .eq('id', user_id)
       .single();
