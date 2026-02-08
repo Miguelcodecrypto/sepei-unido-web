@@ -96,7 +96,7 @@ module.exports = async function handler(req: any, res: any) {
     // Comando /estado
     if (text === '/estado') {
       const { data: user } = await supabase
-        .from('usuarios')
+        .from('users')
         .select('nombre, apellidos')
         .eq('telegram_chat_id', String(chatId))
         .single();
@@ -123,7 +123,7 @@ module.exports = async function handler(req: any, res: any) {
     // Comando /desvincular
     if (text === '/desvincular') {
       const { data: user, error } = await supabase
-        .from('usuarios')
+        .from('users')
         .update({ 
           telegram_chat_id: null,
           telegram_username: null,
@@ -186,7 +186,7 @@ module.exports = async function handler(req: any, res: any) {
 
       // Vincular la cuenta
       const { error: updateError } = await supabase
-        .from('usuarios')
+        .from('users')
         .update({
           telegram_chat_id: String(chatId),
           telegram_username: username,
@@ -207,7 +207,7 @@ module.exports = async function handler(req: any, res: any) {
 
       // Obtener nombre del usuario
       const { data: userData } = await supabase
-        .from('usuarios')
+        .from('users')
         .select('nombre')
         .eq('id', linkData.user_id)
         .single();

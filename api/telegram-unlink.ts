@@ -28,7 +28,7 @@ module.exports = async function handler(req: any, res: any) {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { error } = await supabase
-      .from('usuarios')
+      .from('users')
       .update({
         telegram_chat_id: null,
         telegram_username: null,
