@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award, Mail, BookOpen } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award, Mail, BookOpen, AlertTriangle, UserX } from 'lucide-react';
 import { getAllUsers, deleteUser, exportUsersToCSV, toggleVotingAuthorization, resetTempPassword } from '../services/userDatabase';
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
@@ -12,6 +12,7 @@ import VotingResultsPanel from './VotingResultsPanel';
 import { ExternalEmailsManager } from './ExternalEmailsManager';
 import InterinosManager from './InterinosManager';
 import InterinosAnalyticsDashboard from './InterinosAnalyticsDashboard';
+import { getEstadoPlantilla, EstadoPlantilla, COLORES_ESTADO_PLANTILLA } from '../data/plantillaOficialSEPEI';
 
 interface User {
   id: string;
@@ -56,6 +57,37 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalSuggestions, setTotalSuggestions] = useState(0);
   const [sessionTime, setSessionTime] = useState(0);
+  const [filtroPlantilla, setFiltroPlantilla] = useState<'todos' | EstadoPlantilla>('todos');
+
+  // Calcular estados de plantilla para cada usuario
+  const usuariosConEstado = useMemo(() => {
+    return users.map(user => {
+      const estadoInfo = getEstadoPlantilla(user.nombre, user.apellidos);
+      return {
+        ...user,
+        estadoPlantilla: estadoInfo.estado,
+        detallesPlantilla: estadoInfo.detalles,
+        diferenciasPlantilla: estadoInfo.diferencias
+      };
+    });
+  }, [users]);
+
+  // Filtrar usuarios según el filtro seleccionado
+  const usuariosFiltrados = useMemo(() => {
+    if (filtroPlantilla === 'todos') return usuariosConEstado;
+    return usuariosConEstado.filter(u => u.estadoPlantilla === filtroPlantilla);
+  }, [usuariosConEstado, filtroPlantilla]);
+
+  // Contar usuarios por estado
+  const conteoEstados = useMemo(() => {
+    const conteo: Record<EstadoPlantilla, number> = { en_plantilla: 0, cambios_detectados: 0, no_en_plantilla: 0 };
+    usuariosConEstado.forEach(u => {
+      if (u.estadoPlantilla) {
+        conteo[u.estadoPlantilla]++;
+      }
+    });
+    return conteo;
+  }, [usuariosConEstado]);
 
   useEffect(() => {
     loadUsers();
@@ -345,6 +377,78 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
           </div>
         )}
 
+        {/* Filtros de Plantilla Oficial - Solo en pestaña usuarios */}
+        {activeTab === 'users' && (
+          <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700 mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400 font-semibold text-sm">Filtrar por estado en plantilla oficial:</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setFiltroPlantilla('todos')}
+                  className={`px-4 py-2 rounded-lg font-semibold text-sm transition flex items-center gap-2 ${
+                    filtroPlantilla === 'todos'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  Todos ({totalUsers})
+                </button>
+                <button
+                  onClick={() => setFiltroPlantilla('en_plantilla')}
+                  className={`px-4 py-2 rounded-lg font-semibold text-sm transition flex items-center gap-2 ${
+                    filtroPlantilla === 'en_plantilla'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                  }`}
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  En plantilla ({conteoEstados.en_plantilla})
+                </button>
+                <button
+                  onClick={() => setFiltroPlantilla('cambios_detectados')}
+                  className={`px-4 py-2 rounded-lg font-semibold text-sm transition flex items-center gap-2 ${
+                    filtroPlantilla === 'cambios_detectados'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                  }`}
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                  Con cambios ({conteoEstados.cambios_detectados})
+                </button>
+                <button
+                  onClick={() => setFiltroPlantilla('no_en_plantilla')}
+                  className={`px-4 py-2 rounded-lg font-semibold text-sm transition flex items-center gap-2 ${
+                    filtroPlantilla === 'no_en_plantilla'
+                      ? 'bg-red-600 text-white'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                  }`}
+                >
+                  <UserX className="w-4 h-4" />
+                  No en plantilla ({conteoEstados.no_en_plantilla})
+                </button>
+              </div>
+            </div>
+            {/* Leyenda de colores */}
+            <div className="mt-4 pt-4 border-t border-slate-700 flex flex-wrap gap-6 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-green-500/20 border border-green-500/50"></div>
+                <span className="text-gray-400">En plantilla oficial</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-amber-500/20 border border-amber-500/50"></div>
+                <span className="text-gray-400">Cambios detectados (destino, etc.)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-red-500/20 border border-red-500/50"></div>
+                <span className="text-gray-400">No aparece en plantilla oficial</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         {(activeTab === 'users' || activeTab === 'suggestions') && (
           <div className="flex gap-4 mb-8">
@@ -371,15 +475,20 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
         {/* Users Table */}
         {activeTab === 'users' && (
         <div className="bg-slate-800/90 rounded-2xl border-2 border-slate-700/50 overflow-hidden">
-          {users.length === 0 ? (
+          {usuariosFiltrados.length === 0 ? (
             <div className="p-12 text-center">
-              <p className="text-gray-400 text-lg">No hay usuarios registrados aún</p>
+              <p className="text-gray-400 text-lg">
+                {filtroPlantilla === 'todos' 
+                  ? 'No hay usuarios registrados aún' 
+                  : `No hay usuarios con el filtro "${filtroPlantilla === 'en_plantilla' ? 'En plantilla' : filtroPlantilla === 'cambios_detectados' ? 'Con cambios' : 'No en plantilla'}"`}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-slate-900/80 border-b border-slate-700">
                   <tr>
+                    <th className="px-6 py-4 text-left text-white font-semibold">Estado</th>
                     <th className="px-6 py-4 text-left text-white font-semibold">Nombre</th>
                     <th className="px-6 py-4 text-left text-white font-semibold">Apellidos</th>
                     <th className="px-6 py-4 text-left text-white font-semibold">DNI</th>
@@ -391,9 +500,33 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user) => (
+                  {usuariosFiltrados.map((user) => {
+                    const colorEstado = user.estadoPlantilla === 'en_plantilla' 
+                      ? 'border-l-4 border-l-green-500 bg-green-500/5'
+                      : user.estadoPlantilla === 'cambios_detectados'
+                      ? 'border-l-4 border-l-amber-500 bg-amber-500/10'
+                      : 'border-l-4 border-l-red-500 bg-red-500/10';
+                    
+                    return (
                     <React.Fragment key={user.id}>
-                      <tr className="border-b border-slate-700/50 hover:bg-slate-700/30 transition">
+                      <tr className={`border-b border-slate-700/50 hover:bg-slate-700/30 transition ${colorEstado}`}>
+                        <td className="px-4 py-4">
+                          {user.estadoPlantilla === 'en_plantilla' && (
+                            <div className="flex items-center gap-1" title="En plantilla oficial">
+                              <CheckCircle className="w-5 h-5 text-green-400" />
+                            </div>
+                          )}
+                          {user.estadoPlantilla === 'cambios_detectados' && (
+                            <div className="flex items-center gap-1" title={`Cambios detectados: ${user.diferenciasPlantilla?.map((d: { campo: string; valor: string; valorOficial: string }) => `${d.campo}: ${d.valor} → ${d.valorOficial}`).join(', ')}`}>
+                              <AlertTriangle className="w-5 h-5 text-amber-400" />
+                            </div>
+                          )}
+                          {user.estadoPlantilla === 'no_en_plantilla' && (
+                            <div className="flex items-center gap-1" title="No aparece en plantilla oficial">
+                              <UserX className="w-5 h-5 text-red-400" />
+                            </div>
+                          )}
+                        </td>
                         <td className="px-6 py-4 text-white">{user.nombre}</td>
                         <td className="px-6 py-4 text-gray-300">{user.apellidos || '-'}</td>
                         <td className="px-6 py-4 text-gray-300">{user.dni || '-'}</td>
@@ -443,8 +576,80 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                       </tr>
                       {showDetails[user.id] && (
                         <tr className="bg-slate-900/50 border-b border-slate-700/50">
-                          <td colSpan={8} className="px-6 py-4">
+                          <td colSpan={9} className="px-6 py-4">
                             <div className="space-y-4">
+                              {/* Información de Plantilla Oficial */}
+                              <div className={`border rounded-lg p-4 mb-4 ${
+                                user.estadoPlantilla === 'en_plantilla' 
+                                  ? 'border-green-500/30 bg-green-500/10'
+                                  : user.estadoPlantilla === 'cambios_detectados'
+                                  ? 'border-amber-500/30 bg-amber-500/10'
+                                  : 'border-red-500/30 bg-red-500/10'
+                              }`}>
+                                <h4 className={`font-bold mb-3 flex items-center gap-2 ${
+                                  user.estadoPlantilla === 'en_plantilla' 
+                                    ? 'text-green-300'
+                                    : user.estadoPlantilla === 'cambios_detectados'
+                                    ? 'text-amber-300'
+                                    : 'text-red-300'
+                                }`}>
+                                  {user.estadoPlantilla === 'en_plantilla' && <CheckCircle className="w-5 h-5" />}
+                                  {user.estadoPlantilla === 'cambios_detectados' && <AlertTriangle className="w-5 h-5" />}
+                                  {user.estadoPlantilla === 'no_en_plantilla' && <UserX className="w-5 h-5" />}
+                                  Estado en Plantilla Oficial SEPEI
+                                </h4>
+                                <div className="space-y-2 text-sm">
+                                  {user.estadoPlantilla === 'en_plantilla' && user.detallesPlantilla && (
+                                    <>
+                                      <div>
+                                        <span className="text-gray-400">Estado: </span>
+                                        <span className="text-green-300 font-semibold">✓ En plantilla oficial</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-400">Destino oficial: </span>
+                                        <span className="text-white">{user.detallesPlantilla.destino}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-400">Categoría oficial: </span>
+                                        <span className="text-white">{user.detallesPlantilla.categoria}</span>
+                                      </div>
+                                    </>
+                                  )}
+                                  {user.estadoPlantilla === 'cambios_detectados' && user.detallesPlantilla && (
+                                    <>
+                                      <div>
+                                        <span className="text-gray-400">Estado: </span>
+                                        <span className="text-amber-300 font-semibold">⚠️ Cambios detectados</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-400">Destino oficial: </span>
+                                        <span className="text-white">{user.detallesPlantilla.destino}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-400">Categoría oficial: </span>
+                                        <span className="text-white">{user.detallesPlantilla.categoria}</span>
+                                      </div>
+                                      {user.diferenciasPlantilla && user.diferenciasPlantilla.length > 0 && (
+                                        <div className="mt-2 p-2 bg-amber-500/20 rounded">
+                                          <span className="text-amber-300 font-semibold">Diferencias:</span>
+                                          {user.diferenciasPlantilla.map((dif: { campo: string; valor: string; valorOficial: string }, idx: number) => (
+                                            <div key={idx} className="text-amber-200 ml-2">
+                                              • {dif.campo}: <span className="line-through text-red-300">{dif.valor}</span> → <span className="text-green-300">{dif.valorOficial}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                  {user.estadoPlantilla === 'no_en_plantilla' && (
+                                    <div>
+                                      <span className="text-gray-400">Estado: </span>
+                                      <span className="text-red-300 font-semibold">❌ No aparece en la plantilla oficial del SEPEI</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
                               {/* Información FNMT */}
                               {user.certificado_nif && (
                                 <div className="border border-green-500/30 bg-green-500/10 rounded-lg p-4 mb-4">
@@ -500,7 +705,8 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                         </tr>
                       )}
                     </React.Fragment>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
