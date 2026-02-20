@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award, Mail, BookOpen, AlertTriangle, UserX } from 'lucide-react';
+import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award, Mail, BookOpen, AlertTriangle, UserX, Shield } from 'lucide-react';
 import { getAllUsers, deleteUser, exportUsersToCSV, toggleVotingAuthorization, resetTempPassword } from '../services/userDatabase';
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
@@ -12,6 +12,7 @@ import VotingResultsPanel from './VotingResultsPanel';
 import { ExternalEmailsManager } from './ExternalEmailsManager';
 import InterinosManager from './InterinosManager';
 import InterinosAnalyticsDashboard from './InterinosAnalyticsDashboard';
+import SecurityPanel from './SecurityPanel';
 import { getEstadoPlantilla, EstadoPlantilla, COLORES_ESTADO_PLANTILLA } from '../data/plantillaOficialSEPEI';
 
 interface User {
@@ -50,7 +51,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onLogout }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'users' | 'suggestions' | 'announcements' | 'voting' | 'analytics' | 'results' | 'external-emails' | 'interinos'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'suggestions' | 'announcements' | 'voting' | 'analytics' | 'results' | 'external-emails' | 'interinos' | 'security'>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
@@ -361,10 +362,21 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
             <Mail className="w-5 h-5" />
             Emails Externos
           </button>
+          <button
+            onClick={() => setActiveTab('security')}
+            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
+              activeTab === 'security'
+                ? 'text-orange-500 border-b-2 border-orange-500'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Shield className="w-5 h-5" />
+            Seguridad
+          </button>
         </div>
 
         {/* Stats */}
-        {activeTab !== 'announcements' && activeTab !== 'voting' && activeTab !== 'analytics' && activeTab !== 'results' && activeTab !== 'external-emails' && activeTab !== 'interinos' && (
+        {activeTab !== 'announcements' && activeTab !== 'voting' && activeTab !== 'analytics' && activeTab !== 'results' && activeTab !== 'external-emails' && activeTab !== 'interinos' && activeTab !== 'security' && (
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-orange-500/20 mb-8">
             <div className="text-center">
               <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
@@ -845,6 +857,11 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
               <InterinosAnalyticsDashboard />
             </div>
           </div>
+        )}
+
+        {/* Security Panel */}
+        {activeTab === 'security' && (
+          <SecurityPanel />
         )}
       </div>
     </div>
