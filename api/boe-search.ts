@@ -2,7 +2,7 @@
  * BOE Search API — Motor de búsqueda de convocatorias de bomberos
  * Vercel Serverless Function
  *
- * Consulta el buscador oficial del BOE (www.boe.es) de forma server-side,
+ * Consulta la API de sumarios XML del BOE de forma server-side,
  * evitando restricciones CORS, y parsea los resultados filtrando por
  * términos relacionados con oposiciones de bomberos.
  */
@@ -30,21 +30,6 @@ const BOMBERO_KEYWORDS = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function stripHtml(html: string): string {
-  return html
-    .replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&apos;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n)))
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
 function containsBomberoKeyword(text: string): boolean {
   const lower = text.toLowerCase();
   return BOMBERO_KEYWORDS.some(kw => lower.includes(kw));
@@ -52,7 +37,7 @@ function containsBomberoKeyword(text: string): boolean {
 
 function detectTipo(titulo: string): string {
   const t = titulo.toLowerCase();
-  if (t.includes('oferta de empleo p') ) return 'OPE';
+  if (t.includes('oferta de empleo p')) return 'OPE';
   if (t.includes('convocatoria')) return 'Convocatoria';
   if (t.includes('bases') && (t.includes('plaza') || t.includes('plazas') || t.includes('selectiv'))) return 'Bases';
   if ((t.includes('lista') || t.includes('relación')) && (t.includes('aprobado') || t.includes('admitido') || t.includes('aspirante'))) return 'Resultado';
@@ -134,7 +119,7 @@ function calcularEstadoPlazo(fechaISO: string, tipoPublicacion: string): { estad
   return { estado, diasRestantesEstimados, diasTranscurridos, prioridad };
 }
 
-// ─── Parseo del HTML del BOE ─────────────────────────────────────────────────
+// ─── Tipos ───────────────────────────────────────────────────────────────────
 
 interface ParsedResult {
   id: string;
@@ -152,182 +137,159 @@ interface ParsedResult {
   prioridad?: number;
 }
 
-function fallbackDate(boeId: string): { fecha: string; fechaISO: string; anio: number } {
-  const m = boeId.match(/BOE-[A-Z]-(\d{4})-/);
-  const y = m ? parseInt(m[1]) : new Date().getFullYear();
-  return { fecha: `??/??/${y}`, fechaISO: `${y}-06-01`, anio: y };
+// ─── Generar fechas recientes ────────────────────────────────────────────────
+
+function getRecentDates(days: number): string[] {
+  const dates: string[] = [];
+  const today = new Date();
+  
+  for (let i = 0; i < days; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    dates.push(`${yyyy}${mm}${dd}`);
+  }
+  
+  return dates;
 }
 
-function parseBoePage(html: string): ParsedResult[] {
+// ─── Parsear XML de sumario BOE ──────────────────────────────────────────────
+
+function parseXmlSumario(xml: string, fechaStr: string): ParsedResult[] {
   const results: ParsedResult[] = [];
-  const seen = new Set<string>();
-
-  // ── Estrategia 1: links /diario_boe/txt.php?id=BOE-X-YYYY-NNNNN ──────────
-  const linkRe = /href="\/diario_boe\/txt\.php\?id=(BOE-[A-Z]-\d{4}-\d+)"[^>]*>([\s\S]{0,600}?)<\/a>/gi;
-  let m: RegExpExecArray | null;
-
-  while ((m = linkRe.exec(html)) !== null) {
-    const id = m[1];
-    if (seen.has(id)) continue;
-
-    const rawTitle = stripHtml(m[2]);
-    if (!rawTitle || rawTitle.length < 10) continue;
-    if (!containsBomberoKeyword(rawTitle)) continue;
-
-    seen.add(id);
-
-    // Contexto local: 800 chars alrededor del enlace
-    const ctx = html.substring(
-      Math.max(0, m.index - 400),
-      Math.min(html.length, m.index + m[0].length + 800)
-    );
-
-    // Fecha
-    const dateM = ctx.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-    const { fecha, fechaISO, anio } = dateM
-      ? { fecha: `${dateM[1]}/${dateM[2]}/${dateM[3]}`, fechaISO: `${dateM[3]}-${dateM[2]}-${dateM[1]}`, anio: parseInt(dateM[3]) }
-      : fallbackDate(id);
-
-    // PDF
-    const pdfM = ctx.match(/href="(\/boe\/dias\/\d{4}\/\d{2}\/\d{2}\/pdfs\/[^"]+\.pdf)"/i);
-    const urlPdf = pdfM ? `${BOE_BASE}${pdfM[1]}` : '';
-
-    // Departamento (texto antes del primer punto en el título)
-    const deptM = rawTitle.match(/^([^.]+)\./);
-    const departamento = deptM ? deptM[1].trim() : '';
-
+  
+  // Extraer items del XML
+  const itemRegex = /<item[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/item>/gi;
+  let match;
+  
+  while ((match = itemRegex.exec(xml)) !== null) {
+    const id = match[1];
+    const content = match[2];
+    
+    // Extraer título
+    const tituloMatch = content.match(/<titulo[^>]*>([\s\S]*?)<\/titulo>/i);
+    if (!tituloMatch) continue;
+    
+    const titulo = tituloMatch[1]
+      .replace(/<!\[CDATA\[|\]\]>/g, '')
+      .replace(/<[^>]+>/g, '')
+      .trim();
+    
+    // Filtrar solo bomberos
+    if (!containsBomberoKeyword(titulo)) continue;
+    
+    // Extraer URLs
+    const urlHtmMatch = content.match(/<urlHtm[^>]*>([\s\S]*?)<\/urlHtm>/i);
+    const urlPdfMatch = content.match(/<urlPdf[^>]*>([\s\S]*?)<\/urlPdf>/i);
+    
+    const urlHtm = urlHtmMatch 
+      ? urlHtmMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim()
+      : `${BOE_BASE}/diario_boe/txt.php?id=${id}`;
+    
+    const urlPdf = urlPdfMatch 
+      ? urlPdfMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim()
+      : '';
+    
+    // Extraer departamento
+    const deptMatch = content.match(/<departamento[^>]*>([\s\S]*?)<\/departamento>/i);
+    const departamento = deptMatch 
+      ? deptMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim()
+      : '';
+    
+    // Formatear fecha
+    const yyyy = fechaStr.substring(0, 4);
+    const mm = fechaStr.substring(4, 6);
+    const dd = fechaStr.substring(6, 8);
+    
     results.push({
       id,
-      titulo: rawTitle,
-      fecha,
-      fechaISO,
-      anio,
-      urlHtm: `${BOE_BASE}/diario_boe/txt.php?id=${id}`,
-      urlPdf,
-      tipo: detectTipo(rawTitle),
-      departamento,
-    });
-  }
-
-  // ── Estrategia 2: links directos a PDF (captura lo que escapó a la 1ª) ───
-  const pdfOnlyRe = /href="\/boe\/dias\/(\d{4})\/(\d{2})\/(\d{2})\/pdfs\/(BOE-[A-Z]-\d{4}-\d+)\.pdf"/gi;
-  while ((m = pdfOnlyRe.exec(html)) !== null) {
-    const [, yyyy, mm, dd, id] = m;
-    if (seen.has(id)) continue;
-
-    // Buscar título hacia atrás en el HTML
-    const before = html.substring(Math.max(0, m.index - 1200), m.index);
-    const titleM = before.match(/href="\/diario_boe\/txt\.php\?id=[^"]*"[^>]*>([\s\S]{0,400}?)<\/a>\s*$/);
-    if (!titleM) continue;
-
-    const rawTitle = stripHtml(titleM[1]);
-    if (!rawTitle || !containsBomberoKeyword(rawTitle)) continue;
-
-    seen.add(id);
-    const deptM = rawTitle.match(/^([^.]+)\./);
-    results.push({
-      id,
-      titulo: rawTitle,
+      titulo,
       fecha: `${dd}/${mm}/${yyyy}`,
       fechaISO: `${yyyy}-${mm}-${dd}`,
       anio: parseInt(yyyy),
-      urlHtm: `${BOE_BASE}/diario_boe/txt.php?id=${id}`,
-      urlPdf: `${BOE_BASE}/boe/dias/${yyyy}/${mm}/${dd}/pdfs/${id}.pdf`,
-      tipo: detectTipo(rawTitle),
-      departamento: deptM ? deptM[1].trim() : '',
+      urlHtm: urlHtm.startsWith('http') ? urlHtm : `${BOE_BASE}${urlHtm}`,
+      urlPdf: urlPdf.startsWith('http') ? urlPdf : (urlPdf ? `${BOE_BASE}${urlPdf}` : ''),
+      tipo: detectTipo(titulo),
+      departamento,
     });
   }
-
+  
   return results;
 }
 
-// ─── Fetch de una consulta al buscador BOE ────────────────────────────────────
+// ─── Fetch sumario de un día ─────────────────────────────────────────────────
 
-async function searchBOE(query: string, page = 1, retries = 2): Promise<ParsedResult[]> {
-  const params = new URLSearchParams({ q: query, accion: 'buscar', nd: '1' });
-  if (page > 1) params.set('p', String(page));
-
-  const url = `${BOE_BASE}/buscar/boe.php?${params.toString()}`;
+async function fetchSumario(fecha: string): Promise<ParsedResult[]> {
+  const url = `${BOE_BASE}/diario_boe/xml.php?id=BOE-S-${fecha}`;
   
-  for (let attempt = 0; attempt <= retries; attempt++) {
+  try {
     const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 15000); // 15 segundos timeout
-
-    try {
-      console.log(`[boe-search] Consultando: ${query} (intento ${attempt + 1})`);
-      const resp = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-          'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          'Connection': 'keep-alive',
-        },
-      });
-      clearTimeout(tid);
-      
-      if (!resp.ok) {
-        console.log(`[boe-search] HTTP error ${resp.status} para: ${query}`);
-        if (attempt < retries) {
-          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-          continue;
-        }
-        return [];
-      }
-      
-      const html = await resp.text();
-      console.log(`[boe-search] Respuesta recibida para: ${query} (${html.length} bytes)`);
-      const results = parseBoePage(html);
-      console.log(`[boe-search] Parseados ${results.length} resultados para: ${query}`);
-      return results;
-    } catch (err: any) {
-      clearTimeout(tid);
-      console.log(`[boe-search] Error en búsqueda "${query}" (intento ${attempt + 1}):`, err.message);
-      if (attempt < retries) {
-        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-        continue;
-      }
-      return [];
-    }
+    const tid = setTimeout(() => controller.abort(), 10000);
+    
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; BOESearchBot/1.0)',
+        'Accept': 'application/xml, text/xml, */*',
+      },
+    });
+    
+    clearTimeout(tid);
+    
+    if (!resp.ok) return [];
+    
+    const xml = await resp.text();
+    return parseXmlSumario(xml, fecha);
+  } catch {
+    return [];
   }
-  return [];
 }
 
 // ─── Handler principal ────────────────────────────────────────────────────────
 
-module.exports = async function handler(req: any, res: any) {
+export default async function handler(req: any, res: any) {
   console.log('[boe-search] === INICIO REQUEST ===');
-  console.log('[boe-search] Method:', req.method);
   
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  // Caché de 2 horas (el BOE actualiza una vez al día)
   res.setHeader('Cache-Control', 's-maxage=7200, stale-while-revalidate=3600');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    console.log('[boe-search] Iniciando búsquedas paralelas...');
+    // Obtener últimos 365 días
+    const fechas = getRecentDates(365);
+    console.log(`[boe-search] Consultando ${fechas.length} días de sumarios...`);
     
-    // 4 búsquedas paralelas para máxima cobertura
-    const [r1, r2, r3, r4] = await Promise.all([
-      searchBOE('bombero oposición'),
-      searchBOE('bomberos convocatoria'),
-      searchBOE('extinción incendios oposición'),
-      searchBOE('bombero oferta empleo público'),
-    ]);
-
-    console.log(`[boe-search] Resultados: r1=${r1.length}, r2=${r2.length}, r3=${r3.length}, r4=${r4.length}`);
+    // Procesar en lotes para no sobrecargar
+    const BATCH_SIZE = 30;
+    const allResults: ParsedResult[] = [];
+    
+    for (let i = 0; i < fechas.length; i += BATCH_SIZE) {
+      const batch = fechas.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(batch.map(f => fetchSumario(f)));
+      
+      for (const results of batchResults) {
+        allResults.push(...results);
+      }
+      
+      console.log(`[boe-search] Procesados ${Math.min(i + BATCH_SIZE, fechas.length)}/${fechas.length} días, encontrados ${allResults.length} resultados`);
+      
+      // Si ya tenemos suficientes resultados, podemos parar antes
+      if (allResults.length >= 100) {
+        console.log('[boe-search] Suficientes resultados encontrados, deteniendo búsqueda');
+        break;
+      }
+    }
 
     // Deduplicar por ID
     const seen = new Set<string>();
     const merged: ParsedResult[] = [];
-    for (const item of [...r1, ...r2, ...r3, ...r4]) {
+    for (const item of allResults) {
       if (!seen.has(item.id)) {
         seen.add(item.id);
         merged.push(item);
@@ -349,15 +311,10 @@ module.exports = async function handler(req: any, res: any) {
     });
 
     // Ordenar por prioridad (mayor primero) y luego por fecha
-    // No filtrar - mostrar todos los resultados con su estado de plazo
     conEstado.sort((a, b) => {
       if (b.prioridad !== a.prioridad) {
         return b.prioridad - a.prioridad;
       }
-      const aApprox = a.fecha.startsWith('??');
-      const bApprox = b.fecha.startsWith('??');
-      if (aApprox && !bApprox) return 1;
-      if (!aApprox && bApprox) return -1;
       return b.fechaISO.localeCompare(a.fechaISO);
     });
 
@@ -375,4 +332,4 @@ module.exports = async function handler(req: any, res: any) {
     console.error('[boe-search] ERROR:', err);
     return res.status(500).json({ ok: false, error: 'Error al consultar el BOE', details: err.message });
   }
-};
+}
