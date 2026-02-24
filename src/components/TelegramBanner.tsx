@@ -81,13 +81,13 @@ export default function TelegramBanner({ onOpenProfile, isLoggedIn = false }: Te
 
       {/* Mensaje que aparece después */}
       <div 
-        className={`absolute top-1/2 left-1/2 -translate-x-1/2 transition-all duration-500 pointer-events-auto ${
+        className={`absolute inset-x-0 top-1/2 sm:top-1/2 flex justify-center transition-all duration-500 pointer-events-auto ${
           phase === 'message' 
-            ? 'opacity-100 translate-y-8' 
+            ? 'opacity-100 translate-y-4 sm:translate-y-8' 
             : 'opacity-0 translate-y-20'
         }`}
       >
-        <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-[#0088cc]/30 max-w-md mx-4">
+        <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-4 sm:p-8 shadow-2xl border border-[#0088cc]/30 max-w-md mx-4 max-h-[70vh] sm:max-h-none overflow-y-auto">
           {/* Botón cerrar */}
           <button 
             onClick={handleDismiss}
@@ -96,32 +96,32 @@ export default function TelegramBanner({ onOpenProfile, isLoggedIn = false }: Te
             <X className="w-5 h-5" />
           </button>
 
-          <div className="text-center space-y-4">
+          <div className="text-center space-y-3 sm:space-y-4">
             {/* Icono pequeño de Telegram */}
             <div className="flex justify-center">
-              <div className="bg-gradient-to-br from-[#0088cc] to-[#0077b5] p-3 rounded-xl">
-                <Send className="w-8 h-8 text-white" />
+              <div className="bg-gradient-to-br from-[#0088cc] to-[#0077b5] p-2 sm:p-3 rounded-xl">
+                <Send className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
             </div>
 
             {/* Texto principal */}
-            <h3 className="text-2xl font-bold text-white">
+            <h3 className="text-xl sm:text-2xl font-bold text-white">
               ¡Recibe tus notificaciones por Telegram!
             </h3>
             
-            <p className="text-gray-300">
+            <p className="text-gray-300 text-sm sm:text-base">
               Mantente informado de todas las novedades del SEPEI directamente en tu móvil.
             </p>
 
             {/* Beneficios */}
-            <div className="flex flex-wrap justify-center gap-2 text-sm">
-              <span className="px-3 py-1 bg-[#0088cc]/20 text-[#0088cc] rounded-full">
+            <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+              <span className="px-2 sm:px-3 py-1 bg-[#0088cc]/20 text-[#0088cc] rounded-full">
                 📢 Noticias al instante
               </span>
-              <span className="px-3 py-1 bg-[#0088cc]/20 text-[#0088cc] rounded-full">
+              <span className="px-2 sm:px-3 py-1 bg-[#0088cc]/20 text-[#0088cc] rounded-full">
                 🗳️ Avisos de votaciones
               </span>
-              <span className="px-3 py-1 bg-[#0088cc]/20 text-[#0088cc] rounded-full">
+              <span className="px-2 sm:px-3 py-1 bg-[#0088cc]/20 text-[#0088cc] rounded-full">
                 📋 Convocatorias
               </span>
             </div>
@@ -130,18 +130,18 @@ export default function TelegramBanner({ onOpenProfile, isLoggedIn = false }: Te
             {isLoggedIn ? (
               <button
                 onClick={handleActivate}
-                className="w-full mt-4 px-6 py-3 bg-gradient-to-r from-[#0088cc] to-[#0077b5] text-white font-bold rounded-xl hover:shadow-lg hover:shadow-[#0088cc]/30 transition-all duration-300 transform hover:scale-105"
+                className="w-full mt-3 sm:mt-4 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#0088cc] to-[#0077b5] text-white font-bold rounded-xl hover:shadow-lg hover:shadow-[#0088cc]/30 transition-all duration-300 transform hover:scale-105 text-sm sm:text-base"
               >
                 Actívalo en tu perfil
               </button>
             ) : (
-              <div className="mt-4 space-y-2">
-                <p className="text-amber-400 text-sm font-medium">
+              <div className="mt-3 sm:mt-4 space-y-2">
+                <p className="text-amber-400 text-xs sm:text-sm font-medium">
                   ⚠️ Inicia sesión para activar las notificaciones
                 </p>
                 <button
                   onClick={handleDismiss}
-                  className="w-full px-6 py-3 bg-slate-700 text-white font-bold rounded-xl hover:bg-slate-600 transition-all duration-300"
+                  className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-700 text-white font-bold rounded-xl hover:bg-slate-600 transition-all duration-300 text-sm sm:text-base"
                 >
                   Entendido
                 </button>
@@ -151,7 +151,7 @@ export default function TelegramBanner({ onOpenProfile, isLoggedIn = false }: Te
             {/* Link para cerrar */}
             <button 
               onClick={handleDismiss}
-              className="text-gray-500 hover:text-gray-300 text-sm transition-colors"
+              className="text-gray-500 hover:text-gray-300 text-xs sm:text-sm transition-colors"
             >
               Recordar más tarde
             </button>
