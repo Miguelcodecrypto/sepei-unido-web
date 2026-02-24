@@ -243,38 +243,65 @@ function parseBoePage(html: string): ParsedResult[] {
 
 // ─── Fetch de una consulta al buscador BOE ────────────────────────────────────
 
-async function searchBOE(query: string, page = 1): Promise<ParsedResult[]> {
+async function searchBOE(query: string, page = 1, retries = 2): Promise<ParsedResult[]> {
   const params = new URLSearchParams({ q: query, accion: 'buscar', nd: '1' });
   if (page > 1) params.set('p', String(page));
 
   const url = `${BOE_BASE}/buscar/boe.php?${params.toString()}`;
-  const controller = new AbortController();
-  const tid = setTimeout(() => controller.abort(), 9000);
+  
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 15000); // 15 segundos timeout
 
-  try {
-    const resp = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'es-ES,es;q=0.9',
-        'Accept-Encoding': 'gzip, deflate',
-        'Cache-Control': 'no-cache',
-      },
-    });
-    clearTimeout(tid);
-    if (!resp.ok) return [];
-    const html = await resp.text();
-    return parseBoePage(html);
-  } catch {
-    clearTimeout(tid);
-    return [];
+    try {
+      console.log(`[boe-search] Consultando: ${query} (intento ${attempt + 1})`);
+      const resp = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+      clearTimeout(tid);
+      
+      if (!resp.ok) {
+        console.log(`[boe-search] HTTP error ${resp.status} para: ${query}`);
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          continue;
+        }
+        return [];
+      }
+      
+      const html = await resp.text();
+      console.log(`[boe-search] Respuesta recibida para: ${query} (${html.length} bytes)`);
+      const results = parseBoePage(html);
+      console.log(`[boe-search] Parseados ${results.length} resultados para: ${query}`);
+      return results;
+    } catch (err: any) {
+      clearTimeout(tid);
+      console.log(`[boe-search] Error en búsqueda "${query}" (intento ${attempt + 1}):`, err.message);
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+        continue;
+      }
+      return [];
+    }
   }
+  return [];
 }
 
 // ─── Handler principal ────────────────────────────────────────────────────────
 
 module.exports = async function handler(req: any, res: any) {
+  console.log('[boe-search] === INICIO REQUEST ===');
+  console.log('[boe-search] Method:', req.method);
+  
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -285,13 +312,17 @@ module.exports = async function handler(req: any, res: any) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    // 3 búsquedas paralelas para máxima cobertura
+    console.log('[boe-search] Iniciando búsquedas paralelas...');
+    
+    // 4 búsquedas paralelas para máxima cobertura
     const [r1, r2, r3, r4] = await Promise.all([
       searchBOE('bombero oposición'),
       searchBOE('bomberos convocatoria'),
       searchBOE('extinción incendios oposición'),
       searchBOE('bombero oferta empleo público'),
     ]);
+
+    console.log(`[boe-search] Resultados: r1=${r1.length}, r2=${r2.length}, r3=${r3.length}, r4=${r4.length}`);
 
     // Deduplicar por ID
     const seen = new Set<string>();
@@ -302,6 +333,8 @@ module.exports = async function handler(req: any, res: any) {
         merged.push(item);
       }
     }
+
+    console.log(`[boe-search] Total después de deduplicar: ${merged.length}`);
 
     // Añadir estado de plazo a cada resultado
     const conEstado = merged.map(item => {
@@ -328,6 +361,8 @@ module.exports = async function handler(req: any, res: any) {
       return b.fechaISO.localeCompare(a.fechaISO);
     });
 
+    console.log(`[boe-search] === FIN REQUEST OK === Total: ${conEstado.length}`);
+
     return res.status(200).json({
       ok: true,
       total: conEstado.length,
@@ -337,7 +372,7 @@ module.exports = async function handler(req: any, res: any) {
       nota: 'Convocatorias ordenadas por relevancia (en plazo primero)'
     });
   } catch (err: any) {
-    console.error('[boe-search] error:', err);
+    console.error('[boe-search] ERROR:', err);
     return res.status(500).json({ ok: false, error: 'Error al consultar el BOE', details: err.message });
   }
 };
