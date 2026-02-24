@@ -1,23 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import SepeiUnido from './SepeiUnido';
-import AdminPanel from './components/AdminPanel';
-import LoginPanel from './components/LoginPanel';
-import { PrivacyPolicy } from './components/PrivacyPolicy';
-import { VerifyEmail } from './pages/VerifyEmail';
-import ConvocatoriasPage from './pages/ConvocatoriasPage';
 import { Settings } from 'lucide-react';
 import { isAuthenticated } from './services/authService';
+
+// Lazy load componentes pesados para code-splitting
+const AdminPanel = lazy(() => import('./components/AdminPanel'));
+const LoginPanel = lazy(() => import('./components/LoginPanel'));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail').then(m => ({ default: m.VerifyEmail })));
+const ConvocatoriasPage = lazy(() => import('./pages/ConvocatoriasPage'));
+
+// Componente de carga
+const LoadingSpinner = () => (
+  <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+    <div className="text-center">
+      <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-gray-400">Cargando...</p>
+    </div>
+  </div>
+);
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<MainApp />} />
-        <Route path="/politica-privacidad" element={<PrivacyPolicy />} />
-        <Route path="/verify" element={<VerifyEmail />} />
-        <Route path="/convocatorias" element={<ConvocatoriasPage />} />
-      </Routes>
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          <Route path="/" element={<MainApp />} />
+          <Route path="/politica-privacidad" element={<PrivacyPolicy />} />
+          <Route path="/verify" element={<VerifyEmail />} />
+          <Route path="/convocatorias" element={<ConvocatoriasPage />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
@@ -45,24 +59,25 @@ function MainApp() {
 
   // Mostrar spinner mientras se verifica auth
   if (!authChecked) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Cargando...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   // Si hace clic en admin pero no está autenticado, mostrar login
   if (showAdmin && !isAuth) {
-    return <LoginPanel onLoginSuccess={handleLoginSuccess} />;
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <LoginPanel onLoginSuccess={handleLoginSuccess} />
+      </Suspense>
+    );
   }
 
   // Si está autenticado y hace clic en admin, mostrar panel
   if (showAdmin && isAuth) {
-    return <AdminPanel onLogout={handleLogout} />;
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <AdminPanel onLogout={handleLogout} />
+      </Suspense>
+    );
   }
 
   return (

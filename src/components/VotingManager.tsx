@@ -11,7 +11,7 @@ import {
   VotacionCompleta,
   ResultadoVotacion
 } from '../services/votingDatabase';
-import { sendVotingNotification, type EmailRecipient } from '../services/emailNotificationService';
+import type { EmailRecipient } from '../services/emailNotificationService';
 import { sendVotingTelegram, sendVotingResultsTelegram, type TelegramRecipient } from '../services/telegramNotificationService';
 import { supabase } from '../lib/supabase';
 import NotificationModal from './NotificationModal';
@@ -179,6 +179,7 @@ const VotingManager: React.FC = () => {
           }
         );
       } else {
+        const { sendVotingNotification } = await import('../services/emailNotificationService');
         emailResult = await sendVotingNotification(
           selectedUsers,
           {

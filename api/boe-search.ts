@@ -61,6 +61,79 @@ function detectTipo(titulo: string): string {
   return 'Publicación';
 }
 
+// Calcular estado del plazo basado en tipo de publicación y fecha
+function calcularEstadoPlazo(fechaISO: string, tipoPublicacion: string): { estado: string; diasRestantesEstimados: number | null; diasTranscurridos: number; prioridad: number } {
+  const fechaPub = new Date(fechaISO);
+  const hoy = new Date();
+  const diasTranscurridos = Math.floor((hoy.getTime() - fechaPub.getTime()) / (1000 * 60 * 60 * 24));
+  const diasHabilesAprox = Math.floor(diasTranscurridos * 0.7);
+  
+  let estado = 'indeterminado';
+  let diasRestantesEstimados: number | null = null;
+  let prioridad = 0;
+  
+  switch (tipoPublicacion) {
+    case 'Convocatoria':
+      if (diasHabilesAprox <= 20) {
+        estado = 'en_plazo';
+        diasRestantesEstimados = Math.max(0, 20 - diasHabilesAprox);
+        prioridad = 100 - diasHabilesAprox;
+      } else if (diasHabilesAprox <= 30) {
+        estado = 'plazo_posible';
+        prioridad = 50;
+      } else {
+        estado = 'plazo_cerrado';
+        prioridad = 10;
+      }
+      break;
+    case 'Bases':
+      if (diasTranscurridos <= 60) {
+        estado = 'pendiente_convocatoria';
+        prioridad = 80;
+      } else if (diasTranscurridos <= 180) {
+        estado = 'convocatoria_probable';
+        prioridad = 40;
+      } else {
+        estado = 'convocatoria_posible';
+        prioridad = 20;
+      }
+      break;
+    case 'OPE':
+      if (diasTranscurridos <= 180) {
+        estado = 'pendiente_convocatoria';
+        prioridad = 60;
+      } else {
+        estado = 'convocatoria_posible';
+        prioridad = 15;
+      }
+      break;
+    case 'Anuncio':
+    case 'Resolución':
+      if (diasHabilesAprox <= 15) {
+        estado = 'en_plazo';
+        diasRestantesEstimados = Math.max(0, 15 - diasHabilesAprox);
+        prioridad = 90 - diasHabilesAprox;
+      } else if (diasHabilesAprox <= 25) {
+        estado = 'plazo_posible';
+        prioridad = 45;
+      } else {
+        estado = 'plazo_cerrado';
+        prioridad = 5;
+      }
+      break;
+    default:
+      if (diasHabilesAprox <= 20) {
+        estado = 'plazo_posible';
+        prioridad = 30;
+      } else {
+        estado = 'indeterminado';
+        prioridad = 1;
+      }
+  }
+  
+  return { estado, diasRestantesEstimados, diasTranscurridos, prioridad };
+}
+
 // ─── Parseo del HTML del BOE ─────────────────────────────────────────────────
 
 interface ParsedResult {
@@ -73,6 +146,10 @@ interface ParsedResult {
   urlPdf: string;
   tipo: string;
   departamento: string;
+  estadoPlazo?: string;
+  diasRestantes?: number | null;
+  diasDesdePublicacion?: number;
+  prioridad?: number;
 }
 
 function fallbackDate(boeId: string): { fecha: string; fechaISO: string; anio: number } {
@@ -226,8 +303,24 @@ module.exports = async function handler(req: any, res: any) {
       }
     }
 
-    // Ordenar: fecha real primero (más reciente), fechas aproximadas al final
-    merged.sort((a, b) => {
+    // Añadir estado de plazo a cada resultado
+    const conEstado = merged.map(item => {
+      const estadoPlazo = calcularEstadoPlazo(item.fechaISO, item.tipo);
+      return {
+        ...item,
+        estadoPlazo: estadoPlazo.estado,
+        diasRestantes: estadoPlazo.diasRestantesEstimados,
+        diasDesdePublicacion: estadoPlazo.diasTranscurridos,
+        prioridad: estadoPlazo.prioridad
+      };
+    });
+
+    // Ordenar por prioridad (mayor primero) y luego por fecha
+    // No filtrar - mostrar todos los resultados con su estado de plazo
+    conEstado.sort((a, b) => {
+      if (b.prioridad !== a.prioridad) {
+        return b.prioridad - a.prioridad;
+      }
       const aApprox = a.fecha.startsWith('??');
       const bApprox = b.fecha.startsWith('??');
       if (aApprox && !bApprox) return 1;
@@ -237,10 +330,11 @@ module.exports = async function handler(req: any, res: any) {
 
     return res.status(200).json({
       ok: true,
-      total: merged.length,
-      results: merged,
+      total: conEstado.length,
+      results: conEstado,
       fuente: 'Boletín Oficial del Estado (BOE) — www.boe.es',
       timestamp: new Date().toISOString(),
+      nota: 'Convocatorias ordenadas por relevancia (en plazo primero)'
     });
   } catch (err: any) {
     console.error('[boe-search] error:', err);

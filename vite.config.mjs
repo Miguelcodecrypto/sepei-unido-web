@@ -68,7 +68,7 @@ function getXMLAttr(xml, tag, attr) {
 }
 
 // Obtener las últimas fechas a consultar (últimos N días)
-function getRecentDates(days = 90) {
+function getRecentDates(days = 365) {
   const dates = [];
   const today = new Date();
   for (let i = 0; i < days; i++) {
@@ -80,6 +80,95 @@ function getRecentDates(days = 90) {
     dates.push(d.toISOString().split('T')[0].replace(/-/g, ''));
   }
   return dates;
+}
+
+// Calcular estado del plazo basado en tipo de publicación y fecha
+// Los plazos típicos del BOE son:
+// - Convocatorias: 20 días hábiles (~1 mes)
+// - OPE: informativa, los plazos vienen después en convocatoria
+// - Bases: puede tardar meses hasta la convocatoria
+// - Anuncios/Resoluciones: plazos variables (10-20 días hábiles)
+function calcularEstadoPlazo(fechaISO, tipoPublicacion) {
+  const fechaPub = new Date(fechaISO);
+  const hoy = new Date();
+  const diasTranscurridos = Math.floor((hoy - fechaPub) / (1000 * 60 * 60 * 24));
+  
+  // Estimar días hábiles (aproximadamente 70% de los días naturales)
+  const diasHabilesAprox = Math.floor(diasTranscurridos * 0.7);
+  
+  let estado = 'indeterminado';
+  let diasRestantesEstimados = null;
+  let prioridad = 0;
+  
+  switch (tipoPublicacion) {
+    case 'Convocatoria':
+      // Convocatorias suelen tener 20 días hábiles de plazo
+      if (diasHabilesAprox <= 20) {
+        estado = 'en_plazo';
+        diasRestantesEstimados = Math.max(0, 20 - diasHabilesAprox);
+        prioridad = 100 - diasHabilesAprox; // Mayor prioridad si queda menos tiempo
+      } else if (diasHabilesAprox <= 30) {
+        estado = 'plazo_posible';
+        prioridad = 50;
+      } else {
+        estado = 'plazo_cerrado';
+        prioridad = 10;
+      }
+      break;
+      
+    case 'Bases':
+      // Bases publicadas recientemente: la convocatoria vendrá pronto
+      if (diasTranscurridos <= 60) {
+        estado = 'pendiente_convocatoria';
+        prioridad = 80;
+      } else if (diasTranscurridos <= 180) {
+        estado = 'convocatoria_probable';
+        prioridad = 40;
+      } else {
+        estado = 'convocatoria_posible';
+        prioridad = 20;
+      }
+      break;
+      
+    case 'OPE':
+      // OPE: informativa, convocatorias pueden tardar meses/años
+      if (diasTranscurridos <= 180) {
+        estado = 'pendiente_convocatoria';
+        prioridad = 60;
+      } else {
+        estado = 'convocatoria_posible';
+        prioridad = 15;
+      }
+      break;
+      
+    case 'Anuncio':
+    case 'Resolución':
+      // Anuncios y resoluciones: plazos de 10-15 días hábiles
+      if (diasHabilesAprox <= 15) {
+        estado = 'en_plazo';
+        diasRestantesEstimados = Math.max(0, 15 - diasHabilesAprox);
+        prioridad = 90 - diasHabilesAprox;
+      } else if (diasHabilesAprox <= 25) {
+        estado = 'plazo_posible';
+        prioridad = 45;
+      } else {
+        estado = 'plazo_cerrado';
+        prioridad = 5;
+      }
+      break;
+      
+    default:
+      // Publicación genérica
+      if (diasHabilesAprox <= 20) {
+        estado = 'plazo_posible';
+        prioridad = 30;
+      } else {
+        estado = 'indeterminado';
+        prioridad = 1;
+      }
+  }
+  
+  return { estado, diasRestantesEstimados, diasTranscurridos, prioridad };
 }
 
 // Consultar el sumario de un día específico (XML)
@@ -156,55 +245,70 @@ function boeDevPlugin() {
         
         console.log('[boe-api-dev] Procesando petición BOE');
         try {
-          // Obtener sumarios recientes (últimos 90 días laborables)
-          console.log('[boe-api-dev] Consultando sumarios del BOE (API XML)...');
-          const dates = getRecentDates(90);
+          // Obtener sumarios del último año (365 días laborables)
+          console.log('[boe-api-dev] Consultando sumarios del BOE (último año)...');
+          const dates = getRecentDates(365);
           
-          // Consultar en lotes de 10 para no saturar
-          const batchSize = 10;
+          // Consultar en lotes de 15 para balance velocidad/carga
+          const batchSize = 15;
           const summaryResults = [];
           
-          for (let i = 0; i < Math.min(dates.length, 60); i += batchSize) {
+          // Procesar TODOS los días sin límite ni parada temprana
+          for (let i = 0; i < dates.length; i += batchSize) {
             const batch = dates.slice(i, i + batchSize);
             const batchPromises = batch.map(d => fetchDaySummary(d));
             const batchResults = await Promise.all(batchPromises);
             summaryResults.push(...batchResults.flat());
             
-            // Si ya tenemos resultados, podemos parar antes
-            if (summaryResults.length > 0 && i >= 30) {
-              console.log(`[boe-api-dev] Ya encontrados ${summaryResults.length} resultados, deteniendo búsqueda`);
-              break;
+            // Log de progreso cada 50 días procesados
+            if ((i + batchSize) % 50 === 0 || i + batchSize >= dates.length) {
+              console.log(`[boe-api-dev] Procesados ${Math.min(i + batchSize, dates.length)}/${dates.length} días, encontrados ${summaryResults.length} resultados`);
             }
           }
           
           console.log(`[boe-api-dev] Sumarios: ${summaryResults.length} resultados relacionados con bomberos`);
           
-          // Eliminar duplicados por ID
+          // Eliminar duplicados por ID y añadir estado de plazo
           const seen = new Set();
           const merged = [];
           for (const item of summaryResults) {
             if (item.id && !seen.has(item.id)) {
               seen.add(item.id);
-              merged.push(item);
+              
+              // Calcular estado del plazo
+              const estadoPlazo = calcularEstadoPlazo(item.fechaISO, item.tipo);
+              
+              merged.push({
+                ...item,
+                estadoPlazo: estadoPlazo.estado,
+                diasRestantes: estadoPlazo.diasRestantesEstimados,
+                diasDesdePublicacion: estadoPlazo.diasTranscurridos,
+                prioridad: estadoPlazo.prioridad
+              });
             }
           }
           
-          // Ordenar por fecha (más recientes primero)
-          merged.sort((x, y) => {
-            if (!x.fechaISO) return 1;
-            if (!y.fechaISO) return -1;
-            return y.fechaISO.localeCompare(x.fechaISO);
+          // Ordenar por prioridad (mayor primero) y luego por fecha más reciente
+          // No filtrar - mostrar todos los resultados con su estado de plazo
+          merged.sort((a, b) => {
+            // Primero por prioridad (los que están en plazo primero)
+            if (b.prioridad !== a.prioridad) {
+              return b.prioridad - a.prioridad;
+            }
+            // Si misma prioridad, por fecha más reciente
+            return b.fechaISO.localeCompare(a.fechaISO);
           });
           
-          console.log(`[boe-api-dev] Total resultados combinados: ${merged.length}`);
+          console.log(`[boe-api-dev] Total resultados: ${merged.length}`);
           
           res.writeHead(200, {'Content-Type':'application/json;charset=utf-8'});
           res.end(JSON.stringify({
             ok: true, 
-            total: merged.length, 
+            total: merged.length,
             results: merged,
             fuente: 'BOE — www.boe.es (API Datos Abiertos)', 
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            nota: 'Convocatorias ordenadas por relevancia (en plazo primero)'
           }));
         } catch(e) {
           console.log('[boe-api-dev] Error:', e.message);
@@ -228,6 +332,26 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['api'],
+  },
+  build: {
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks - separar librerías pesadas
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-ui': ['lucide-react'],
+          'vendor-crypto': ['bcryptjs', 'node-forge', 'jsrsasign'],
+          // Separar servicios pesados
+          'services': [
+            './src/services/emailNotificationService.ts',
+            './src/services/telegramNotificationService.ts',
+            './src/services/analyticsService.ts',
+          ],
+        },
+      },
+    },
   },
 });
 

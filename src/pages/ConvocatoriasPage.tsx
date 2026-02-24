@@ -12,19 +12,17 @@ import {
   ChevronDown,
   ChevronUp,
   Building2,
-  Newspaper,
   Lock,
-  CheckCircle,
   ArrowLeft,
   Loader2,
   X,
   Info,
   SlidersHorizontal,
-  Copy,
+  LogIn,
+  UserCheck,
 } from 'lucide-react';
 import { PROVINCIAS_ES, detectProvincia, getProvinciaColor, type Provincia } from '../utils/provincias';
-import { createAnnouncement } from '../services/announcementDatabase';
-import { login, isAuthenticated } from '../services/authService';
+import { getCurrentUser, type SessionUser } from '../services/sessionService';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -58,43 +56,13 @@ const TIPO_STYLES: Record<string, { badge: string; border: string; bg: string }>
 
 const TIPOS_FILTER = ['Todos', 'OPE', 'Convocatoria', 'Bases', 'Resultado', 'Resolución', 'Anuncio'];
 
-// ─── Generador de contenido de noticia ───────────────────────────────────────
-
-function generarNoticiaContent(item: EnrichedResult): { titulo: string; contenido: string } {
-  const entidad = item.departamento || item.titulo.split('.')[0]?.trim() || 'Entidad desconocida';
-  const localidad = item.provincia !== 'Sin clasificar' ? ` – ${item.provincia}` : '';
-  const tipoLabel = item.tipo === 'OPE' ? 'OPE (Oferta de Empleo Público)' : item.tipo;
-
-  const titulo = `${item.tipo === 'OPE' ? '📋 OPE' : '🔥 Convocatoria'} Bombero${localidad}`;
-
-  const contenido = `El BOE ha publicado el **${item.fecha}** la siguiente ${tipoLabel.toLowerCase()}:
-
----
-
-**${item.titulo}**
-
----
-
-📋 **Tipo:** ${tipoLabel}
-🏛️ **Entidad:** ${entidad}
-📅 **Fecha publicación BOE:** ${item.fecha}
-📍 **Provincia estimada:** ${item.provincia}
-
-🔗 **[Ver publicación completa en el BOE](${item.urlHtm})**
-${item.urlPdf ? `📄 **[Descargar PDF oficial](${item.urlPdf})**` : ''}
-
-> 📌 *Referencia BOE: ${item.id}*
-
----
-
-*Esta información ha sido importada automáticamente desde el motor de búsqueda BOE de SEPEI UNIDO. Se recomienda verificar los plazos y requisitos en la publicación oficial.*`;
-
-  return { titulo, contenido };
-}
-
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function ConvocatoriasPage() {
+  // Estado de autenticación de usuario registrado
+  const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
   const [rawResults, setRawResults] = useState<EnrichedResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,18 +83,29 @@ export default function ConvocatoriasPage() {
   // Expandir tarjeta
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Modal crear noticia
-  const [noticiaModal, setNoticiaModal] = useState<EnrichedResult | null>(null);
-  const [adminPassword, setAdminPassword] = useState('');
-  const [adminAuthed, setAdminAuthed] = useState(false);
-  const [authError, setAuthError] = useState('');
-  const [creatingNews, setCreatingNews] = useState(false);
-  const [newsSuccess, setNewsSuccess] = useState(false);
-  const [newsError, setNewsError] = useState('');
+  // ── Verificar autenticación de usuario ─────────────────────────────────────
+
+  useEffect(() => {
+    async function checkUserAuth() {
+      setCheckingAuth(true);
+      try {
+        const user = await getCurrentUser();
+        setCurrentUser(user);
+      } catch (e) {
+        console.error('Error verificando autenticación:', e);
+        setCurrentUser(null);
+      } finally {
+        setCheckingAuth(false);
+      }
+    }
+    checkUserAuth();
+  }, []);
 
   // ── Carga de datos ─────────────────────────────────────────────────────────
 
   const fetchData = useCallback(async () => {
+    if (!currentUser) return; // Solo cargar si hay usuario autenticado
+    
     setLoading(true);
     setError(null);
     setPage(1);
@@ -151,13 +130,14 @@ export default function ConvocatoriasPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser]);
 
+  // Cargar datos cuando el usuario esté autenticado
   useEffect(() => {
-    fetchData();
-    // Comprobar si ya está autenticado como admin
-    setAdminAuthed(isAuthenticated());
-  }, [fetchData]);
+    if (currentUser && !checkingAuth) {
+      fetchData();
+    }
+  }, [currentUser, checkingAuth, fetchData]);
 
   // ── Filtrado ───────────────────────────────────────────────────────────────
 
@@ -201,54 +181,82 @@ export default function ConvocatoriasPage() {
     return counts;
   }, [filtered]);
 
-  // ── Auth admin ─────────────────────────────────────────────────────────────
-
-  const handleAdminLogin = () => {
-    const ok = login(adminPassword);
-    if (ok) {
-      setAdminAuthed(true);
-      setAuthError('');
-    } else {
-      setAuthError('Contraseña incorrecta');
-    }
-  };
-
-  // ── Crear noticia ──────────────────────────────────────────────────────────
-
-  const handleCrearNoticia = async (item: EnrichedResult) => {
-    setCreatingNews(true);
-    setNewsError('');
-    setNewsSuccess(false);
-
-    const { titulo, contenido } = generarNoticiaContent(item);
-    const now = new Date().toISOString();
-
-    const result = await createAnnouncement({
-      titulo,
-      contenido,
-      categoria: 'noticia',
-      publicado: false,
-      destacado: false,
-      fecha_publicacion: now,
-      autor: 'BOE Search — SEPEI UNIDO',
-    });
-
-    if (result) {
-      setNewsSuccess(true);
-    } else {
-      setNewsError('Error al crear la noticia. Inténtalo de nuevo.');
-    }
-    setCreatingNews(false);
-  };
-
-  const resetNoticiaModal = () => {
-    setNoticiaModal(null);
-    setNewsSuccess(false);
-    setNewsError('');
-    setAdminPassword('');
-  };
-
   // ─────────────────────────────────────────────────────────────────────────────
+
+  // Pantalla de carga mientras se verifica autenticación
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Verificando acceso...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Pantalla de acceso restringido para usuarios no autenticados
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col">
+        {/* Header mínimo */}
+        <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/60 shadow-xl">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+            <a href="/" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm">
+              <ArrowLeft className="w-4 h-4" />
+              <span>Volver al inicio</span>
+            </a>
+          </div>
+        </header>
+
+        {/* Contenido de acceso restringido */}
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full text-center space-y-6">
+            <div className="w-20 h-20 bg-orange-500/20 rounded-2xl flex items-center justify-center mx-auto">
+              <Lock className="w-10 h-10 text-orange-400" />
+            </div>
+            
+            <div>
+              <h1 className="text-2xl font-bold text-white mb-2">Acceso Restringido</h1>
+              <p className="text-gray-400">
+                El buscador de convocatorias del BOE está disponible solo para usuarios registrados de SEPEI UNIDO.
+              </p>
+            </div>
+
+            <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 space-y-4">
+              <div className="flex items-center gap-3 text-left">
+                <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center shrink-0">
+                  <UserCheck className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-white font-medium text-sm">¿Ya tienes cuenta?</p>
+                  <p className="text-gray-500 text-xs">Inicia sesión desde la página principal</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 text-left">
+                <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center shrink-0">
+                  <Flame className="w-5 h-5 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-white font-medium text-sm">¿Eres bombero del SEPEI?</p>
+                  <p className="text-gray-500 text-xs">Regístrate para acceder a todas las funcionalidades</p>
+                </div>
+              </div>
+            </div>
+
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white rounded-xl font-semibold transition-all"
+            >
+              <LogIn className="w-5 h-5" />
+              Ir a Iniciar Sesión
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col">
@@ -514,7 +522,6 @@ export default function ConvocatoriasPage() {
                     item={item}
                     expanded={expandedId === item.id}
                     onToggle={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                    onCrearNoticia={() => { setNoticiaModal(item); setNewsSuccess(false); setNewsError(''); }}
                   />
                 ))}
 
@@ -543,161 +550,6 @@ export default function ConvocatoriasPage() {
           </>
         )}
       </main>
-
-      {/* ── Modal: Crear Noticia SEPEI ────────────────────────────────────────── */}
-      {noticiaModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-
-            {/* Header modal */}
-            <div className="flex items-center justify-between p-5 border-b border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-orange-500/20 rounded-xl flex items-center justify-center">
-                  <Newspaper className="w-5 h-5 text-orange-400" />
-                </div>
-                <div>
-                  <p className="text-white font-bold">Crear Noticia SEPEI UNIDO</p>
-                  <p className="text-gray-400 text-xs">La noticia se guardará como borrador para revisión</p>
-                </div>
-              </div>
-              <button onClick={resetNoticiaModal} className="text-gray-500 hover:text-gray-300 transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-5">
-
-              {/* Preview de la noticia */}
-              {!newsSuccess && (
-                <>
-                  <div className="space-y-3">
-                    <p className="text-sm font-semibold text-gray-300">Publicación seleccionada:</p>
-                    <div className={`p-4 rounded-xl border ${TIPO_STYLES[noticiaModal.tipo]?.bg ?? 'bg-slate-800/50'} ${TIPO_STYLES[noticiaModal.tipo]?.border ?? 'border-slate-600'}`}>
-                      <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold border mb-2 ${TIPO_STYLES[noticiaModal.tipo]?.badge ?? ''}`}>
-                        {noticiaModal.tipo}
-                      </span>
-                      <p className="text-white text-sm font-medium leading-snug">{noticiaModal.titulo}</p>
-                      <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-400">
-                        <span>📅 {noticiaModal.fecha}</span>
-                        <span>📍 {noticiaModal.provincia}</span>
-                        <span className="text-gray-600">{noticiaModal.id}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Previsualización del contenido generado */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-gray-300">Noticia generada automáticamente:</p>
-                      <button
-                        onClick={() => {
-                          const { titulo, contenido } = generarNoticiaContent(noticiaModal);
-                          navigator.clipboard.writeText(`${titulo}\n\n${contenido}`);
-                        }}
-                        className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                        Copiar
-                      </button>
-                    </div>
-                    <div className="bg-slate-950 border border-slate-700/50 rounded-xl p-4 text-xs text-gray-400 font-mono whitespace-pre-wrap max-h-48 overflow-y-auto">
-                      {(() => { const { titulo, contenido } = generarNoticiaContent(noticiaModal); return `# ${titulo}\n\n${contenido}`; })()}
-                    </div>
-                  </div>
-
-                  {/* Auth admin */}
-                  {!adminAuthed ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm text-gray-300">
-                        <Lock className="w-4 h-4 text-orange-400" />
-                        <span>Introduce la contraseña de administrador para publicar</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="password"
-                          placeholder="Contraseña de administrador"
-                          value={adminPassword}
-                          onChange={e => setAdminPassword(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && handleAdminLogin()}
-                          className="flex-1 px-4 py-2.5 bg-slate-800 border border-slate-600/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50 text-sm"
-                        />
-                        <button
-                          onClick={handleAdminLogin}
-                          className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold transition-all"
-                        >
-                          Verificar
-                        </button>
-                      </div>
-                      {authError && <p className="text-red-400 text-xs flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" />{authError}</p>}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-sm text-emerald-400 bg-emerald-900/20 border border-emerald-500/20 rounded-xl px-4 py-2.5">
-                      <CheckCircle className="w-4 h-4" />
-                      Administrador verificado. Listo para crear la noticia.
-                    </div>
-                  )}
-
-                  {newsError && (
-                    <p className="text-red-400 text-sm flex items-center gap-1.5">
-                      <AlertCircle className="w-4 h-4" />{newsError}
-                    </p>
-                  )}
-
-                  {/* Botones de acción */}
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      onClick={resetNoticiaModal}
-                      className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-600/50 text-gray-300 rounded-xl text-sm font-medium transition-all"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={() => handleCrearNoticia(noticiaModal)}
-                      disabled={!adminAuthed || creatingNews}
-                      className="flex-1 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {creatingNews
-                        ? <><Loader2 className="w-4 h-4 animate-spin" />Creando…</>
-                        : <><Newspaper className="w-4 h-4" />Crear Noticia (Borrador)</>
-                      }
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {/* Éxito */}
-              {newsSuccess && (
-                <div className="text-center py-8 space-y-4">
-                  <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle className="w-8 h-8 text-emerald-400" />
-                  </div>
-                  <div>
-                    <p className="text-white font-bold text-lg">¡Noticia creada!</p>
-                    <p className="text-gray-400 text-sm mt-1">
-                      La noticia se ha guardado como <strong>borrador</strong>.<br />
-                      Accede al panel de administración para revisarla y publicarla.
-                    </p>
-                  </div>
-                  <div className="flex gap-3 justify-center">
-                    <button
-                      onClick={resetNoticiaModal}
-                      className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-gray-300 rounded-xl text-sm font-medium transition-all"
-                    >
-                      Cerrar
-                    </button>
-                    <a
-                      href="/"
-                      className="px-5 py-2.5 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/40 text-orange-300 rounded-xl text-sm font-medium transition-all"
-                    >
-                      Ir al Panel Admin
-                    </a>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -708,10 +560,9 @@ interface ResultCardProps {
   item: EnrichedResult;
   expanded: boolean;
   onToggle: () => void;
-  onCrearNoticia: () => void;
 }
 
-function ResultCard({ item, expanded, onToggle, onCrearNoticia }: ResultCardProps) {
+function ResultCard({ item, expanded, onToggle }: ResultCardProps) {
   const s = TIPO_STYLES[item.tipo] ?? TIPO_STYLES['Publicación'];
   const provColor = getProvinciaColor(item.provincia);
 
@@ -798,14 +649,6 @@ function ResultCard({ item, expanded, onToggle, onCrearNoticia }: ResultCardProp
                 Descargar PDF
               </a>
             )}
-
-            <button
-              onClick={e => { e.stopPropagation(); onCrearNoticia(); }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 rounded-lg text-xs font-medium transition-all ml-auto"
-            >
-              <Newspaper className="w-3.5 h-3.5" />
-              Crear Noticia SEPEI
-            </button>
           </div>
         </div>
       )}
