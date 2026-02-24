@@ -2,9 +2,9 @@
  * API para verificar estado de vinculación de Telegram
  */
 
-const { createClient } = require('@supabase/supabase-js');
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-module.exports = async function handler(req: any, res: any) {
+export default async function handler(req: any, res: any) {
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'GET') {
@@ -25,7 +25,7 @@ module.exports = async function handler(req: any, res: any) {
       return res.status(400).json({ error: 'Missing user_id parameter' });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createSupabaseClient(supabaseUrl, supabaseKey);
 
     const { data, error } = await supabase
       .from('users')

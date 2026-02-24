@@ -8,7 +8,7 @@
  */
 
 // Importar cliente de Supabase directamente para usar en serverless
-const { createClient } = require('@supabase/supabase-js');
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 interface TelegramUpdate {
   update_id: number;
@@ -34,7 +34,7 @@ interface TelegramUpdate {
   };
 }
 
-module.exports = async function handler(req: any, res: any) {
+export default async function handler(req: any, res: any) {
   res.setHeader('Content-Type', 'application/json');
 
   // Telegram envía POST para webhooks
@@ -52,7 +52,7 @@ module.exports = async function handler(req: any, res: any) {
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createSupabaseClient(supabaseUrl, supabaseKey);
     const update: TelegramUpdate = req.body;
 
     console.log('📱 Webhook recibido:', JSON.stringify(update, null, 2));
