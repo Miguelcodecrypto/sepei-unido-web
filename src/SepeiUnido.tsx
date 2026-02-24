@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Flame, Users, Shield, Target, Mail, Phone, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, Lightbulb, LogIn } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Flame, Users, Shield, Target, Mail, Phone, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, Lightbulb, LogIn, FileSearch } from 'lucide-react';
 import { addUser } from './services/userDatabase';
 import { getCertificateFromSession, clearCertificateSession, type BrowserCertificate } from './services/browserCertificateService';
 import { sendNewUserNotificationToAdmin } from './services/emailService';
@@ -509,6 +510,15 @@ export default function SepeiUnido() {
                 Únete
               </button>
               
+              {/* Enlace a Convocatorias BOE */}
+              <Link
+                to="/convocatorias"
+                className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold transition-all duration-300"
+              >
+                <FileSearch className="w-4 h-4" />
+                Convocatorias
+              </Link>
+              
               {/* Botón de Login/Usuario */}
               {loggedUser ? (
                 <button
@@ -576,6 +586,16 @@ export default function SepeiUnido() {
               >
                 Únete
               </button>
+              
+              {/* Enlace a Convocatorias BOE móvil */}
+              <Link
+                to="/convocatorias"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 w-full text-left text-emerald-400 hover:text-emerald-300 font-semibold py-2"
+              >
+                <FileSearch className="w-5 h-5" />
+                Convocatorias BOE
+              </Link>
               
               {/* Botón Login/Usuario móvil */}
               {loggedUser ? (
@@ -711,6 +731,42 @@ export default function SepeiUnido() {
                 Únete Ahora
               </button>
             </div>
+
+            {/* Botón Convocatorias BOE - Destacado */}
+            <Link
+              to="/convocatorias"
+              className="group relative px-6 py-3 md:px-8 md:py-5 overflow-hidden rounded-2xl mt-4 inline-block"
+            >
+              {/* Fondo animado con gradiente verde */}
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 via-green-500 to-teal-500 opacity-90 group-hover:opacity-100 transition-opacity duration-300"></div>
+              
+              {/* Efecto de brillo en movimiento */}
+              <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+              
+              {/* Contenido del botón */}
+              <div className="relative flex items-center gap-2 md:gap-3 text-white font-bold text-sm md:text-lg">
+                <div className="relative">
+                  <div className="relative w-8 h-8 md:w-10 md:h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 group-hover:rotate-12 transition-transform duration-300">
+                    <FileSearch className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                  </div>
+                </div>
+                
+                <div className="flex flex-col items-start">
+                  <span className="text-[10px] md:text-xs text-emerald-100 font-normal uppercase tracking-wider">Oposiciones</span>
+                  <span className="leading-tight group-hover:tracking-wide transition-all text-sm md:text-base">Convocatorias BOE</span>
+                </div>
+                
+                {/* Flecha animada */}
+                <div className="ml-2 group-hover:translate-x-1 transition-transform duration-300">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </div>
+              </div>
+              
+              {/* Borde brillante */}
+              <div className="absolute inset-0 rounded-2xl border-2 border-white/20 group-hover:border-white/40 transition-colors"></div>
+            </Link>
 
             {/* Tarjeta Interinos - Solo visible en móvil */}
             <button
