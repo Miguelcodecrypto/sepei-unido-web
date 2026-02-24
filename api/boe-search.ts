@@ -226,7 +226,7 @@ async function fetchSumario(fecha: string): Promise<ParsedResult[]> {
   
   try {
     const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 10000);
+    const tid = setTimeout(() => controller.abort(), 3000); // 3 segundos max por petición
     
     const resp = await fetch(url, {
       signal: controller.signal,
@@ -261,15 +261,23 @@ export default async function handler(req: any, res: any) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    // Obtener últimos 365 días
-    const fechas = getRecentDates(365);
+    // Obtener últimos 90 días (suficiente para convocatorias activas)
+    const fechas = getRecentDates(90);
     console.log(`[boe-search] Consultando ${fechas.length} días de sumarios...`);
     
-    // Procesar en lotes para no sobrecargar
-    const BATCH_SIZE = 30;
+    // Procesar en lotes pequeños para no exceder timeout de Vercel (10s)
+    const BATCH_SIZE = 15;
     const allResults: ParsedResult[] = [];
+    const startTime = Date.now();
+    const MAX_TIME = 8000; // 8 segundos máximo para dejar margen
     
     for (let i = 0; i < fechas.length; i += BATCH_SIZE) {
+      // Verificar si estamos cerca del timeout
+      if (Date.now() - startTime > MAX_TIME) {
+        console.log('[boe-search] Cerca del timeout, deteniendo búsqueda');
+        break;
+      }
+      
       const batch = fechas.slice(i, i + BATCH_SIZE);
       const batchResults = await Promise.all(batch.map(f => fetchSumario(f)));
       
@@ -279,9 +287,9 @@ export default async function handler(req: any, res: any) {
       
       console.log(`[boe-search] Procesados ${Math.min(i + BATCH_SIZE, fechas.length)}/${fechas.length} días, encontrados ${allResults.length} resultados`);
       
-      // Si ya tenemos suficientes resultados, podemos parar antes
-      if (allResults.length >= 100) {
-        console.log('[boe-search] Suficientes resultados encontrados, deteniendo búsqueda');
+      // Si ya tenemos suficientes resultados, podemos parar
+      if (allResults.length >= 50) {
+        console.log('[boe-search] Suficientes resultados encontrados');
         break;
       }
     }
