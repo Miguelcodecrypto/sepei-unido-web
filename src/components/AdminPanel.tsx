@@ -1,19 +1,29 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award, Mail, BookOpen, AlertTriangle, UserX, Shield } from 'lucide-react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award, Mail, BookOpen, AlertTriangle, UserX, Shield, Flame } from 'lucide-react';
 import { getAllUsers, deleteUser, exportUsersToCSV, toggleVotingAuthorization, resetTempPassword } from '../services/userDatabase';
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
 import { hashPassword } from '../services/passwordService';
 import { trackInteraction, createSectionTimeTracker } from '../services/analyticsService';
-import AnnouncementsManager from './AnnouncementsManager';
-import VotingManager from './VotingManager';
-import AnalyticsDashboard from './AnalyticsDashboard';
-import VotingResultsPanel from './VotingResultsPanel';
-import { ExternalEmailsManager } from './ExternalEmailsManager';
-import InterinosManager from './InterinosManager';
-import InterinosAnalyticsDashboard from './InterinosAnalyticsDashboard';
-import SecurityPanel from './SecurityPanel';
 import { getEstadoPlantilla, EstadoPlantilla, COLORES_ESTADO_PLANTILLA } from '../data/plantillaOficialSEPEI';
+
+// Lazy load componentes pesados del admin
+const AnnouncementsManager = lazy(() => import('./AnnouncementsManager'));
+const VotingManager = lazy(() => import('./VotingManager'));
+const AnalyticsDashboard = lazy(() => import('./AnalyticsDashboard'));
+const VotingResultsPanel = lazy(() => import('./VotingResultsPanel'));
+const ExternalEmailsManager = lazy(() => import('./ExternalEmailsManager').then(m => ({ default: m.ExternalEmailsManager })));
+const InterinosManager = lazy(() => import('./InterinosManager'));
+const InterinosAnalyticsDashboard = lazy(() => import('./InterinosAnalyticsDashboard'));
+const SecurityPanel = lazy(() => import('./SecurityPanel'));
+const BOEConvocatoriasAdmin = lazy(() => import('./BOEConvocatoriasAdmin'));
+
+// Loading spinner para los componentes lazy
+const TabLoadingSpinner = () => (
+  <div className="flex items-center justify-center py-12">
+    <div className="w-8 h-8 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin"></div>
+  </div>
+);
 
 interface User {
   id: string;
@@ -51,7 +61,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onLogout }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'users' | 'suggestions' | 'announcements' | 'voting' | 'analytics' | 'results' | 'external-emails' | 'interinos' | 'security'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'suggestions' | 'announcements' | 'voting' | 'analytics' | 'results' | 'external-emails' | 'interinos' | 'security' | 'convocatorias'>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
@@ -373,10 +383,21 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
             <Shield className="w-5 h-5" />
             Seguridad
           </button>
+          <button
+            onClick={() => setActiveTab('convocatorias')}
+            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
+              activeTab === 'convocatorias'
+                ? 'text-orange-500 border-b-2 border-orange-500'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Flame className="w-5 h-5" />
+            Convocatorias BOE
+          </button>
         </div>
 
         {/* Stats */}
-        {activeTab !== 'announcements' && activeTab !== 'voting' && activeTab !== 'analytics' && activeTab !== 'results' && activeTab !== 'external-emails' && activeTab !== 'interinos' && activeTab !== 'security' && (
+        {activeTab !== 'announcements' && activeTab !== 'voting' && activeTab !== 'analytics' && activeTab !== 'results' && activeTab !== 'external-emails' && activeTab !== 'interinos' && activeTab !== 'security' && activeTab !== 'convocatorias' && (
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-orange-500/20 mb-8">
             <div className="text-center">
               <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
@@ -827,41 +848,62 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
 
         {/* Announcements Manager */}
         {activeTab === 'announcements' && (
-          <AnnouncementsManager />
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <AnnouncementsManager />
+          </Suspense>
         )}
 
         {/* Voting Manager */}
         {activeTab === 'voting' && (
-          <VotingManager />
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <VotingManager />
+          </Suspense>
         )}
 
         {/* Analytics Dashboard */}
         {activeTab === 'analytics' && (
-          <AnalyticsDashboard onClose={() => setActiveTab('users')} />
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <AnalyticsDashboard onClose={() => setActiveTab('users')} />
+          </Suspense>
         )}
 
         {/* Voting Results Panel */}
         {activeTab === 'results' && (
-          <VotingResultsPanel onClose={() => setActiveTab('voting')} />
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <VotingResultsPanel onClose={() => setActiveTab('voting')} />
+          </Suspense>
         )}
 
         {/* External Emails Manager */}
         {activeTab === 'external-emails' && (
-          <ExternalEmailsManager />
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <ExternalEmailsManager />
+          </Suspense>
         )}
 
         {activeTab === 'interinos' && (
-          <div className="space-y-8">
-            <InterinosManager />
-            <div className="border-t border-slate-700 pt-8">
-              <InterinosAnalyticsDashboard />
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <div className="space-y-8">
+              <InterinosManager />
+              <div className="border-t border-slate-700 pt-8">
+                <InterinosAnalyticsDashboard />
+              </div>
             </div>
-          </div>
+          </Suspense>
         )}
 
         {/* Security Panel */}
         {activeTab === 'security' && (
-          <SecurityPanel />
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <SecurityPanel />
+          </Suspense>
+        )}
+
+        {/* BOE Convocatorias Panel */}
+        {activeTab === 'convocatorias' && (
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <BOEConvocatoriasAdmin />
+          </Suspense>
         )}
       </div>
     </div>
