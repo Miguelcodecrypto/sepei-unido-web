@@ -5,6 +5,7 @@ import AdminPanel from './components/AdminPanel';
 import LoginPanel from './components/LoginPanel';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { VerifyEmail } from './pages/VerifyEmail';
+import ConvocatoriasPage from './pages/ConvocatoriasPage';
 import { Settings } from 'lucide-react';
 import { isAuthenticated } from './services/authService';
 
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/" element={<MainApp />} />
         <Route path="/politica-privacidad" element={<PrivacyPolicy />} />
         <Route path="/verify" element={<VerifyEmail />} />
+        <Route path="/convocatorias" element={<ConvocatoriasPage />} />
       </Routes>
     </BrowserRouter>
   );
