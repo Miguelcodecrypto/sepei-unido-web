@@ -216,8 +216,8 @@ module.exports = async function handler(req: any, res: any) {
   try {
     console.log('[boe-search] Iniciando búsqueda...');
     
-    // Usar 90 días laborables (excluye fines de semana)
-    const dates = getRecentDates(90);
+    // Usar 365 días (excluye fines de semana)
+    const dates = getRecentDates(365);
     console.log(`[boe-search] Consultando ${dates.length} días laborables...`);
     
     const summaryResults: any[] = [];
