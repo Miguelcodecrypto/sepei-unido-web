@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vite:*)",
+      "Bash(command -v:*)",
+      "Bash(node --version:*)",
+      "Bash(node -e:*)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
