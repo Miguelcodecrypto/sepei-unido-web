@@ -190,18 +190,13 @@ const PATRONES_ESTRICTOS_BOMBEROS = [
 // Función para verificar el contenido de un documento específico con patrones estrictos
 async function checkDocumentContent(urlHtml: string): Promise<boolean> {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000); // 3 segundos máximo
-    
     const r = await fetch(urlHtml, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'text/html',
       },
-      signal: controller.signal,
+      signal: AbortSignal.timeout(5000) // 5 segundos - igual que desarrollo
     });
-    
-    clearTimeout(timeout);
     if (!r.ok) return false;
     const html = await r.text();
     
@@ -232,6 +227,7 @@ async function fetchDaySummary(dateStr: string): Promise<any[]> {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'application/xml, text/xml, */*',
       },
+      signal: AbortSignal.timeout(10000) // 10 segundos - igual que desarrollo
     });
     
     if (!r.ok) return [];
@@ -240,12 +236,10 @@ async function fetchDaySummary(dateStr: string): Promise<any[]> {
     const results: any[] = [];
     const potentialItems: any[] = [];
     
-    // Detectar la sección actual
-    let currentSeccion = '';
-    const seccionMatch = xml.match(/<seccion[^>]*codigo="([^"]*)"[^>]*nombre="([^"]*)"[^>]*>/gi);
-    
+    // Buscar todos los items en el XML
     const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
     let match;
+    let currentSeccion = '';
     
     while ((match = itemRegex.exec(xml)) !== null) {
       const itemXml = match[1];
@@ -266,6 +260,15 @@ async function fetchDaySummary(dateStr: string): Promise<any[]> {
       const lastSeccionMatch = xmlBefore.match(/<seccion[^>]*codigo="([^"]*)"[^>]*nombre="([^"]*)"[^>]*>/gi);
       if (lastSeccionMatch && lastSeccionMatch.length > 0) {
         currentSeccion = lastSeccionMatch[lastSeccionMatch.length - 1];
+      }
+      
+      // DEBUG para BOE-A-2026-4839
+      if (id === 'BOE-A-2026-4839') {
+        console.log(`[boe-search] DEBUG BOE-A-2026-4839 encontrado:`);
+        console.log(`  titulo: ${titulo.substring(0, 100)}`);
+        console.log(`  currentSeccion: ${currentSeccion}`);
+        console.log(`  hasBoe: ${hasBoe(titulo)}`);
+        console.log(`  isPotential: ${isPotentialLocalConvocatoria(titulo, currentSeccion)}`);
       }
       
       // Si el título ya contiene palabras clave de bomberos
@@ -296,26 +299,24 @@ async function fetchDaySummary(dateStr: string): Promise<any[]> {
       }
     }
     
-    // Verificar contenido de items potenciales EN PARALELO (batches de 10)
-    // Esto es crítico para no exceder el timeout de Vercel (10 segundos)
-    const verifyBatchSize = 10;
-    for (let i = 0; i < potentialItems.length; i += verifyBatchSize) {
-      const batch = potentialItems.slice(i, i + verifyBatchSize);
-      const batchResults = await Promise.all(
-        batch.map(async (item) => {
-          const isBombero = await checkDocumentContent(item.urlHtm);
-          return isBombero ? item : null;
-        })
-      );
-      
-      for (const item of batchResults) {
-        if (item) {
-          results.push({
-            ...item,
-            tipo: tipo(item.titulo) || 'Convocatoria',
-            departamento: ''
-          });
-        }
+    // Verificar contenido de items potenciales (sin límite - verificamos todos)
+    // Ya están ordenados por ID descendente para priorizar los más recientes
+    potentialItems.sort((a, b) => b.id.localeCompare(a.id));
+    
+    if (potentialItems.length > 0) {
+      console.log(`[boe-search] ${dateStr}: ${potentialItems.length} items potenciales a verificar`);
+    }
+    
+    // Verificar TODOS los items potenciales SECUENCIALMENTE (igual que desarrollo)
+    for (const item of potentialItems) {
+      const isBombero = await checkDocumentContent(item.urlHtm);
+      if (isBombero) {
+        console.log(`[boe-search] ✓ ENCONTRADO BOMBERO: ${item.id} - ${item.titulo.substring(0, 80)}`);
+        results.push({
+          ...item,
+          tipo: tipo(item.titulo) || 'Convocatoria',
+          departamento: ''
+        });
       }
     }
     
