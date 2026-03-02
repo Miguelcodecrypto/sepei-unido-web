@@ -11,14 +11,19 @@ const KW_BOMBEROS = [
   'bombero', 'bombera', 'bomberos', 'bomberas',
   'bombero-conductor', 'bombero conductor', 'bomberos-conductores',
   'bombero/a', 'bomberos/as',
+  'mecánico conductor bombero', 'mecanico conductor bombero',
+  'mecánico/a conductor/a bombero/a', 'mecanico/a conductor/a bombero/a',
   'sapador', 'sapadores',
   'sepei',
   'cuerpo de bomberos',
   'parque de bomberos',
   'servicio de extinción de incendios',
   'servicio extinción incendios',
+  'servicio de extincion de incendios',
   'prevención y extinción de incendios',
-  'prevencion y extincion de incendios'
+  'prevencion y extincion de incendios',
+  'extinción de incendios',
+  'extincion de incendios'
 ];
 
 // Función mejorada para detectar si es relacionado con bomberos
@@ -171,6 +176,68 @@ function calcularEstadoPlazo(fechaISO, tipoPublicacion) {
   return { estado, diasRestantesEstimados, diasTranscurridos, prioridad };
 }
 
+// Función para detectar si es una convocatoria potencial de administración local
+// que podría contener plazas de bomberos (títulos genéricos como "proveer varias plazas")
+function isPotentialLocalConvocatoria(titulo, seccion) {
+  const tituloLower = titulo.toLowerCase();
+  // Solo en sección de oposiciones (2B)
+  if (!seccion.includes('2B') && !seccion.includes('Oposiciones')) return false;
+  
+  // Detectar títulos genéricos de ayuntamientos/diputaciones
+  if ((tituloLower.includes('diputación') || tituloLower.includes('diputacion') ||
+       tituloLower.includes('ayuntamiento') || tituloLower.includes('consorcio') ||
+       tituloLower.includes('mancomunidad')) &&
+      (tituloLower.includes('proveer') || tituloLower.includes('plaza') || 
+       tituloLower.includes('convocatoria'))) {
+    return true;
+  }
+  return false;
+}
+
+// Patrones ESTRICTOS para verificar contenido de documentos
+// Solo patrones que claramente indican plazas de bomberos
+const PATRONES_ESTRICTOS_BOMBEROS = [
+  /plaza[s]?\s+(de\s+)?bomber[oa]/i,
+  /bomber[oa][s]?[\s\-\/a]+conductor/i,
+  /conductor[\s\/a]+bomber[oa]/i,
+  /mecánic[oa\s\/]+conductor[oa\s\/]+bomber[oa]/i,
+  /mecanico[a\s\/]+conductor[a\s\/]+bomber[oa]/i,
+  /cuerpo\s+de\s+bomberos/i,
+  /servicio\s+de\s+extinción\s+de\s+incendios/i,
+  /servicio\s+de\s+extincion\s+de\s+incendios/i,
+  /servicio\s+extinción\s+incendios/i,
+  /clase\s+servicio\s+de\s+extinci/i,
+  /\bsepei\b/i,
+  /\bsapador[es]?\b/i,
+  /escala[^.]{0,50}servicios\s+especiales[^.]{0,50}extinci/i,
+  /subescala[^.]{0,30}extinci[oó]n/i
+];
+
+// Función para verificar el contenido de un documento específico con patrones estrictos
+async function checkDocumentContent(urlHtml) {
+  try {
+    const r = await fetch(urlHtml, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html',
+      },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!r.ok) return false;
+    const html = await r.text();
+    
+    // Buscar solo patrones estrictos que claramente indican bomberos
+    for (const patron of PATRONES_ESTRICTOS_BOMBEROS) {
+      if (patron.test(html)) {
+        return true;
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 // Consultar el sumario de un día específico (XML)
 async function fetchDaySummary(dateStr) {
   const year = dateStr.substring(0, 4);
@@ -192,10 +259,12 @@ async function fetchDaySummary(dateStr) {
     
     const xml = await r.text();
     const results = [];
+    const potentialItems = [];
     
     // Buscar todos los items en el XML
     const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
     let match;
+    let currentSeccion = '';
     
     while ((match = itemRegex.exec(xml)) !== null) {
       const itemXml = match[1];
@@ -206,12 +275,29 @@ async function fetchDaySummary(dateStr) {
         .replace(/&quot;/g, '"')
         .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n));
       
+      const id = getXMLText(itemXml, 'identificador');
+      const urlHtml = getXMLText(itemXml, 'url_html');
+      const urlPdf = getXMLText(itemXml, 'url_pdf');
+      
+      // Detectar sección del item basándose en su posición en el XML
+      const itemPos = match.index;
+      const xmlBefore = xml.substring(0, itemPos);
+      const lastSeccionMatch = xmlBefore.match(/<seccion[^>]*codigo="([^"]*)"[^>]*nombre="([^"]*)"[^>]*>/gi);
+      if (lastSeccionMatch && lastSeccionMatch.length > 0) {
+        currentSeccion = lastSeccionMatch[lastSeccionMatch.length - 1];
+      }
+      
+      // DEBUG para BOE-A-2026-4839
+      if (id === 'BOE-A-2026-4839') {
+        console.log(`[DEBUG] BOE-A-2026-4839 encontrado:`);
+        console.log(`  titulo: ${titulo.substring(0, 100)}`);
+        console.log(`  currentSeccion: ${currentSeccion}`);
+        console.log(`  hasBoe: ${hasBoe(titulo)}`);
+        console.log(`  isPotential: ${isPotentialLocalConvocatoria(titulo, currentSeccion)}`);
+      }
+      
       // Filtrar solo publicaciones relacionadas con bomberos
       if (hasBoe(titulo)) {
-        const id = getXMLText(itemXml, 'identificador');
-        const urlHtml = getXMLText(itemXml, 'url_html');
-        const urlPdf = getXMLText(itemXml, 'url_pdf');
-        
         results.push({
           id,
           titulo,
@@ -221,6 +307,41 @@ async function fetchDaySummary(dateStr) {
           urlHtm: urlHtml || `${BOE_BASE}/diario_boe/txt.php?id=${id}`,
           urlPdf: urlPdf || '',
           tipo: tipo(titulo),
+          departamento: ''
+        });
+      }
+      // Si es una convocatoria potencial de administración local, guardarla para verificar
+      else if (isPotentialLocalConvocatoria(titulo, currentSeccion)) {
+        potentialItems.push({
+          id,
+          titulo,
+          fecha: `${day}/${month}/${year}`,
+          fechaISO: `${year}-${month}-${day}`,
+          anio: parseInt(year),
+          urlHtm: urlHtml || `${BOE_BASE}/diario_boe/txt.php?id=${id}`,
+          urlPdf: urlPdf || '',
+        });
+      }
+    }
+    
+    // Verificar contenido de items potenciales (sin límite - verificamos todos)
+    // Ya están ordenados por ID descendente para priorizar los más recientes
+    potentialItems.sort((a, b) => b.id.localeCompare(a.id));
+    
+    if (potentialItems.length > 0) {
+      console.log(`[boe-api-dev] ${dateStr}: ${potentialItems.length} items potenciales a verificar`);
+      // Mostrar los primeros 10 IDs
+      const idsToCheck = potentialItems.slice(0, 10).map(i => i.id);
+      console.log(`[boe-api-dev] Verificando: ${idsToCheck.join(', ')}... (y ${Math.max(0, potentialItems.length - 10)} más)`);
+    }
+    // Verificar TODOS los items potenciales (antes estaba limitado y perdía documentos)
+    for (const item of potentialItems) {
+      const isBombero = await checkDocumentContent(item.urlHtm);
+      if (isBombero) {
+        console.log(`[boe-api-dev] ✓ ENCONTRADO BOMBERO: ${item.id} - ${item.titulo.substring(0, 80)}`);
+        results.push({
+          ...item,
+          tipo: tipo(item.titulo) || 'Convocatoria',
           departamento: ''
         });
       }
@@ -245,9 +366,9 @@ function boeDevPlugin() {
         
         console.log('[boe-api-dev] Procesando petición BOE');
         try {
-          // Obtener sumarios del último año (365 días laborables)
-          console.log('[boe-api-dev] Consultando sumarios del BOE (último año)...');
-          const dates = getRecentDates(365);
+          // Obtener sumarios de los últimos 3 meses (90 días laborables)
+          console.log('[boe-api-dev] Consultando sumarios del BOE (últimos 3 meses)...');
+          const dates = getRecentDates(90);
           
           // Consultar en lotes de 15 para balance velocidad/carga
           const batchSize = 15;
@@ -288,16 +409,8 @@ function boeDevPlugin() {
             }
           }
           
-          // Ordenar por prioridad (mayor primero) y luego por fecha más reciente
-          // No filtrar - mostrar todos los resultados con su estado de plazo
-          merged.sort((a, b) => {
-            // Primero por prioridad (los que están en plazo primero)
-            if (b.prioridad !== a.prioridad) {
-              return b.prioridad - a.prioridad;
-            }
-            // Si misma prioridad, por fecha más reciente
-            return b.fechaISO.localeCompare(a.fechaISO);
-          });
+          // Ordenar por fecha más reciente
+          merged.sort((a, b) => b.fechaISO.localeCompare(a.fechaISO));
           
           console.log(`[boe-api-dev] Total resultados: ${merged.length}`);
           
