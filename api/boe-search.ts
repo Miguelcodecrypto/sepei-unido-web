@@ -13,14 +13,19 @@ const KW_BOMBEROS = [
   'bombero', 'bombera', 'bomberos', 'bomberas',
   'bombero-conductor', 'bombero conductor', 'bomberos-conductores',
   'bombero/a', 'bomberos/as',
+  'mecánico conductor bombero', 'mecanico conductor bombero',
+  'mecánico/a conductor/a bombero/a', 'mecanico/a conductor/a bombero/a',
   'sapador', 'sapadores',
   'sepei',
   'cuerpo de bomberos',
   'parque de bomberos',
   'servicio de extinción de incendios',
   'servicio extinción incendios',
+  'servicio de extincion de incendios',
   'prevención y extinción de incendios',
-  'prevencion y extincion de incendios'
+  'prevencion y extincion de incendios',
+  'extinción de incendios',
+  'extincion de incendios'
 ];
 
 // Función mejorada para detectar si es relacionado con bomberos
@@ -145,6 +150,67 @@ function calcularEstadoPlazo(fechaISO: string, tipoPublicacion: string) {
   return { estado, diasRestantesEstimados, diasTranscurridos, prioridad };
 }
 
+// Función para detectar si es una convocatoria potencial de administración local
+// que podría contener plazas de bomberos (títulos genéricos como "proveer varias plazas")
+function isPotentialLocalConvocatoria(titulo: string, seccion: string): boolean {
+  const tituloLower = titulo.toLowerCase();
+  // Solo en sección de oposiciones (2B)
+  if (!seccion.includes('2B') && !seccion.includes('Oposiciones')) return false;
+  
+  // Detectar títulos genéricos de ayuntamientos/diputaciones
+  if ((tituloLower.includes('diputación') || tituloLower.includes('diputacion') ||
+       tituloLower.includes('ayuntamiento') || tituloLower.includes('consorcio') ||
+       tituloLower.includes('mancomunidad')) &&
+      (tituloLower.includes('proveer') || tituloLower.includes('plaza') || 
+       tituloLower.includes('convocatoria'))) {
+    return true;
+  }
+  return false;
+}
+
+// Patrones ESTRICTOS para verificar contenido de documentos
+// Solo patrones que claramente indican plazas de bomberos
+const PATRONES_ESTRICTOS_BOMBEROS = [
+  /plaza[s]?\s+(de\s+)?bomber[oa]/i,
+  /bomber[oa][s]?[\s\-\/a]+conductor/i,
+  /conductor[\s\/a]+bomber[oa]/i,
+  /mecánic[oa\s\/]+conductor[oa\s\/]+bomber[oa]/i,
+  /mecanico[a\s\/]+conductor[a\s\/]+bomber[oa]/i,
+  /cuerpo\s+de\s+bomberos/i,
+  /servicio\s+de\s+extinción\s+de\s+incendios/i,
+  /servicio\s+de\s+extincion\s+de\s+incendios/i,
+  /servicio\s+extinción\s+incendios/i,
+  /clase\s+servicio\s+de\s+extinci/i,
+  /\bsepei\b/i,
+  /\bsapador[es]?\b/i,
+  /escala[^.]{0,50}servicios\s+especiales[^.]{0,50}extinci/i,
+  /subescala[^.]{0,30}extinci[oó]n/i
+];
+
+// Función para verificar el contenido de un documento específico con patrones estrictos
+async function checkDocumentContent(urlHtml: string): Promise<boolean> {
+  try {
+    const r = await fetch(urlHtml, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html',
+      },
+    });
+    if (!r.ok) return false;
+    const html = await r.text();
+    
+    // Buscar solo patrones estrictos que claramente indican bomberos
+    for (const patron of PATRONES_ESTRICTOS_BOMBEROS) {
+      if (patron.test(html)) {
+        return true;
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 // Consultar sumario usando API de datos abiertos (igual que en desarrollo)
 async function fetchDaySummary(dateStr: string): Promise<any[]> {
   const year = dateStr.substring(0, 4);
@@ -166,6 +232,11 @@ async function fetchDaySummary(dateStr: string): Promise<any[]> {
     
     const xml = await r.text();
     const results: any[] = [];
+    const potentialItems: any[] = [];
+    
+    // Detectar la sección actual
+    let currentSeccion = '';
+    const seccionMatch = xml.match(/<seccion[^>]*codigo="([^"]*)"[^>]*nombre="([^"]*)"[^>]*>/gi);
     
     const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
     let match;
@@ -179,11 +250,20 @@ async function fetchDaySummary(dateStr: string): Promise<any[]> {
         .replace(/&quot;/g, '"')
         .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n));
       
+      const id = getXMLText(itemXml, 'identificador');
+      const urlHtml = getXMLText(itemXml, 'url_html');
+      const urlPdf = getXMLText(itemXml, 'url_pdf');
+      
+      // Detectar sección del item basándose en su posición en el XML
+      const itemPos = match.index;
+      const xmlBefore = xml.substring(0, itemPos);
+      const lastSeccionMatch = xmlBefore.match(/<seccion[^>]*codigo="([^"]*)"[^>]*nombre="([^"]*)"[^>]*>/gi);
+      if (lastSeccionMatch && lastSeccionMatch.length > 0) {
+        currentSeccion = lastSeccionMatch[lastSeccionMatch.length - 1];
+      }
+      
+      // Si el título ya contiene palabras clave de bomberos
       if (hasBoe(titulo)) {
-        const id = getXMLText(itemXml, 'identificador');
-        const urlHtml = getXMLText(itemXml, 'url_html');
-        const urlPdf = getXMLText(itemXml, 'url_pdf');
-        
         results.push({
           id,
           titulo,
@@ -193,6 +273,31 @@ async function fetchDaySummary(dateStr: string): Promise<any[]> {
           urlHtm: urlHtml || `${BOE_BASE}/diario_boe/txt.php?id=${id}`,
           urlPdf: urlPdf || '',
           tipo: tipo(titulo),
+          departamento: ''
+        });
+      }
+      // Si es una convocatoria potencial de administración local, guardarla para verificar
+      else if (isPotentialLocalConvocatoria(titulo, currentSeccion)) {
+        potentialItems.push({
+          id,
+          titulo,
+          fecha: `${day}/${month}/${year}`,
+          fechaISO: `${year}-${month}-${day}`,
+          anio: parseInt(year),
+          urlHtm: urlHtml || `${BOE_BASE}/diario_boe/txt.php?id=${id}`,
+          urlPdf: urlPdf || '',
+        });
+      }
+    }
+    
+    // Verificar contenido de TODOS los items potenciales
+    // (antes había límite de 15 que causaba pérdidas de documentos)
+    for (const item of potentialItems) {
+      const isBombero = await checkDocumentContent(item.urlHtm);
+      if (isBombero) {
+        results.push({
+          ...item,
+          tipo: tipo(item.titulo) || 'Convocatoria',
           departamento: ''
         });
       }
@@ -216,8 +321,8 @@ module.exports = async function handler(req: any, res: any) {
   try {
     console.log('[boe-search] Iniciando búsqueda...');
     
-    // Usar 365 días (excluye fines de semana)
-    const dates = getRecentDates(365);
+    // Usar 90 días (3 meses, excluye fines de semana)
+    const dates = getRecentDates(90);
     console.log(`[boe-search] Consultando ${dates.length} días laborables...`);
     
     const summaryResults: any[] = [];
@@ -260,11 +365,8 @@ module.exports = async function handler(req: any, res: any) {
       }
     }
     
-    // Ordenar por prioridad y fecha
-    merged.sort((a, b) => {
-      if (b.prioridad !== a.prioridad) return b.prioridad - a.prioridad;
-      return b.fechaISO.localeCompare(a.fechaISO);
-    });
+    // Ordenar por fecha más reciente
+    merged.sort((a, b) => b.fechaISO.localeCompare(a.fechaISO));
 
     console.log(`[boe-search] Total: ${merged.length} resultados únicos`);
 
