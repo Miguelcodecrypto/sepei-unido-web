@@ -342,25 +342,18 @@ module.exports = async function handler(req: any, res: any) {
     console.log(`[boe-search] Consultando ${dates.length} días laborables...`);
     
     const summaryResults: any[] = [];
-    const batchSize = 10;
-    const startTime = Date.now();
-    const MAX_TIME = 8000; // 8 segundos máximo
+    const batchSize = 15; // Igual que desarrollo
     
+    // Procesar TODOS los días sin límite ni parada temprana (igual que desarrollo)
     for (let i = 0; i < dates.length; i += batchSize) {
-      // Verificar timeout
-      if (Date.now() - startTime > MAX_TIME) {
-        console.log('[boe-search] Tiempo límite alcanzado');
-        break;
-      }
-      
       const batch = dates.slice(i, i + batchSize);
       const batchResults = await Promise.all(batch.map(d => fetchDaySummary(d)));
       summaryResults.push(...batchResults.flat());
       
-      console.log(`[boe-search] Procesados ${Math.min(i + batchSize, dates.length)}/${dates.length} días, ${summaryResults.length} resultados`);
-      
-      // Parar si tenemos suficientes
-      if (summaryResults.length >= 50) break;
+      // Log de progreso
+      if ((i + batchSize) % 50 === 0 || i + batchSize >= dates.length) {
+        console.log(`[boe-search] Procesados ${Math.min(i + batchSize, dates.length)}/${dates.length} días, ${summaryResults.length} resultados`);
+      }
     }
     
     // Eliminar duplicados y añadir estado de plazo
