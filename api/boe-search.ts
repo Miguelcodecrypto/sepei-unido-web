@@ -190,12 +190,18 @@ const PATRONES_ESTRICTOS_BOMBEROS = [
 // Función para verificar el contenido de un documento específico con patrones estrictos
 async function checkDocumentContent(urlHtml: string): Promise<boolean> {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000); // 3 segundos máximo
+    
     const r = await fetch(urlHtml, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'text/html',
       },
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeout);
     if (!r.ok) return false;
     const html = await r.text();
     
@@ -290,16 +296,26 @@ async function fetchDaySummary(dateStr: string): Promise<any[]> {
       }
     }
     
-    // Verificar contenido de TODOS los items potenciales
-    // (antes había límite de 15 que causaba pérdidas de documentos)
-    for (const item of potentialItems) {
-      const isBombero = await checkDocumentContent(item.urlHtm);
-      if (isBombero) {
-        results.push({
-          ...item,
-          tipo: tipo(item.titulo) || 'Convocatoria',
-          departamento: ''
-        });
+    // Verificar contenido de items potenciales EN PARALELO (batches de 10)
+    // Esto es crítico para no exceder el timeout de Vercel (10 segundos)
+    const verifyBatchSize = 10;
+    for (let i = 0; i < potentialItems.length; i += verifyBatchSize) {
+      const batch = potentialItems.slice(i, i + verifyBatchSize);
+      const batchResults = await Promise.all(
+        batch.map(async (item) => {
+          const isBombero = await checkDocumentContent(item.urlHtm);
+          return isBombero ? item : null;
+        })
+      );
+      
+      for (const item of batchResults) {
+        if (item) {
+          results.push({
+            ...item,
+            tipo: tipo(item.titulo) || 'Convocatoria',
+            departamento: ''
+          });
+        }
       }
     }
     
