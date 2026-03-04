@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
-import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award, Mail, BookOpen, AlertTriangle, UserX, Shield, Flame } from 'lucide-react';
+import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award, Mail, BookOpen, AlertTriangle, UserX, Shield, Flame, MessageCircle, MapPin } from 'lucide-react';
 import { getAllUsers, deleteUser, exportUsersToCSV, toggleVotingAuthorization, resetTempPassword } from '../services/userDatabase';
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
@@ -32,7 +32,8 @@ interface User {
   dni?: string;
   email: string;
   telefono?: string;
-  fechaRegistro: string;
+  parque_sepei?: string;
+  fecha_registro: string;
   terminos_aceptados: boolean;
   fecha_aceptacion_terminos: string;
   version_terminos: string;
@@ -41,6 +42,9 @@ interface User {
   certificado_fecha_validacion?: string;
   certificado_valido?: boolean;
   autorizado_votar?: boolean;
+  telegram_chat_id?: string;
+  telegram_username?: string;
+  telegram_linked_at?: string;
 }
 
 interface Suggestion {
@@ -100,6 +104,11 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     return conteo;
   }, [usuariosConEstado]);
 
+  // Contar usuarios con Telegram vinculado
+  const usuariosConTelegram = useMemo(() => {
+    return users.filter(u => u.telegram_chat_id).length;
+  }, [users]);
+
   useEffect(() => {
     loadUsers();
     loadSuggestions();
@@ -129,8 +138,8 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     const data = await getAllUsers();
     console.log('👥 Usuarios obtenidos:', data.length);
     
-    // Mapear datos de Supabase (snake_case) a formato del componente (camelCase)
-    const mappedData = data.map(user => {
+    // Mapear datos de Supabase (snake_case) a formato del componente
+    const mappedData = data.map((user: any) => {
       console.log(`Usuario ${user.nombre}: autorizado_votar =`, user.autorizado_votar);
       return {
         id: user.id,
@@ -139,7 +148,8 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
         dni: user.dni,
         email: user.email,
         telefono: user.telefono,
-        fechaRegistro: user.fecha_registro,
+        parque_sepei: user.parque_sepei,
+        fecha_registro: user.fecha_registro,
         terminos_aceptados: user.terminos_aceptados,
         fecha_aceptacion_terminos: user.fecha_aceptacion_terminos,
         version_terminos: user.version_terminos,
@@ -148,6 +158,9 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
         certificado_fecha_validacion: user.certificado_fecha_validacion,
         certificado_valido: user.certificado_valido,
         autorizado_votar: user.autorizado_votar,
+        telegram_chat_id: user.telegram_chat_id,
+        telegram_username: user.telegram_username,
+        telegram_linked_at: user.telegram_linked_at,
       };
     });
     
@@ -399,14 +412,44 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
         {/* Stats */}
         {activeTab !== 'announcements' && activeTab !== 'voting' && activeTab !== 'analytics' && activeTab !== 'results' && activeTab !== 'external-emails' && activeTab !== 'interinos' && activeTab !== 'security' && activeTab !== 'convocatorias' && (
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-orange-500/20 mb-8">
-            <div className="text-center">
-              <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
-                {activeTab === 'users' ? totalUsers : totalSuggestions}
+            {activeTab === 'users' ? (
+              <div className="flex flex-wrap items-center justify-center gap-8">
+                <div className="text-center">
+                  <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
+                    {totalUsers}
+                  </div>
+                  <div className="text-gray-400 font-semibold">
+                    Usuarios Registrados
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-5xl font-black text-[#0088cc] mb-2">
+                    {usuariosConTelegram}
+                  </div>
+                  <div className="text-gray-400 font-semibold flex items-center gap-2 justify-center">
+                    <MessageCircle className="w-4 h-4 text-[#0088cc]" />
+                    Telegram Activo
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-gray-500 mb-2">
+                    {totalUsers > 0 ? Math.round((usuariosConTelegram / totalUsers) * 100) : 0}%
+                  </div>
+                  <div className="text-gray-500 font-semibold text-sm">
+                    del total
+                  </div>
+                </div>
               </div>
-              <div className="text-gray-400 font-semibold">
-                {activeTab === 'users' ? 'Usuarios Registrados' : 'Sugerencias Recibidas'}
+            ) : (
+              <div className="text-center">
+                <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
+                  {totalSuggestions}
+                </div>
+                <div className="text-gray-400 font-semibold">
+                  Sugerencias Recibidas
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -518,18 +561,20 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[1400px]">
                 <thead className="bg-slate-900/80 border-b border-slate-700">
                   <tr>
-                    <th className="px-6 py-4 text-left text-white font-semibold">Estado</th>
-                    <th className="px-6 py-4 text-left text-white font-semibold">Nombre</th>
-                    <th className="px-6 py-4 text-left text-white font-semibold">Apellidos</th>
-                    <th className="px-6 py-4 text-left text-white font-semibold">DNI</th>
-                    <th className="px-6 py-4 text-left text-white font-semibold">Email</th>
-                    <th className="px-6 py-4 text-left text-white font-semibold">Teléfono</th>
-                    <th className="px-6 py-4 text-left text-white font-semibold">Fecha Registro</th>
-                    <th className="px-6 py-4 text-center text-white font-semibold">Voto</th>
-                    <th className="px-6 py-4 text-center text-white font-semibold">Acciones</th>
+                    <th className="px-3 py-3 text-left text-white font-semibold text-sm whitespace-nowrap">Estado</th>
+                    <th className="px-3 py-3 text-left text-white font-semibold text-sm whitespace-nowrap">Nombre</th>
+                    <th className="px-3 py-3 text-left text-white font-semibold text-sm whitespace-nowrap">Apellidos</th>
+                    <th className="px-3 py-3 text-left text-white font-semibold text-sm whitespace-nowrap">DNI</th>
+                    <th className="px-3 py-3 text-left text-white font-semibold text-sm whitespace-nowrap">Email</th>
+                    <th className="px-3 py-3 text-left text-white font-semibold text-sm whitespace-nowrap">Teléfono</th>
+                    <th className="px-3 py-3 text-left text-white font-semibold text-sm whitespace-nowrap" title="Centro de trabajo"><MapPin className="w-4 h-4 inline mr-1" />Parque</th>
+                    <th className="px-3 py-3 text-left text-white font-semibold text-sm whitespace-nowrap">Registro</th>
+                    <th className="px-3 py-3 text-center text-white font-semibold text-sm" title="Telegram vinculado"><MessageCircle className="w-4 h-4 mx-auto text-[#0088cc]" /></th>
+                    <th className="px-3 py-3 text-center text-white font-semibold text-sm whitespace-nowrap">Voto</th>
+                    <th className="px-3 py-3 text-center text-white font-semibold text-sm whitespace-nowrap">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -543,73 +588,100 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                     return (
                     <React.Fragment key={user.id}>
                       <tr className={`border-b border-slate-700/50 hover:bg-slate-700/30 transition ${colorEstado}`}>
-                        <td className="px-4 py-4">
+                        <td className="px-3 py-3">
                           {user.estadoPlantilla === 'en_plantilla' && (
                             <div className="flex items-center gap-1" title="En plantilla oficial">
-                              <CheckCircle className="w-5 h-5 text-green-400" />
+                              <CheckCircle className="w-4 h-4 text-green-400" />
                             </div>
                           )}
                           {user.estadoPlantilla === 'cambios_detectados' && (
                             <div className="flex items-center gap-1" title={`Cambios detectados: ${user.diferenciasPlantilla?.map((d: { campo: string; valor: string; valorOficial: string }) => `${d.campo}: ${d.valor} → ${d.valorOficial}`).join(', ')}`}>
-                              <AlertTriangle className="w-5 h-5 text-amber-400" />
+                              <AlertTriangle className="w-4 h-4 text-amber-400" />
                             </div>
                           )}
                           {user.estadoPlantilla === 'no_en_plantilla' && (
                             <div className="flex items-center gap-1" title="No aparece en plantilla oficial">
-                              <UserX className="w-5 h-5 text-red-400" />
+                              <UserX className="w-4 h-4 text-red-400" />
                             </div>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-white">{user.nombre}</td>
-                        <td className="px-6 py-4 text-gray-300">{user.apellidos || '-'}</td>
-                        <td className="px-6 py-4 text-gray-300">{user.dni || '-'}</td>
-                        <td className="px-6 py-4 text-gray-300">{user.email}</td>
-                        <td className="px-6 py-4 text-gray-300">{user.telefono || '-'}</td>
-                        <td className="px-6 py-4 text-gray-300">
-                          {new Date(user.fechaRegistro).toLocaleDateString('es-ES')}
+                        <td className="px-3 py-3 text-white text-sm">{user.nombre}</td>
+                        <td className="px-3 py-3 text-gray-300 text-sm">{user.apellidos || '-'}</td>
+                        <td className="px-3 py-3 text-gray-300 text-sm">{user.dni || '-'}</td>
+                        <td className="px-3 py-3 text-gray-300 text-sm max-w-[180px] truncate" title={user.email}>{user.email}</td>
+                        <td className="px-3 py-3 text-gray-300 text-sm">{user.telefono || '-'}</td>
+                        <td className="px-3 py-3">
+                          {user.parque_sepei ? (
+                            <span className="px-2 py-1 bg-orange-500/20 text-orange-300 rounded text-xs font-medium whitespace-nowrap">
+                              {user.parque_sepei}
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">-</span>
+                          )}
                         </td>
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-3 py-3 text-gray-300 text-sm whitespace-nowrap">
+                          {new Date(user.fecha_registro).toLocaleDateString('es-ES')}
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          {user.telegram_chat_id ? (
+                            <div 
+                              className="flex items-center justify-center" 
+                              title={`Telegram vinculado${user.telegram_username ? ` (@${user.telegram_username})` : ''}\nDesde: ${user.telegram_linked_at ? new Date(user.telegram_linked_at).toLocaleDateString('es-ES') : 'N/A'}`}
+                            >
+                              <div className="p-1 bg-[#0088cc]/20 rounded">
+                                <MessageCircle className="w-4 h-4 text-[#0088cc]" />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center" title="Sin Telegram vinculado">
+                              <div className="p-1 bg-gray-600/20 rounded">
+                                <MessageCircle className="w-4 h-4 text-gray-500" />
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-center">
                           <button
                             onClick={() => handleToggleVotingAuth(user.id, user.autorizado_votar || false, user.nombre)}
-                            className={`p-2 rounded transition ${
+                            className={`p-1.5 rounded transition ${
                               user.autorizado_votar 
                                 ? 'bg-green-600/20 hover:bg-red-600/20 text-green-400 hover:text-red-400' 
                                 : 'bg-red-600/20 hover:bg-green-600/20 text-red-400 hover:text-green-400'
                             }`}
                             title={user.autorizado_votar ? 'Desautorizar voto' : 'Autorizar voto'}
                           >
-                            {user.autorizado_votar ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+                            {user.autorizado_votar ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
                           </button>
                         </td>
-                        <td className="px-6 py-4 text-center">
-                          <div className="flex gap-2 justify-center">
+                        <td className="px-3 py-3 text-center">
+                          <div className="flex gap-1 justify-center">
                             <button
                               onClick={() => handleResetTempPassword(user.id, user.nombre, user.email)}
-                              className="p-2 hover:bg-yellow-600/30 rounded transition text-yellow-400"
+                              className="p-1.5 hover:bg-yellow-600/30 rounded transition text-yellow-400"
                               title="Resetear contraseña temporal"
                             >
-                              <Key className="w-5 h-5" />
+                              <Key className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => toggleDetails(user.id)}
-                              className="p-2 hover:bg-blue-600/30 rounded transition text-blue-400"
+                              className="p-1.5 hover:bg-blue-600/30 rounded transition text-blue-400"
                               title="Ver detalles"
                             >
-                              {showDetails[user.id] ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                              {showDetails[user.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
                             <button
                               onClick={() => handleDeleteUser(user.id, user.nombre)}
-                              className="p-2 hover:bg-red-600/30 rounded transition text-red-400"
+                              className="p-1.5 hover:bg-red-600/30 rounded transition text-red-400"
                               title="Eliminar"
                             >
-                              <Trash2 className="w-5 h-5" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
                       </tr>
                       {showDetails[user.id] && (
                         <tr className="bg-slate-900/50 border-b border-slate-700/50">
-                          <td colSpan={9} className="px-6 py-4">
+                          <td colSpan={11} className="px-6 py-4">
                             <div className="space-y-4">
                               {/* Información de Plantilla Oficial */}
                               <div className={`border rounded-lg p-4 mb-4 ${
@@ -710,6 +782,55 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                                   </div>
                                 </div>
                               )}
+
+                              {/* Información de Telegram */}
+                              <div className={`border rounded-lg p-4 mb-4 ${
+                                user.telegram_chat_id 
+                                  ? 'border-[#0088cc]/30 bg-[#0088cc]/10'
+                                  : 'border-gray-500/30 bg-gray-500/10'
+                              }`}>
+                                <h4 className={`font-bold mb-3 flex items-center gap-2 ${
+                                  user.telegram_chat_id ? 'text-[#0088cc]' : 'text-gray-400'
+                                }`}>
+                                  <MessageCircle className="w-5 h-5" />
+                                  Notificaciones Telegram
+                                </h4>
+                                <div className="space-y-2 text-sm">
+                                  {user.telegram_chat_id ? (
+                                    <>
+                                      <div>
+                                        <span className="text-gray-400">Estado: </span>
+                                        <span className="text-[#0088cc] font-semibold">✓ Vinculado</span>
+                                      </div>
+                                      {user.telegram_username && (
+                                        <div>
+                                          <span className="text-gray-400">Usuario: </span>
+                                          <span className="text-white">@{user.telegram_username}</span>
+                                        </div>
+                                      )}
+                                      <div>
+                                        <span className="text-gray-400">Vinculado desde: </span>
+                                        <span className="text-white">
+                                          {user.telegram_linked_at 
+                                            ? new Date(user.telegram_linked_at).toLocaleDateString('es-ES', {
+                                                day: '2-digit',
+                                                month: 'long',
+                                                year: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                              })
+                                            : 'N/A'}
+                                        </span>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div>
+                                      <span className="text-gray-400">Estado: </span>
+                                      <span className="text-gray-500 font-semibold">No vinculado</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                               
                               {/* Información de Consentimiento RGPD */}
                               <div className="border-t border-slate-700 pt-4 mt-4">
