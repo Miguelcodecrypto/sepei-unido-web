@@ -210,7 +210,7 @@ function generateAnnouncementEmailHTML(
               <!-- Anuncio Box -->
               <div style="background-color: #f9fafb; border-left: 4px solid #3b82f6; padding: 20px; margin: 20px 0; border-radius: 4px;">
                 <h2 style="color: #1f2937; margin: 0 0 15px 0; font-size: 20px;">${announcement.titulo}</h2>
-                <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin: 0; white-space: pre-line;">${announcement.descripcion}</p>
+                <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin: 0; white-space: pre-line;">${announcement.descripcion.length > 300 ? announcement.descripcion.substring(0, 300) + '...' : announcement.descripcion}</p>
               </div>
 
               <!-- CTA Button -->
@@ -218,7 +218,7 @@ function generateAnnouncementEmailHTML(
                 <tr>
                   <td align="center">
                     <a href="${announcement.url}" style="display: inline-block; background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-size: 16px; font-weight: bold;">
-                      Ver en el tablón
+                      📖 Leer noticia completa
                     </a>
                   </td>
                 </tr>
@@ -264,9 +264,9 @@ Hola ${recipient.nombre},
 ${announcement.titulo}
 ${'='.repeat(announcement.titulo.length)}
 
-${announcement.descripcion}
+${announcement.descripcion.length > 300 ? announcement.descripcion.substring(0, 300) + '...' : announcement.descripcion}
 
-Ver completo: ${announcement.url}
+📖 Leer noticia completa: ${announcement.url}
 
 ---
 © ${new Date().getFullYear()} SEPEI UNIDO
