@@ -17,7 +17,6 @@ import VotingBoard from './components/VotingBoard';
 import FloatingVotingButton from './components/FloatingVotingButton';
 import { getInterinosBibliografia, getInterinosContenido, type InterinosBibliografiaItem } from './services/interinosBibliografia';
 import UserProfilePanel from './components/UserProfilePanel';
-import TelegramBanner from './components/TelegramBanner';
 
 export default function SepeiUnido() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -1666,11 +1665,6 @@ export default function SepeiUnido() {
         />
       )}
 
-      {/* Telegram Notification Banner */}
-      <TelegramBanner 
-        isLoggedIn={!!loggedUser}
-        onOpenProfile={() => setShowUserProfile(true)}
-      />
     </div>
   );
 }

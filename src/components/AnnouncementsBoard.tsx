@@ -12,6 +12,7 @@ export default function AnnouncementsBoard({ loggedUser, onLoginRequired }: Anno
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingAnnouncementId, setPendingAnnouncementId] = useState<string | null>(null);
 
   useEffect(() => {
     loadAnnouncements();
@@ -23,6 +24,36 @@ export default function AnnouncementsBoard({ loggedUser, onLoginRequired }: Anno
     const cleanup = createSectionTimeTracker('announcements');
     return cleanup;
   }, []);
+
+  // Detectar parámetro de anuncio en la URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const anuncioId = urlParams.get('anuncio');
+    if (anuncioId) {
+      setPendingAnnouncementId(anuncioId);
+      // Limpiar el parámetro de la URL sin recargar
+      const newUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, []);
+
+  // Abrir anuncio automáticamente cuando está disponible y el usuario está logueado
+  useEffect(() => {
+    if (pendingAnnouncementId && announcements.length > 0) {
+      const announcement = announcements.find(a => a.id === pendingAnnouncementId);
+      if (announcement) {
+        if (loggedUser) {
+          handleOpenAnnouncement(announcement);
+          setPendingAnnouncementId(null);
+        } else {
+          // Mostrar login si no está logueado
+          onLoginRequired?.();
+        }
+      } else {
+        setPendingAnnouncementId(null);
+      }
+    }
+  }, [pendingAnnouncementId, announcements, loggedUser]);
 
   const loadAnnouncements = async () => {
     setIsLoading(true);

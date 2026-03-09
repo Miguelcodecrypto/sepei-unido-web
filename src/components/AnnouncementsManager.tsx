@@ -242,7 +242,7 @@ export default function AnnouncementsManager() {
           titulo: pendingAnnouncementData.titulo,
           descripcion: pendingAnnouncementData.descripcion,
           categoria: pendingAnnouncementData.categoria,
-          url: `https://www.sepeiunido.org/#announcements`
+          url: `https://www.sepeiunido.org/?anuncio=${pendingAnnouncementData.id}#announcements`
         }
       );
 
@@ -278,7 +278,7 @@ export default function AnnouncementsManager() {
               titulo: pendingAnnouncementData.titulo,
               descripcion: pendingAnnouncementData.descripcion,
               categoria: pendingAnnouncementData.categoria,
-              url: `https://www.sepeiunido.org/#announcements`
+              url: `https://www.sepeiunido.org/?anuncio=${pendingAnnouncementData.id}#announcements`
             }
           );
           

@@ -72,7 +72,13 @@ function formatTelegramMessage(data: TelegramNotificationData, recipientName: st
   
   let message = `${greeting}\n\n`;
   message += `${emoji} <b>${escapeHtml(data.titulo)}</b>\n\n`;
-  message += `${escapeHtml(data.descripcion)}\n`;
+  
+  // Truncar descripción a 300 caracteres para anuncios
+  let descripcion = data.descripcion;
+  if (data.type === 'announcement' && descripcion.length > 300) {
+    descripcion = descripcion.substring(0, 300) + '...';
+  }
+  message += `${escapeHtml(descripcion)}\n`;
   
   // Añadir información extra según el tipo
   if (data.type === 'voting' && data.extra?.fecha_fin) {
@@ -92,7 +98,11 @@ function formatTelegramMessage(data: TelegramNotificationData, recipientName: st
   }
   
   if (data.url) {
-    message += `\n\n🔗 <a href="${data.url}">Ver más detalles</a>`;
+    if (data.type === 'announcement') {
+      message += `\n\n📖 <a href="${data.url}">Leer noticia completa</a>`;
+    } else {
+      message += `\n\n🔗 <a href="${data.url}">Ver más detalles</a>`;
+    }
   }
   
   message += '\n\n━━━━━━━━━━━━━━━━━\n';
