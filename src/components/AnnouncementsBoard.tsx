@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Eye, FileText, Download, X, Star, ChevronRight, Shield, LogIn, Lock } from 'lucide-react';
-import { getPublishedAnnouncements, incrementViews, type Announcement } from '../services/announcementDatabase';
+import { getPublishedAnnouncements, incrementViews, getViewableFileUrl, type Announcement } from '../services/announcementDatabase';
 import { trackInteraction, createSectionTimeTracker } from '../services/analyticsService';
 import DOMPurify from 'dompurify';
 
@@ -298,47 +298,65 @@ export default function AnnouncementsBoard({ loggedUser, onLoginRequired }: Anno
               {/* Adjuntos múltiples */}
               {selectedAnnouncement.attachments && selectedAnnouncement.attachments.length > 0 && (
                 <div className="space-y-3">
-                  {selectedAnnouncement.attachments.map((att) => (
+                  {selectedAnnouncement.attachments.map((att) => {
+                    // Usar proxy para archivos de Supabase que necesitan mostrarse inline
+                    const viewUrl = getViewableFileUrl(att.url);
+                    const isHtml = att.tipo === 'text/html' || att.nombre.toLowerCase().endsWith('.html') || att.nombre.toLowerCase().endsWith('.htm');
+                    const isPdf = att.tipo === 'application/pdf' || att.nombre.toLowerCase().endsWith('.pdf');
+                    
+                    return (
                     <div key={att.id} className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className="p-3 bg-blue-600 rounded-lg">
-                            {att.categoria === 'video' ? '🎬' : att.categoria === 'audio' ? '🎧' : att.categoria === 'link' ? '🔗' : <FileText className="w-6 h-6 text-white" />} 
+                            {att.categoria === 'video' ? '🎬' : att.categoria === 'audio' ? '🎧' : att.categoria === 'link' ? '🔗' : isHtml ? '🌐' : <FileText className="w-6 h-6 text-white" />} 
                           </div>
                           <div>
                             <p className="text-white font-semibold">{att.nombre}</p>
-                            <p className="text-gray-400 text-sm uppercase">{att.categoria}</p>
+                            <p className="text-gray-400 text-sm uppercase">{att.categoria}{isHtml ? ' • HTML' : ''}</p>
                           </div>
                         </div>
                         <a
-                          href={att.url}
+                          href={viewUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
                         >
-                          <Download className="w-5 h-5" />
-                          Abrir
+                          <Eye className="w-5 h-5" />
+                          {isHtml ? 'Ver documento' : 'Abrir'}
                         </a>
                       </div>
 
-                      {att.tipo === 'application/pdf' && att.categoria === 'documento' && (
+                      {/* Vista previa de PDF */}
+                      {isPdf && att.categoria === 'documento' && (
                         <div className="mt-4">
                           <iframe
-                            src={att.url}
+                            src={viewUrl}
                             className="w-full h-[600px] rounded-lg border border-slate-700"
                             title={`Vista previa ${att.nombre}`}
                           />
                         </div>
                       )}
 
+                      {/* Vista previa de HTML embebido */}
+                      {isHtml && (
+                        <div className="mt-4">
+                          <iframe
+                            src={viewUrl}
+                            className="w-full h-[700px] rounded-lg border border-slate-700 bg-white"
+                            title={`Vista previa ${att.nombre}`}
+                          />
+                        </div>
+                      )}
+
                       {att.categoria === 'video' && (
-                        <video controls className="mt-4 w-full rounded-lg border border-slate-700" src={att.url} />
+                        <video controls className="mt-4 w-full rounded-lg border border-slate-700" src={viewUrl} />
                       )}
                       {att.categoria === 'audio' && (
-                        <audio controls className="mt-4 w-full" src={att.url} />
+                        <audio controls className="mt-4 w-full" src={viewUrl} />
                       )}
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
 

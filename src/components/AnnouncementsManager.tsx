@@ -9,6 +9,7 @@ import {
   uploadAnnouncementFile,
   addAnnouncementAttachment,
   deleteAnnouncementAttachment,
+  getShareableFileUrl,
   type Announcement,
   type AnnouncementAttachment
 } from '../services/announcementDatabase';
@@ -167,12 +168,15 @@ export default function AnnouncementsManager() {
 
       // Si se marcó enviar notificación y está publicado, abrir modal DESPUÉS de subir adjuntos
       if (!editingId && sendNotification && formData.publicado && targetId) {
+        // Convertir URL de Supabase a URL del proxy para que se abra correctamente
+        const shareableAttachmentUrl = firstAttachmentUrl ? getShareableFileUrl(firstAttachmentUrl) : undefined;
+        
         setPendingAnnouncementData({
           id: targetId,
           titulo: announcementData.titulo,
           descripcion: announcementData.contenido,
           categoria: announcementData.categoria,
-          attachmentUrl: firstAttachmentUrl,
+          attachmentUrl: shareableAttachmentUrl,
           attachmentName: firstAttachmentName,
         });
         setShowNotificationModal(true);

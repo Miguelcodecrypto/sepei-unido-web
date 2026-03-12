@@ -1,5 +1,28 @@
 import { supabase } from '../lib/supabase';
 
+/**
+ * Convierte una URL de Supabase Storage a una URL del proxy que permite
+ * visualizar archivos inline (HTML, PDF, etc.) en vez de forzar descarga.
+ */
+export const getViewableFileUrl = (supabaseUrl: string): string => {
+  // Si ya es una URL del proxy o no es de Supabase, devolverla tal cual
+  if (!supabaseUrl.includes('supabase.co/storage/')) {
+    return supabaseUrl;
+  }
+  // Convertir a URL del proxy
+  return `/api/view-file?url=${encodeURIComponent(supabaseUrl)}`;
+};
+
+/**
+ * Genera la URL completa para compartir (emails, etc.)
+ */
+export const getShareableFileUrl = (supabaseUrl: string): string => {
+  if (!supabaseUrl.includes('supabase.co/storage/')) {
+    return supabaseUrl;
+  }
+  return `https://www.sepeiunido.org/api/view-file?url=${encodeURIComponent(supabaseUrl)}`;
+};
+
 export interface Announcement {
   id: string;
   titulo: string;
