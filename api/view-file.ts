@@ -1,5 +1,3 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-
 /**
  * Proxy para servir archivos de Supabase Storage con Content-Disposition: inline
  * Esto permite que los archivos HTML, PDF, etc. se abran en el navegador
@@ -7,7 +5,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
  * 
  * Uso: /api/view-file?url=https://xxx.supabase.co/storage/v1/object/public/...
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = async function handler(req: any, res: any) {
   // Manejar preflight CORS
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -21,14 +19,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { url } = req.query;
+  const url = req.query.url;
 
   if (!url || typeof url !== 'string') {
     return res.status(400).json({ error: 'URL parameter is required' });
   }
 
   // Decodificar la URL si viene codificada
-  const decodedUrl = decodeURIComponent(url);
+  let decodedUrl: string;
+  try {
+    decodedUrl = decodeURIComponent(url);
+  } catch {
+    decodedUrl = url;
+  }
 
   // Validar que la URL es de Supabase Storage
   if (!decodedUrl.includes('supabase.co/storage/')) {
@@ -56,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     // Obtener el nombre del archivo de la URL
     const urlParts = decodedUrl.split('/');
-    const fileName = urlParts[urlParts.length - 1]?.split('?')[0] || 'file';
+    const fileName = (urlParts[urlParts.length - 1] || 'file').split('?')[0];
     const fileExt = fileName.split('.').pop()?.toLowerCase();
 
     // Si Supabase devuelve octet-stream, intentar detectar por extensión
@@ -115,11 +118,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const buffer = await response.arrayBuffer();
     return res.status(200).send(Buffer.from(buffer));
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching file:', error);
     return res.status(500).json({ 
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error?.message || 'Unknown error'
     });
   }
-}
+};
