@@ -22,3 +22,30 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Estilos para contenido HTML en anuncios */
+.html-content-wrapper {
+  all: initial;
+  display: block;
+  font-family: inherit;
+}
+
+.html-content-wrapper * {
+  all: revert;
+}
+
+.html-content-wrapper .page {
+  max-width: 100%;
+  box-shadow: none;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .html-content-wrapper {
+    font-size: 14px;
+  }
+  
+  .html-content-wrapper .page {
+    width: 100% !important;
+  }
+}

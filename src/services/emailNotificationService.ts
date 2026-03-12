@@ -15,6 +15,8 @@ export interface AnnouncementNotificationData {
   descripcion: string;
   categoria: string;
   url: string;
+  attachmentUrl?: string;  // URL directa al documento adjunto (PDF, DOCX, HTML, etc.)
+  attachmentName?: string; // Nombre del archivo adjunto
 }
 
 export interface VotingNotificationData {
@@ -217,8 +219,14 @@ function generateAnnouncementEmailHTML(
               <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                 <tr>
                   <td align="center">
+                    ${announcement.attachmentUrl ? `
+                    <a href="${announcement.attachmentUrl}" style="display: inline-block; background-color: #16a34a; color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-size: 16px; font-weight: bold; margin-bottom: 12px;">
+                      📄 ${announcement.attachmentName ? `Abrir ${announcement.attachmentName}` : 'Abrir documento adjunto'}
+                    </a>
+                    <br><br>
+                    ` : ''}
                     <a href="${announcement.url}" style="display: inline-block; background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-size: 16px; font-weight: bold;">
-                      📖 Leer noticia completa
+                      📖 ${announcement.attachmentUrl ? 'Ver en la web' : 'Leer noticia completa'}
                     </a>
                   </td>
                 </tr>
@@ -265,8 +273,10 @@ ${announcement.titulo}
 ${'='.repeat(announcement.titulo.length)}
 
 ${announcement.descripcion.length > 300 ? announcement.descripcion.substring(0, 300) + '...' : announcement.descripcion}
-
-📖 Leer noticia completa: ${announcement.url}
+${announcement.attachmentUrl ? `
+📄 Abrir documento: ${announcement.attachmentUrl}
+` : ''}
+📖 Ver en la web: ${announcement.url}
 
 ---
 © ${new Date().getFullYear()} SEPEI UNIDO

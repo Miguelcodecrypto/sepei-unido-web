@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Eye, EyeOff, Image, FileText, X, Upload, Star, Mail, Link2, Video, Music, FilePlus2, Trash } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, EyeOff, Image, FileText, X, Upload, Star, Mail, Link2, Video, Music, FilePlus2, Trash, Code, Maximize2 } from 'lucide-react';
 import {
   getAllAnnouncements,
   createAnnouncement,
@@ -16,6 +16,7 @@ import { sendAnnouncementNotification, type EmailRecipient } from '../services/e
 import { sendAnnouncementTelegram, type TelegramRecipient } from '../services/telegramNotificationService';
 import { supabase } from '../lib/supabase';
 import NotificationModal from './NotificationModal';
+import DOMPurify from 'dompurify';
 
 export default function AnnouncementsManager() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -28,6 +29,7 @@ export default function AnnouncementsManager() {
     categoria: 'noticia' as 'noticia' | 'comunicado' | 'evento' | 'urgente',
     publicado: false,
     destacado: false,
+    es_html: false,
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -40,6 +42,7 @@ export default function AnnouncementsManager() {
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [pendingAnnouncementData, setPendingAnnouncementData] = useState<any>(null);
   const [notifyingAnnouncementId, setNotifyingAnnouncementId] = useState<string | null>(null);
+  const [showHtmlPreview, setShowHtmlPreview] = useState(false);
 
   useEffect(() => {
     loadAnnouncements();
@@ -120,20 +123,12 @@ export default function AnnouncementsManager() {
       } else {
         const newAnnouncement = await createAnnouncement(announcementData);
         targetId = newAnnouncement?.id || null;
-
-        // Si se marcó enviar notificación y está publicado, abrir modal
-        if (sendNotification && formData.publicado && newAnnouncement) {
-          setPendingAnnouncementData({
-            id: newAnnouncement.id,
-            titulo: announcementData.titulo,
-            descripcion: announcementData.contenido,
-            categoria: announcementData.categoria
-          });
-          setShowNotificationModal(true);
-        }
       }
 
-      // Subir y registrar adjuntos nuevos
+      // Subir y registrar adjuntos nuevos PRIMERO
+      let firstAttachmentUrl: string | undefined;
+      let firstAttachmentName: string | undefined;
+      
       if (targetId) {
         for (const file of attachmentFiles) {
           setUploadProgress(`Subiendo ${file.name}...`);
@@ -146,6 +141,11 @@ export default function AnnouncementsManager() {
               tipo: file.type,
               categoria: categorizeAttachment(file),
             });
+            // Guardar el primer adjunto para el email
+            if (!firstAttachmentUrl) {
+              firstAttachmentUrl = uploadedFileUrl;
+              firstAttachmentName = file.name;
+            }
           }
         }
 
@@ -157,7 +157,25 @@ export default function AnnouncementsManager() {
             tipo: 'link',
             categoria: 'link',
           });
+          // Si no hay archivo adjunto, usar el primer enlace
+          if (!firstAttachmentUrl) {
+            firstAttachmentUrl = link.url;
+            firstAttachmentName = link.title;
+          }
         }
+      }
+
+      // Si se marcó enviar notificación y está publicado, abrir modal DESPUÉS de subir adjuntos
+      if (!editingId && sendNotification && formData.publicado && targetId) {
+        setPendingAnnouncementData({
+          id: targetId,
+          titulo: announcementData.titulo,
+          descripcion: announcementData.contenido,
+          categoria: announcementData.categoria,
+          attachmentUrl: firstAttachmentUrl,
+          attachmentName: firstAttachmentName,
+        });
+        setShowNotificationModal(true);
       }
 
       await loadAnnouncements();
@@ -179,6 +197,7 @@ export default function AnnouncementsManager() {
       categoria: announcement.categoria,
       publicado: announcement.publicado,
       destacado: announcement.destacado,
+      es_html: announcement.es_html || false,
     });
     setImagePreview(announcement.imagen_url || null);
     setShowForm(true);
@@ -208,6 +227,7 @@ export default function AnnouncementsManager() {
       categoria: 'noticia',
       publicado: false,
       destacado: false,
+      es_html: false,
     });
     setImageFile(null);
     setImagePreview(null);
@@ -218,6 +238,7 @@ export default function AnnouncementsManager() {
     setEditingId(null);
     setShowForm(false);
     setSendNotification(false);
+    setShowHtmlPreview(false);
   };
 
   const editingAnnouncement = editingId ? announcements.find(a => a.id === editingId) : null;
@@ -242,7 +263,9 @@ export default function AnnouncementsManager() {
           titulo: pendingAnnouncementData.titulo,
           descripcion: pendingAnnouncementData.descripcion,
           categoria: pendingAnnouncementData.categoria,
-          url: `https://www.sepeiunido.org/?anuncio=${pendingAnnouncementData.id}#announcements`
+          url: `https://www.sepeiunido.org/?anuncio=${pendingAnnouncementData.id}#announcements`,
+          attachmentUrl: pendingAnnouncementData.attachmentUrl,
+          attachmentName: pendingAnnouncementData.attachmentName,
         }
       );
 
@@ -366,13 +389,68 @@ export default function AnnouncementsManager() {
             </div>
 
             <div>
-              <label className="block text-gray-300 mb-2">Contenido *</label>
-              <textarea
-                value={formData.contenido}
-                onChange={(e) => setFormData({ ...formData, contenido: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white h-32"
-                required
-              />
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-gray-300">Contenido *</label>
+                {formData.es_html && formData.contenido && (
+                  <button
+                    type="button"
+                    onClick={() => setShowHtmlPreview(!showHtmlPreview)}
+                    className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium transition ${
+                      showHtmlPreview 
+                        ? 'bg-purple-600 text-white' 
+                        : 'bg-slate-700 text-purple-400 hover:bg-slate-600'
+                    }`}
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                    {showHtmlPreview ? 'Ocultar vista previa' : 'Ver vista previa HTML'}
+                  </button>
+                )}
+              </div>
+              
+              {showHtmlPreview && formData.es_html ? (
+                <div className="bg-white rounded-lg border-2 border-purple-500 overflow-hidden">
+                  <div className="bg-purple-600 px-4 py-2 flex items-center justify-between">
+                    <span className="text-white text-sm font-medium flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      Vista previa del HTML
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowHtmlPreview(false)}
+                      className="text-white/80 hover:text-white"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div 
+                    className="p-4 max-h-[500px] overflow-auto html-content-wrapper"
+                    dangerouslySetInnerHTML={{ 
+                      __html: DOMPurify.sanitize(formData.contenido, {
+                        ADD_TAGS: ['style'],
+                        ADD_ATTR: ['target', 'rel'],
+                        ALLOW_DATA_ATTR: true
+                      })
+                    }}
+                  />
+                </div>
+              ) : (
+                <textarea
+                  value={formData.contenido}
+                  onChange={(e) => setFormData({ ...formData, contenido: e.target.value })}
+                  className={`w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white ${
+                    formData.es_html ? 'h-48 font-mono text-sm' : 'h-32'
+                  }`}
+                  placeholder={formData.es_html ? 'Pega aquí el código HTML completo...' : 'Escribe el contenido del anuncio...'}
+                  required
+                />
+              )}
+              
+              {formData.es_html && !showHtmlPreview && formData.contenido && (
+                <p className="text-purple-400 text-xs mt-2 flex items-center gap-1">
+                  <Code className="w-3 h-3" />
+                  {formData.contenido.length.toLocaleString()} caracteres HTML detectados
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -390,7 +468,7 @@ export default function AnnouncementsManager() {
                 </select>
               </div>
 
-              <div className="flex items-end gap-4">
+              <div className="flex items-end gap-4 flex-wrap">
                 <label className="flex items-center gap-2 text-gray-300 cursor-pointer">
                   <input
                     type="checkbox"
@@ -408,6 +486,16 @@ export default function AnnouncementsManager() {
                     className="w-5 h-5"
                   />
                   Destacado
+                </label>
+                <label className="flex items-center gap-2 text-purple-400 cursor-pointer" title="Marcar si el contenido incluye código HTML">
+                  <input
+                    type="checkbox"
+                    checked={formData.es_html}
+                    onChange={(e) => setFormData({ ...formData, es_html: e.target.checked })}
+                    className="w-5 h-5"
+                  />
+                  <Code className="w-5 h-5" />
+                  Contenido HTML
                 </label>
                 {!editingId && (
                   <label className="flex items-center gap-2 text-orange-400 cursor-pointer">

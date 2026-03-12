@@ -11,6 +11,7 @@ export interface Announcement {
   archivo_tipo?: string;
   publicado: boolean;
   destacado: boolean;
+  es_html: boolean;
   fecha_publicacion: string;
   fecha_creacion: string;
   autor: string;
@@ -87,6 +88,7 @@ export const createAnnouncement = async (
         archivo_tipo: announcementData.archivo_tipo,
         publicado: announcementData.publicado,
         destacado: announcementData.destacado,
+        es_html: announcementData.es_html || false,
         fecha_publicacion: announcementData.fecha_publicacion,
         autor: announcementData.autor,
         vistas: 0,
