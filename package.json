@@ -9,8 +9,10 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.84.0",
+    "@types/dompurify": "^3.0.5",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
+    "dompurify": "^3.3.3",
     "dotenv": "^17.2.3",
     "jsrsasign": "^11.1.0",
     "lucide-react": "^0.258.0",

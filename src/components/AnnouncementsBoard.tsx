@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Eye, FileText, Download, X, Star, ChevronRight, Shield, LogIn, Lock } from 'lucide-react';
 import { getPublishedAnnouncements, incrementViews, type Announcement } from '../services/announcementDatabase';
 import { trackInteraction, createSectionTimeTracker } from '../services/analyticsService';
+import DOMPurify from 'dompurify';
 
 interface AnnouncementsBoardProps {
   loggedUser?: { nombre: string; dni: string } | null;
@@ -276,9 +277,22 @@ export default function AnnouncementsBoard({ loggedUser, onLoginRequired }: Anno
 
               {/* Texto */}
               <div className="prose prose-invert max-w-none mb-6">
-                <p className="text-gray-300 text-lg whitespace-pre-wrap leading-relaxed">
-                  {selectedAnnouncement.contenido}
-                </p>
+                {selectedAnnouncement.es_html ? (
+                  <div 
+                    className="html-content-wrapper"
+                    dangerouslySetInnerHTML={{ 
+                      __html: DOMPurify.sanitize(selectedAnnouncement.contenido, {
+                        ADD_TAGS: ['style'],
+                        ADD_ATTR: ['target', 'rel'],
+                        ALLOW_DATA_ATTR: true
+                      })
+                    }}
+                  />
+                ) : (
+                  <p className="text-gray-300 text-lg whitespace-pre-wrap leading-relaxed">
+                    {selectedAnnouncement.contenido}
+                  </p>
+                )}
               </div>
 
               {/* Adjuntos múltiples */}
