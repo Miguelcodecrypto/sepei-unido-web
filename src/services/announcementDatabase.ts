@@ -198,13 +198,45 @@ export const uploadAnnouncementImage = async (file: File): Promise<string | null
 // Subir archivo a Supabase Storage
 export const uploadAnnouncementFile = async (file: File): Promise<string | null> => {
   try {
-    const fileExt = file.name.split('.').pop();
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
     const filePath = `announcements/files/${fileName}`;
 
+    // Determinar el Content-Type correcto
+    const contentTypeMap: Record<string, string> = {
+      'html': 'text/html',
+      'htm': 'text/html',
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'txt': 'text/plain',
+      'csv': 'text/csv',
+      'json': 'application/json',
+      'xml': 'application/xml',
+      'mp4': 'video/mp4',
+      'mp3': 'audio/mpeg',
+      'wav': 'audio/wav',
+      'webm': 'video/webm',
+      'ogg': 'audio/ogg',
+      'png': 'image/png',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'gif': 'image/gif',
+      'webp': 'image/webp',
+      'svg': 'image/svg+xml',
+    };
+
+    const contentType = contentTypeMap[fileExt || ''] || file.type || 'application/octet-stream';
+
     const { error: uploadError } = await supabase.storage
       .from('public-files')
-      .upload(filePath, file);
+      .upload(filePath, file, {
+        contentType,
+        cacheControl: '3600',
+        upsert: false
+      });
 
     if (uploadError) {
       console.error('Error al subir archivo:', uploadError);
