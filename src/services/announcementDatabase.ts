@@ -225,6 +225,14 @@ export const uploadAnnouncementFile = async (file: File): Promise<string | null>
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
     const filePath = `announcements/files/${fileName}`;
 
+    console.log('📁 [UPLOAD] Iniciando subida de archivo:', {
+      originalName: file.name,
+      newName: fileName,
+      path: filePath,
+      size: file.size,
+      type: file.type
+    });
+
     // Determinar el Content-Type correcto
     const contentTypeMap: Record<string, string> = {
       'html': 'text/html',
@@ -252,8 +260,9 @@ export const uploadAnnouncementFile = async (file: File): Promise<string | null>
     };
 
     const contentType = contentTypeMap[fileExt || ''] || file.type || 'application/octet-stream';
+    console.log('📁 [UPLOAD] Content-Type:', contentType);
 
-    const { error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('public-files')
       .upload(filePath, file, {
         contentType,
@@ -262,9 +271,12 @@ export const uploadAnnouncementFile = async (file: File): Promise<string | null>
       });
 
     if (uploadError) {
-      console.error('Error al subir archivo:', uploadError);
+      console.error('❌ [UPLOAD] Error al subir archivo:', uploadError);
+      alert(`Error al subir archivo: ${uploadError.message}`);
       return null;
     }
+
+    console.log('✅ [UPLOAD] Archivo subido:', uploadData);
 
     const { data: { publicUrl } } = supabase.storage
       .from('public-files')
