@@ -1,91 +1,42 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-// Imágenes HD relacionadas con bomberos, rescates, vehículos de emergencias
-// Enfoque en: heroísmo, altruismo, trabajo en equipo, salvamento, equipos de rescate
+// Imágenes HD de bomberos - locales en public/images/hero/
+// Temática: heroísmo, altruismo, trabajo en equipo, vehículos de emergencia
 const backgroundImages = [
   {
-    // Camión de bomberos rojo clásico - símbolo icónico
-    url: 'https://images.unsplash.com/photo-1562077772-3bd90f35c614?q=80&w=2070&auto=format&fit=crop',
-    alt: 'Camión de bomberos rojo',
+    // Taquillas rojas de bomberos - símbolo del parque
+    url: '/images/hero/taquillas-bomberos.jpg',
+    alt: 'Taquillas rojas de bomberos',
     position: 'center',
     kenBurns: 'scale-100 translate-x-0'
   },
   {
-    // Bombero en acción apagando fuego - heroísmo
-    url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=2070&auto=format&fit=crop',
-    alt: 'Bombero combatiendo incendio',
+    // Bomberos de espaldas trabajando en equipo - compañerismo
+    url: '/images/hero/bomberos-equipo.jpg',
+    alt: 'Bomberos trabajando en equipo',
     position: 'center',
     kenBurns: 'scale-110 -translate-x-2'
   },
   {
-    // Equipo de rescate trabajando juntos - trabajo en equipo
-    url: 'https://images.unsplash.com/photo-1582897085656-c636d006a246?q=80&w=2071&auto=format&fit=crop',
-    alt: 'Equipo de rescate en acción',
-    position: 'center bottom',
+    // Bomberos combatiendo fuego - heroísmo y valentía
+    url: '/images/hero/bomberos-incendio.jpg',
+    alt: 'Bomberos combatiendo incendio',
+    position: 'center',
     kenBurns: 'scale-105 translate-y-2'
   },
   {
-    // Escalera de bomberos extendida - preparación para el rescate
-    url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=2069&auto=format&fit=crop',
-    alt: 'Escalera de bomberos',
+    // Vista aérea camiones de noche - respuesta de emergencia
+    url: '/images/hero/camiones-aereo.jpg',
+    alt: 'Vista aérea de camiones de bomberos',
     position: 'center',
     kenBurns: 'scale-100 translate-x-0'
   },
   {
-    // Luces de emergencia - urgencia y respuesta rápida
-    url: 'https://images.unsplash.com/photo-1609692029062-d7e1ed7f34c5?q=80&w=2070&auto=format&fit=crop',
-    alt: 'Luces de emergencia',
+    // Camiones alineados con luces rojas - unidad del servicio
+    url: '/images/hero/camiones-luces.jpg',
+    alt: 'Camiones de bomberos con luces de emergencia',
     position: 'center',
     kenBurns: 'scale-110 translate-x-2'
-  },
-  {
-    // Casco de bombero - símbolo de protección
-    url: 'https://images.unsplash.com/photo-1560252829-804f1aedf1be?q=80&w=2070&auto=format&fit=crop',
-    alt: 'Casco de bombero profesional',
-    position: 'center',
-    kenBurns: 'scale-105 -translate-y-2'
-  },
-  {
-    // Silueta de bomberos contra el fuego - valentía
-    url: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?q=80&w=2070&auto=format&fit=crop',
-    alt: 'Silueta heroica de bomberos',
-    position: 'center bottom',
-    kenBurns: 'scale-100 translate-x-0'
-  },
-  {
-    // Manguera de bomberos en acción - combate contra el fuego
-    url: 'https://images.unsplash.com/photo-1599059813005-11265ba4b4ce?q=80&w=2070&auto=format&fit=crop',
-    alt: 'Manguera de alta presión',
-    position: 'center',
-    kenBurns: 'scale-110 -translate-x-1'
-  },
-  {
-    // Ambulancia/vehículo de emergencias - salvamento de vidas
-    url: 'https://images.unsplash.com/photo-1587745416684-47953f16f02f?q=80&w=2070&auto=format&fit=crop',
-    alt: 'Vehículo de emergencias médicas',
-    position: 'center',
-    kenBurns: 'scale-105 translate-x-1'
-  },
-  {
-    // Equipo de bombero (botas, chaqueta) - preparación
-    url: 'https://images.unsplash.com/photo-1602014486498-08c37ada440e?q=80&w=2070&auto=format&fit=crop',
-    alt: 'Equipo de protección de bombero',
-    position: 'center',
-    kenBurns: 'scale-100 -translate-y-1'
-  },
-  {
-    // Helicóptero de rescate - operaciones aéreas
-    url: 'https://images.unsplash.com/photo-1540962351504-03099e0a754b?q=80&w=2070&auto=format&fit=crop',
-    alt: 'Helicóptero de rescate',
-    position: 'center',
-    kenBurns: 'scale-110 translate-y-2'
-  },
-  {
-    // Incendio forestal - protección del medio ambiente
-    url: 'https://images.unsplash.com/photo-1569074187119-c87815b476da?q=80&w=2025&auto=format&fit=crop',
-    alt: 'Combate de incendio forestal',
-    position: 'center',
-    kenBurns: 'scale-105 -translate-x-2'
   }
 ];
 
