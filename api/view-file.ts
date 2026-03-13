@@ -62,30 +62,33 @@ module.exports = async function handler(req: any, res: any) {
     const fileName = (urlParts[urlParts.length - 1] || 'file').split('?')[0];
     const fileExt = fileName.split('.').pop()?.toLowerCase();
 
-    // Si Supabase devuelve octet-stream, intentar detectar por extensión
-    if (contentType === 'application/octet-stream' && fileExt) {
-      const extToMime: Record<string, string> = {
-        'html': 'text/html; charset=utf-8',
-        'htm': 'text/html; charset=utf-8',
-        'pdf': 'application/pdf',
-        'txt': 'text/plain; charset=utf-8',
-        'css': 'text/css; charset=utf-8',
-        'js': 'text/javascript; charset=utf-8',
-        'json': 'application/json; charset=utf-8',
-        'xml': 'application/xml; charset=utf-8',
-        'png': 'image/png',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'gif': 'image/gif',
-        'webp': 'image/webp',
-        'svg': 'image/svg+xml',
-        'mp4': 'video/mp4',
-        'webm': 'video/webm',
-        'mp3': 'audio/mpeg',
-        'wav': 'audio/wav',
-        'ogg': 'audio/ogg',
-      };
-      contentType = extToMime[fileExt] || contentType;
+    // FORZAR el Content-Type correcto basado en la extensión del archivo
+    // Esto es necesario porque Supabase a veces devuelve application/octet-stream
+    const extToMime: Record<string, string> = {
+      'html': 'text/html; charset=utf-8',
+      'htm': 'text/html; charset=utf-8',
+      'pdf': 'application/pdf',
+      'txt': 'text/plain; charset=utf-8',
+      'css': 'text/css; charset=utf-8',
+      'js': 'text/javascript; charset=utf-8',
+      'json': 'application/json; charset=utf-8',
+      'xml': 'application/xml; charset=utf-8',
+      'png': 'image/png',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'gif': 'image/gif',
+      'webp': 'image/webp',
+      'svg': 'image/svg+xml',
+      'mp4': 'video/mp4',
+      'webm': 'video/webm',
+      'mp3': 'audio/mpeg',
+      'wav': 'audio/wav',
+      'ogg': 'audio/ogg',
+    };
+    
+    // Siempre usar el MIME type basado en extensión si está disponible
+    if (fileExt && extToMime[fileExt]) {
+      contentType = extToMime[fileExt];
     }
 
     // Determinar si el archivo se puede mostrar inline
@@ -107,8 +110,7 @@ module.exports = async function handler(req: any, res: any) {
     // Configurar headers para mostrar en navegador
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Disposition', canInline ? 'inline' : `attachment; filename="${fileName}"`);
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     
     // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');

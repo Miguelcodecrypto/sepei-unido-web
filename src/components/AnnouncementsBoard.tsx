@@ -334,6 +334,7 @@ export default function AnnouncementsBoard({ loggedUser, onLoginRequired }: Anno
                             src={viewUrl}
                             className="w-full h-[600px] rounded-lg border border-slate-700"
                             title={`Vista previa ${att.nombre}`}
+                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                           />
                         </div>
                       )}
@@ -345,6 +346,7 @@ export default function AnnouncementsBoard({ loggedUser, onLoginRequired }: Anno
                             src={viewUrl}
                             className="w-full h-[700px] rounded-lg border border-slate-700 bg-white"
                             title={`Vista previa ${att.nombre}`}
+                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                           />
                         </div>
                       )}
