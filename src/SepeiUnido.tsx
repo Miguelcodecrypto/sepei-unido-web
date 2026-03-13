@@ -17,6 +17,7 @@ import VotingBoard from './components/VotingBoard';
 import FloatingVotingButton from './components/FloatingVotingButton';
 import { getInterinosBibliografia, getInterinosContenido, type InterinosBibliografiaItem } from './services/interinosBibliografia';
 import UserProfilePanel from './components/UserProfilePanel';
+import HeroBackground from './components/HeroBackground';
 
 export default function SepeiUnido() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -639,9 +640,14 @@ export default function SepeiUnido() {
         )}
       </nav>
 
-      <section id="inicio" className="relative pt-24 pb-12 md:pt-32 md:pb-24 px-3 md:px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 via-transparent to-red-600/20"></div>
-        <div className="absolute top-1/4 left-1/4 w-48 h-48 md:w-96 md:h-96 bg-orange-500/10 rounded-full blur-3xl"></div>
+      <section id="inicio" className="relative min-h-screen pt-24 pb-12 md:pt-32 md:pb-24 px-3 md:px-4 overflow-hidden">
+        {/* Fondo con imágenes HD de bomberos con transiciones */}
+        <HeroBackground 
+          transitionDuration={1500}
+          intervalDuration={7000}
+          overlay={true}
+          overlayOpacity={0.65}
+        />
         
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-8 md:mb-16">
