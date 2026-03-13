@@ -49,3 +49,93 @@ body {
     width: 100% !important;
   }
 }
+
+/* ===== Hero Background Animations ===== */
+
+/* Animación de partículas flotantes (chispas) */
+@keyframes float-particle {
+  0%, 100% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-100px) translateX(20px) scale(1.2);
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.4;
+  }
+}
+
+.animate-float-particle {
+  animation: float-particle 5s ease-in-out infinite;
+}
+
+/* Animación de brillo pulsante */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(249, 115, 22, 0.6), 0 0 60px rgba(249, 115, 22, 0.3);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* Transición suave de duración personalizada */
+.duration-1500 {
+  transition-duration: 1500ms;
+}
+
+/* Ken Burns effect para las imágenes de fondo */
+@keyframes ken-burns {
+  0% {
+    transform: scale(1) translateX(0);
+  }
+  50% {
+    transform: scale(1.1) translateX(-2%);
+  }
+  100% {
+    transform: scale(1) translateX(0);
+  }
+}
+
+/* Ken Burns más lento y sutil */
+@keyframes ken-burns-slow {
+  0% {
+    transform: scale(1.02) translateX(0) translateY(0);
+  }
+  100% {
+    transform: scale(1.08) translateX(-1%) translateY(-1%);
+  }
+}
+
+.animate-ken-burns {
+  animation: ken-burns 20s ease-in-out infinite;
+}
+
+.animate-ken-burns-slow {
+  animation: ken-burns-slow 12s ease-in-out infinite alternate;
+}
+
+/* Efecto de humo/niebla */
+@keyframes smoke-drift {
+  0%, 100% {
+    transform: translateX(0) translateY(0);
+    opacity: 0.1;
+  }
+  50% {
+    transform: translateX(30px) translateY(-20px);
+    opacity: 0.2;
+  }
+}
+
+.animate-smoke {
+  animation: smoke-drift 8s ease-in-out infinite;
+}
