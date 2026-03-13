@@ -640,174 +640,103 @@ export default function SepeiUnido() {
         )}
       </nav>
 
-      <section id="inicio" className="relative min-h-screen pt-24 pb-12 md:pt-32 md:pb-24 px-3 md:px-4 overflow-hidden">
+      <section id="inicio" className="relative min-h-[100svh] pt-20 pb-8 md:pt-28 md:pb-16 px-4 overflow-hidden flex flex-col justify-center">
         {/* Fondo con imágenes HD de bomberos con transiciones */}
         <HeroBackground 
           transitionDuration={1500}
           intervalDuration={7000}
           overlay={true}
-          overlayOpacity={0.65}
+          overlayOpacity={0.70}
         />
         
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="text-center mb-8 md:mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-orange-500/20 rounded-full border border-orange-500/50 mb-6 md:mb-8">
+        <div className="max-w-4xl mx-auto relative z-10 w-full">
+          {/* Header principal */}
+          <div className="text-center mb-6 md:mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-5 md:py-2 bg-orange-500/20 rounded-full border border-orange-500/50 mb-4 md:mb-6">
               <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-              <span className="text-orange-400 font-bold text-sm">MOVIMIENTO ASINDICAL</span>
+              <span className="text-orange-400 font-bold text-xs md:text-sm">MOVIMIENTO ASINDICAL</span>
             </div>
             
-            <h1 className="text-4xl sm:text-5xl md:text-8xl font-black text-white mb-4 md:mb-6">
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white mb-3 md:mb-4 leading-none">
               SEPEI
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">
                 UNIDO
               </span>
             </h1>
             
-            <p className="text-base sm:text-lg md:text-2xl text-gray-300 max-w-4xl mx-auto mb-8 md:mb-12 px-2">
-              La <span className="text-orange-400 font-bold">fuerza</span> de un colectivo que levanta su <span className="text-orange-400 font-bold">voz</span> unida para defender nuestros derechos
+            <p className="text-sm sm:text-base md:text-xl text-gray-300 max-w-2xl mx-auto mb-6 md:mb-8 px-2 leading-relaxed">
+              La <span className="text-orange-400 font-semibold">fuerza</span> de un colectivo que levanta su <span className="text-orange-400 font-semibold">voz</span> unida para defender nuestros derechos
             </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center px-2">
-              <button
-                onClick={() => scrollToSection('manifiesto-section')}
-                className="px-6 py-3 md:px-10 md:py-5 bg-gradient-to-r from-orange-500 to-red-600 text-white text-sm md:text-lg font-bold rounded-xl shadow-2xl hover:shadow-orange-500/50 transform hover:scale-105 transition-all flex items-center justify-center gap-2"
-              >
-                Leer Manifiesto
-                <ChevronDown className="w-5 h-5" />
-              </button>
-              
-              {/* Botón de Anuncios Moderno */}
-              <button
-                onClick={() => scrollToSection('anuncios-section')}
-                className="group relative px-6 py-3 md:px-8 md:py-5 overflow-hidden rounded-2xl"
-              >
-                {/* Fondo animado con gradiente */}
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 opacity-90 group-hover:opacity-100 transition-opacity duration-300"></div>
-                
-                {/* Efecto de brillo en movimiento */}
-                <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
-                
-                {/* Partículas flotantes */}
-                <div className="absolute top-1/2 left-1/4 w-2 h-2 bg-white/40 rounded-full animate-ping"></div>
-                <div className="absolute top-1/3 right-1/3 w-1.5 h-1.5 bg-cyan-300/50 rounded-full animate-pulse"></div>
-                <div className="absolute bottom-1/3 left-1/2 w-1 h-1 bg-purple-300/40 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
-                
-                {/* Contenido del botón */}
-                <div className="relative flex items-center gap-2 md:gap-3 text-white font-bold text-sm md:text-lg">
-                  {/* Icono con rotación */}
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-white/20 rounded-full blur-md group-hover:bg-white/30 transition-all"></div>
-                    <div className="relative w-8 h-8 md:w-10 md:h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 group-hover:rotate-12 transition-transform duration-300">
-                      <span className="text-xl md:text-2xl group-hover:scale-110 transition-transform">📰</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col items-start">
-                    <span className="text-[10px] md:text-xs text-cyan-100 font-normal uppercase tracking-wider">Últimas</span>
-                    <span className="leading-tight group-hover:tracking-wide transition-all text-sm md:text-base">Noticias</span>
-                  </div>
-                  
-                  {/* Badge animado */}
-                  <div className="absolute -top-2 -right-2">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-red-500 rounded-full animate-ping"></div>
-                      <div className="relative bg-gradient-to-br from-red-400 to-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full border-2 border-white shadow-lg">
-                        NUEVO
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Flecha animada */}
-                  <div className="ml-2 group-hover:translate-x-1 transition-transform duration-300">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </div>
-                </div>
-                
-                {/* Borde brillante */}
-                <div className="absolute inset-0 rounded-2xl border-2 border-white/20 group-hover:border-white/40 transition-colors"></div>
-              </button>
-              
-              <button
-                onClick={handleOpenRegistration}
-                className="px-6 py-3 md:px-10 md:py-5 bg-white/5 text-white text-sm md:text-lg font-bold rounded-xl border-2 border-white/20 hover:bg-white/10 transform hover:scale-105 transition-all"
-              >
-                Únete Ahora
-              </button>
-            </div>
-
-            {/* Botón Convocatorias BOE - Destacado */}
-            <Link
-              to="/convocatorias"
-              className="group relative px-6 py-3 md:px-8 md:py-5 overflow-hidden rounded-2xl mt-4 inline-block"
-            >
-              {/* Fondo animado con gradiente verde */}
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 via-green-500 to-teal-500 opacity-90 group-hover:opacity-100 transition-opacity duration-300"></div>
-              
-              {/* Efecto de brillo en movimiento */}
-              <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
-              
-              {/* Contenido del botón */}
-              <div className="relative flex items-center gap-2 md:gap-3 text-white font-bold text-sm md:text-lg">
-                <div className="relative">
-                  <div className="relative w-8 h-8 md:w-10 md:h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 group-hover:rotate-12 transition-transform duration-300">
-                    <FileSearch className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                  </div>
-                </div>
-                
-                <div className="flex flex-col items-start">
-                  <span className="text-[10px] md:text-xs text-emerald-100 font-normal uppercase tracking-wider">Oposiciones</span>
-                  <span className="leading-tight group-hover:tracking-wide transition-all text-sm md:text-base">Convocatorias BOE</span>
-                </div>
-                
-                {/* Flecha animada */}
-                <div className="ml-2 group-hover:translate-x-1 transition-transform duration-300">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </div>
-              </div>
-              
-              {/* Borde brillante */}
-              <div className="absolute inset-0 rounded-2xl border-2 border-white/20 group-hover:border-white/40 transition-colors"></div>
-            </Link>
-
-            {/* Tarjeta Interinos - Solo visible en móvil */}
-            <button
-              onClick={() => scrollToSection('interinos-section')}
-              className="md:hidden mt-4 w-full p-4 bg-gradient-to-r from-orange-500/20 via-red-500/20 to-orange-500/20 rounded-xl border-2 border-orange-500/40 hover:border-orange-400 transition-all"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-orange-500 rounded-full blur-md opacity-50 animate-pulse"></div>
-                    <div className="relative w-10 h-10 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center">
-                      <BookOpen className="w-5 h-5 text-white" />
-                    </div>
-                  </div>
-                  <div className="text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-white">Sección Interinos</span>
-                      <span className="px-2 py-0.5 bg-gradient-to-r from-orange-500 to-red-600 text-white text-[9px] font-bold rounded-full animate-pulse">
-                        NUEVO
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-400">Recursos para oposiciones</p>
-                  </div>
-                </div>
-                <ChevronDown className="w-5 h-5 text-orange-400 rotate-[-90deg]" />
-              </div>
-            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 mt-10 md:mt-20">
+          {/* Botones de acción principales - Grid 2x2 en móvil */}
+          <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap md:justify-center md:gap-4 mb-6 md:mb-8">
+            {/* Botón Manifiesto */}
+            <button
+              onClick={() => scrollToSection('manifiesto-section')}
+              className="flex items-center justify-center gap-2 px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white text-sm md:text-base font-bold rounded-xl shadow-lg hover:shadow-orange-500/40 active:scale-95 transition-all"
+            >
+              <span>Manifiesto</span>
+              <ChevronDown className="w-4 h-4" />
+            </button>
+
+            {/* Botón Noticias */}
+            <button
+              onClick={() => scrollToSection('anuncios-section')}
+              className="flex items-center justify-center gap-2 px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm md:text-base font-bold rounded-xl shadow-lg hover:shadow-blue-500/40 active:scale-95 transition-all"
+            >
+              <span>📰 Noticias</span>
+            </button>
+
+            {/* Botón Únete */}
+            <button
+              onClick={handleOpenRegistration}
+              className="flex items-center justify-center gap-2 px-4 py-3 md:px-6 md:py-4 bg-white/10 backdrop-blur-sm text-white text-sm md:text-base font-bold rounded-xl border border-white/30 hover:bg-white/20 active:scale-95 transition-all"
+            >
+              <Users className="w-4 h-4" />
+              <span>Únete</span>
+            </button>
+
+            {/* Botón Convocatorias BOE */}
+            <Link
+              to="/convocatorias"
+              className="flex items-center justify-center gap-2 px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm md:text-base font-bold rounded-xl shadow-lg hover:shadow-emerald-500/40 active:scale-95 transition-all"
+            >
+              <FileSearch className="w-4 h-4" />
+              <span>BOE</span>
+            </Link>
+          </div>
+
+          {/* Botón Interinos destacado */}
+          <button
+            onClick={() => scrollToSection('interinos-section')}
+            className="w-full max-w-md mx-auto flex items-center justify-between p-3 md:p-4 bg-gradient-to-r from-orange-500/20 to-red-500/20 backdrop-blur-sm rounded-xl border border-orange-500/40 hover:border-orange-400 active:scale-[0.98] transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center shadow-lg">
+                <BookOpen className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-white">Sección Interinos</span>
+                  <span className="px-1.5 py-0.5 bg-gradient-to-r from-orange-500 to-red-600 text-white text-[10px] font-bold rounded-full">
+                    NUEVO
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400">Recursos para oposiciones</p>
+              </div>
+            </div>
+            <ChevronDown className="w-5 h-5 text-orange-400 -rotate-90" />
+          </button>
+
+          {/* Stats en una fila compacta */}
+          <div className="flex justify-center gap-4 md:gap-8 mt-8 md:mt-12">
             {stats.map((stat, idx) => (
-              <div key={idx} className="text-center p-4 md:p-8 bg-slate-800/50 rounded-2xl border border-orange-500/20 hover:border-orange-500/50 transition-all">
-                <div className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
+              <div key={idx} className="text-center px-3 py-2 md:px-6 md:py-4">
+                <div className="text-2xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">
                   {stat.number}
                 </div>
-                <div className="text-sm md:text-base text-gray-400 font-semibold">{stat.label}</div>
+                <div className="text-xs md:text-sm text-gray-400 font-medium">{stat.label}</div>
               </div>
             ))}
           </div>

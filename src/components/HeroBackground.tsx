@@ -153,23 +153,6 @@ export default function HeroBackground({
         </>
       )}
 
-      {/* Efecto de partículas/chispas animadas */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(15)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-orange-500 rounded-full animate-float-particle"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${3 + Math.random() * 4}s`,
-              opacity: 0.4 + Math.random() * 0.4
-            }}
-          />
-        ))}
-      </div>
-
       {/* Indicadores de imagen (opcional, se pueden ocultar) */}
       <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
         {backgroundImages.map((_, index) => (
