@@ -1,51 +1,29 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 
-// Imágenes HD de bomberos - locales en public/images/hero/
-// Temática: heroísmo, altruismo, trabajo en equipo, vehículos de emergencia
-const backgroundImages = [
-  {
-    // Taquillas rojas de bomberos - símbolo del parque
-    url: '/images/hero/taquillas-bomberos.jpg',
-    alt: 'Taquillas rojas de bomberos',
-    position: 'center',
-    kenBurns: 'scale-100 translate-x-0'
-  },
-  {
-    // Bomberos de espaldas trabajando en equipo - compañerismo
-    url: '/images/hero/bomberos-equipo.jpg',
-    alt: 'Bomberos trabajando en equipo',
-    position: 'center',
-    kenBurns: 'scale-110 -translate-x-2'
-  },
-  {
-    // Bomberos combatiendo fuego - heroísmo y valentía
-    url: '/images/hero/bomberos-incendio.jpg',
-    alt: 'Bomberos combatiendo incendio',
-    position: 'center',
-    kenBurns: 'scale-105 translate-y-2'
-  },
-  {
-    // Vista aérea camiones de noche - respuesta de emergencia
-    url: '/images/hero/camiones-aereo.jpg',
-    alt: 'Vista aérea de camiones de bomberos',
-    position: 'center',
-    kenBurns: 'scale-100 translate-x-0'
-  },
-  {
-    // Camiones alineados con luces rojas - unidad del servicio
-    url: '/images/hero/camiones-luces.jpg',
-    alt: 'Camiones de bomberos con luces de emergencia',
-    position: 'center',
-    kenBurns: 'scale-110 translate-x-2'
-  }
+// Imágenes de bomberos - versiones desktop y mobile optimizadas
+const imageEntries = [
+  { desktop: '/images/hero/taquillas-bomberos.jpg', mobile: '/images/hero/mobile/taquillas-bomberos.jpg' },
+  { desktop: '/images/hero/bomberos-equipo.jpg', mobile: '/images/hero/mobile/bomberos-equipo.jpg' },
+  { desktop: '/images/hero/bomberos-incendio.jpg', mobile: '/images/hero/mobile/bomberos-incendio.jpg' },
+  { desktop: '/images/hero/camiones-aereo.jpg', mobile: '/images/hero/mobile/camiones-aereo.jpg' },
+  { desktop: '/images/hero/camiones-luces.jpg', mobile: '/images/hero/mobile/camiones-luces.jpg' },
+];
+
+// Posiciones personalizadas por imagen para móvil (mostrar la parte más interesante)
+const mobilePositions = [
+  'center 40%',   // taquillas - un poco más arriba
+  'center center', // equipo - centrado
+  'center 30%',   // incendio - mostrar más la parte superior
+  'center center', // camiones aereo - centrado
+  'center 60%',   // camiones luces - mostrar más la parte baja
 ];
 
 interface HeroBackgroundProps {
-  transitionDuration?: number; // Duración de transición en ms
-  intervalDuration?: number;   // Intervalo entre cambios en ms
-  overlay?: boolean;           // Mostrar overlay oscuro
-  overlayOpacity?: number;     // Opacidad del overlay (0-1)
-  children?: React.ReactNode;
+  transitionDuration?: number;
+  intervalDuration?: number;
+  overlay?: boolean;
+  overlayOpacity?: number;
+  mobileOverlayOpacity?: number;
 }
 
 export default function HeroBackground({
@@ -53,133 +31,141 @@ export default function HeroBackground({
   intervalDuration = 6000,
   overlay = true,
   overlayOpacity = 0.7,
-  children
+  mobileOverlayOpacity = 0.4,
 }: HeroBackgroundProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [nextIndex, setNextIndex] = useState(1);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [imagesLoaded, setImagesLoaded] = useState<boolean[]>(new Array(backgroundImages.length).fill(false));
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Precargar todas las imágenes
+  // Detectar si es móvil
   useEffect(() => {
-    backgroundImages.forEach((image, index) => {
-      const img = new Image();
-      img.src = image.url;
-      img.onload = () => {
-        setImagesLoaded(prev => {
-          const newLoaded = [...prev];
-          newLoaded[index] = true;
-          return newLoaded;
-        });
-      };
-    });
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Función para cambiar imagen
-  const changeImage = useCallback(() => {
-    setIsTransitioning(true);
-    
-    setTimeout(() => {
-      setCurrentIndex(nextIndex);
-      setNextIndex((nextIndex + 1) % backgroundImages.length);
-      setIsTransitioning(false);
-    }, transitionDuration);
-  }, [nextIndex, transitionDuration]);
+  // Precargar imágenes para transiciones suaves
+  useEffect(() => {
+    const imagesToPreload = isMobile
+      ? imageEntries.map(e => e.mobile)
+      : imageEntries.map(e => e.desktop);
+    imagesToPreload.forEach(src => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, [isMobile]);
 
-  // Intervalo automático para cambiar imágenes
+  // Cambiar imagen automáticamente
   useEffect(() => {
     const interval = setInterval(() => {
-      changeImage();
+      setCurrentIndex((prev) => (prev + 1) % imageEntries.length);
     }, intervalDuration);
 
     return () => clearInterval(interval);
-  }, [changeImage, intervalDuration]);
+  }, [intervalDuration]);
+
+  const effectiveOverlayOpacity = isMobile ? mobileOverlayOpacity : overlayOpacity;
 
   return (
-    <div className="absolute inset-0 overflow-hidden">
-      {/* Imagen actual con efecto Ken Burns */}
-      <div
-        className="absolute inset-0 transition-all ease-out"
-        style={{
-          backgroundImage: `url(${backgroundImages[currentIndex].url})`,
-          backgroundSize: 'cover',
-          backgroundPosition: backgroundImages[currentIndex].position,
-          backgroundRepeat: 'no-repeat',
-          opacity: isTransitioning ? 0 : 1,
-          transitionDuration: `${transitionDuration}ms`,
-          transform: !isTransitioning ? 'scale(1.05)' : 'scale(1)',
-          animation: !isTransitioning ? 'ken-burns-slow 12s ease-in-out infinite alternate' : 'none'
-        }}
-      />
-      
-      {/* Imagen siguiente (para transición suave) */}
-      <div
-        className="absolute inset-0 transition-all ease-out"
-        style={{
-          backgroundImage: `url(${backgroundImages[nextIndex].url})`,
-          backgroundSize: 'cover',
-          backgroundPosition: backgroundImages[nextIndex].position,
-          backgroundRepeat: 'no-repeat',
-          opacity: isTransitioning ? 1 : 0,
-          transitionDuration: `${transitionDuration}ms`,
-          transform: isTransitioning ? 'scale(1.05)' : 'scale(1.1)'
-        }}
-      />
+    <div 
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Contenedor de imágenes - usa versión mobile u original según dispositivo */}
+      {imageEntries.map((entry, index) => (
+        <div
+          key={entry.desktop}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundImage: `url(${isMobile ? entry.mobile : entry.desktop})`,
+            backgroundSize: 'cover',
+            backgroundPosition: isMobile ? mobilePositions[index] : 'center',
+            backgroundRepeat: 'no-repeat',
+            opacity: index === currentIndex ? 1 : 0,
+            transition: `opacity ${transitionDuration}ms ease-in-out`,
+          }}
+        />
+      ))}
 
-      {/* Overlay con gradiente */}
+      {/* Overlay oscuro - más suave en móvil */}
       {overlay && (
-        <>
-          {/* Overlay principal oscuro */}
-          <div 
-            className="absolute inset-0 bg-slate-950"
-            style={{ opacity: overlayOpacity }}
-          />
-          
-          {/* Gradiente superior para mejor legibilidad del navbar */}
-          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-slate-950 via-slate-950/80 to-transparent" />
-          
-          {/* Gradiente inferior para transición suave al contenido */}
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent" />
-          
-          {/* Gradiente lateral izquierdo para el texto */}
-          <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-slate-950/90 to-transparent" />
-          
-          {/* Efecto de viñeta */}
-          <div className="absolute inset-0 bg-radial-gradient pointer-events-none" 
-            style={{
-              background: 'radial-gradient(ellipse at center, transparent 0%, rgba(2, 6, 23, 0.4) 70%, rgba(2, 6, 23, 0.8) 100%)'
-            }}
-          />
-        </>
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: `rgba(2, 6, 23, ${effectiveOverlayOpacity})`,
+          }}
+        />
       )}
 
-      {/* Indicadores de imagen (opcional, se pueden ocultar) */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
-        {backgroundImages.map((_, index) => (
+      {/* Gradientes para mejor legibilidad - más pequeños y suaves en móvil */}
+      <div 
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: isMobile ? '70px' : '120px',
+          background: isMobile
+            ? 'linear-gradient(to bottom, rgba(2,6,23,0.9) 0%, rgba(2,6,23,0.4) 50%, transparent 100%)'
+            : 'linear-gradient(to bottom, rgba(2,6,23,1) 0%, rgba(2,6,23,0.8) 50%, transparent 100%)',
+        }}
+      />
+      <div 
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: isMobile ? '80px' : '150px',
+          background: isMobile
+            ? 'linear-gradient(to top, rgba(2,6,23,0.9) 0%, rgba(2,6,23,0.4) 50%, transparent 100%)'
+            : 'linear-gradient(to top, rgba(2,6,23,1) 0%, rgba(2,6,23,0.8) 50%, transparent 100%)',
+        }}
+      />
+
+      {/* Indicadores */}
+      <div 
+        style={{
+          position: 'absolute',
+          bottom: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: '8px',
+          zIndex: 10,
+        }}
+      >
+        {imageEntries.map((_, index) => (
           <button
             key={index}
-            onClick={() => {
-              if (index !== currentIndex && !isTransitioning) {
-                setNextIndex(index);
-                changeImage();
-              }
+            onClick={() => setCurrentIndex(index)}
+            style={{
+              width: index === currentIndex ? '24px' : '8px',
+              height: '8px',
+              borderRadius: '4px',
+              backgroundColor: index === currentIndex ? '#f97316' : 'rgba(255,255,255,0.3)',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
             }}
-            className={`w-2 h-2 rounded-full transition-all duration-300 ${
-              index === currentIndex 
-                ? 'bg-orange-500 w-6' 
-                : 'bg-white/30 hover:bg-white/50'
-            }`}
-            aria-label={`Ir a imagen ${index + 1}`}
+            aria-label={`Imagen ${index + 1}`}
           />
         ))}
       </div>
-
-      {/* Contenido hijo */}
-      {children && (
-        <div className="relative z-10 h-full">
-          {children}
-        </div>
-      )}
     </div>
   );
 }
