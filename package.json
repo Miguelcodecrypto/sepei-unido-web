@@ -32,6 +32,7 @@
     "baseline-browser-mapping": "^2.10.0",
     "devcert-cli": "^1.0.0",
     "postcss": "^8.5.6",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.0.0",
     "vite": "^5.0.0"

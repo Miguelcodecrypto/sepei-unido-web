@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Flame, Users, Shield, Target, Mail, Phone, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, Lightbulb, LogIn, FileSearch } from 'lucide-react';
+import { Flame, Users, Shield, Target, Mail, Phone, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, LogIn, FileSearch, HardHat, Lightbulb } from 'lucide-react';
 import { addUser } from './services/userDatabase';
 import { getCertificateFromSession, clearCertificateSession, type BrowserCertificate } from './services/browserCertificateService';
 import { sendNewUserNotificationToAdmin } from './services/emailService';
@@ -640,13 +640,14 @@ export default function SepeiUnido() {
         )}
       </nav>
 
-      <section id="inicio" className="relative min-h-[100svh] pt-20 pb-8 md:pt-28 md:pb-16 px-4 overflow-hidden flex flex-col justify-center">
+      <section id="inicio" className="relative min-h-screen pt-20 pb-8 md:pt-28 md:pb-16 px-4 overflow-hidden flex flex-col justify-center">
         {/* Fondo con imágenes HD de bomberos con transiciones */}
         <HeroBackground 
           transitionDuration={1500}
           intervalDuration={7000}
           overlay={true}
-          overlayOpacity={0.70}
+          overlayOpacity={0.65}
+          mobileOverlayOpacity={0.35}
         />
         
         <div className="max-w-4xl mx-auto relative z-10 w-full">
@@ -1380,7 +1381,7 @@ export default function SepeiUnido() {
         className="fixed bottom-20 md:bottom-24 right-4 md:right-8 z-40 p-3 md:p-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-full shadow-2xl hover:shadow-blue-500/50 transform hover:scale-110 transition-all flex items-center gap-2"
         title="Enviar sugerencia o propuesta"
       >
-        <Lightbulb className="w-5 h-5 md:w-6 md:h-6" />
+        <HardHat className="w-5 h-5 md:w-6 md:h-6" />
       </button>
 
       <footer className="bg-slate-900 py-6 md:py-8 px-3 md:px-4">

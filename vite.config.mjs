@@ -439,6 +439,8 @@ export default defineConfig({
   plugins: [react(), boeDevPlugin()],
   publicDir: 'public',
   server: {
+    host: '0.0.0.0',
+    port: 5173,
     fs: {
       deny: ['.env', '.env.*', '**/api/**'],
     },
