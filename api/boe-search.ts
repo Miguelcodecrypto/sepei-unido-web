@@ -28,9 +28,40 @@ const KW_BOMBEROS = [
   'extincion de incendios'
 ];
 
+// Palabras clave que EXCLUYEN resultados (falsos positivos)
+const EXCLUSION_KEYWORDS = [
+  // Contextos hidrográficos
+  'confederación hidrográfica',
+  'confederacion hidrografica',
+  'aprovechamiento de agua',
+  'concesión de agua',
+  'concesion de agua',
+  'riego y extinción',
+  'riego y extincion',
+  'abastecimiento de agua',
+  'cuenca hidrográfica',
+  'demarcación hidrográfica',
+  // Contextos portuarios (tarifas, no oposiciones)
+  'autoridad portuaria',
+  'servicio portuario',
+  'tarifas por intervención',
+  'tarifas por intervencion',
+  'amarre y desamarre',
+  'servicio de remolque',
+  'recepción de desechos',
+  'recepcion de desechos',
+];
+
 // Función mejorada para detectar si es relacionado con bomberos
 function hasBoe(t: string): boolean {
   const texto = t.toLowerCase();
+  
+  // PRIMERO: Excluir falsos positivos conocidos
+  for (const excl of EXCLUSION_KEYWORDS) {
+    if (texto.includes(excl)) {
+      return false;
+    }
+  }
   
   for (const kw of KW_BOMBEROS) {
     if (texto.includes(kw.toLowerCase())) {
@@ -38,8 +69,11 @@ function hasBoe(t: string): boolean {
     }
   }
   
+  // Patrones adicionales: extinción + incendios en contexto de empleo
+  // PERO solo si no es un contexto hidrográfico
   if ((texto.includes('extinción') || texto.includes('extincion')) && 
       texto.includes('incendio') &&
+      !texto.includes('agua') && !texto.includes('riego') &&
       (texto.includes('plaza') || texto.includes('convocatoria') || 
        texto.includes('oposición') || texto.includes('oposicion') ||
        texto.includes('proceso selectivo') || texto.includes('oferta de empleo'))) {
