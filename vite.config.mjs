@@ -26,9 +26,40 @@ const KW_BOMBEROS = [
   'extincion de incendios'
 ];
 
+// Palabras clave que EXCLUYEN resultados (falsos positivos)
+const EXCLUSION_KEYWORDS = [
+  // Contextos hidrográficos
+  'confederación hidrográfica',
+  'confederacion hidrografica',
+  'aprovechamiento de agua',
+  'concesión de agua',
+  'concesion de agua',
+  'riego y extinción',
+  'riego y extincion',
+  'abastecimiento de agua',
+  'cuenca hidrográfica',
+  'demarcación hidrográfica',
+  // Contextos portuarios (tarifas, no oposiciones)
+  'autoridad portuaria',
+  'servicio portuario',
+  'tarifas por intervención',
+  'tarifas por intervencion',
+  'amarre y desamarre',
+  'servicio de remolque',
+  'recepción de desechos',
+  'recepcion de desechos',
+];
+
 // Función mejorada para detectar si es relacionado con bomberos
 const hasBoe = (t) => {
   const texto = t.toLowerCase();
+  
+  // PRIMERO: Excluir falsos positivos conocidos
+  for (const excl of EXCLUSION_KEYWORDS) {
+    if (texto.includes(excl)) {
+      return false;
+    }
+  }
   
   // Verificar si contiene alguna palabra clave de bomberos
   for (const kw of KW_BOMBEROS) {
@@ -39,8 +70,10 @@ const hasBoe = (t) => {
   
   // Patrones adicionales más específicos con regex
   // "extinción" + "incendios" juntos en contexto de plaza/convocatoria
+  // PERO solo si no es un contexto hidrográfico
   if ((texto.includes('extinción') || texto.includes('extincion')) && 
       texto.includes('incendio') &&
+      !texto.includes('agua') && !texto.includes('riego') &&
       (texto.includes('plaza') || texto.includes('convocatoria') || 
        texto.includes('oposición') || texto.includes('oposicion') ||
        texto.includes('proceso selectivo') || texto.includes('oferta de empleo'))) {
