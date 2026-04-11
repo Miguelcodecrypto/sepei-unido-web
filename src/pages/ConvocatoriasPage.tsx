@@ -110,8 +110,22 @@ export default function ConvocatoriasPage() {
     setError(null);
     setPage(1);
     try {
-      const resp = await fetch('/api/boe-search');
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      // Timeout de 90 segundos para móviles con conexión lenta
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
+      
+      const resp = await fetch('/api/boe-search', {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      clearTimeout(timeoutId);
+      
+      if (!resp.ok) {
+        const errorText = await resp.text().catch(() => '');
+        throw new Error(`HTTP ${resp.status}${errorText ? `: ${errorText}` : ''}`);
+      }
       const data = await resp.json();
 
       if (!data.ok) throw new Error(data.error || 'Error en la respuesta');
@@ -126,7 +140,17 @@ export default function ConvocatoriasPage() {
       setTotalBOE(data.total);
       setLastFetch(new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }));
     } catch (e: any) {
-      setError(e.message || 'Error desconocido');
+      // Mejorar mensajes de error para el usuario
+      let errorMsg = 'Error desconocido';
+      if (e.name === 'AbortError') {
+        errorMsg = 'La conexión tardó demasiado. Intenta de nuevo.';
+      } else if (e.message?.includes('Failed to fetch') || e.message?.includes('NetworkError')) {
+        errorMsg = 'Error de conexión. Verifica tu conexión a internet.';
+      } else if (e.message) {
+        errorMsg = e.message;
+      }
+      setError(errorMsg);
+      console.error('[BOE Search Error]', e);
     } finally {
       setLoading(false);
     }
