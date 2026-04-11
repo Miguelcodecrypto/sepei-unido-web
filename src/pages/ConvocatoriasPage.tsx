@@ -103,7 +103,7 @@ export default function ConvocatoriasPage() {
 
   // ── Carga de datos ─────────────────────────────────────────────────────────
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (retryCount = 0) => {
     if (!currentUser) return; // Solo cargar si hay usuario autenticado
     
     setLoading(true);
@@ -114,11 +114,16 @@ export default function ConvocatoriasPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 90000);
       
-      const resp = await fetch('/api/boe-search', {
+      // Añadir timestamp para evitar cache y forzar nueva petición
+      const cacheBuster = `?_t=${Date.now()}`;
+      const resp = await fetch(`/api/boe-search${cacheBuster}`, {
         signal: controller.signal,
         headers: {
           'Accept': 'application/json',
+          'Cache-Control': 'no-cache, no-store',
+          'Pragma': 'no-cache',
         },
+        cache: 'no-store',
       });
       clearTimeout(timeoutId);
       
@@ -139,7 +144,15 @@ export default function ConvocatoriasPage() {
       setRawResults(enriched);
       setTotalBOE(data.total);
       setLastFetch(new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }));
+      setLoading(false);
     } catch (e: any) {
+      // Retry automático una vez en caso de error de red
+      if (retryCount < 1 && (e.name === 'AbortError' || e.message?.includes('Failed to fetch') || e.message?.includes('NetworkError'))) {
+        console.log('[BOE Search] Reintentando...');
+        setTimeout(() => fetchData(retryCount + 1), 2000);
+        return;
+      }
+      
       // Mejorar mensajes de error para el usuario
       let errorMsg = 'Error desconocido';
       if (e.name === 'AbortError') {
@@ -150,9 +163,8 @@ export default function ConvocatoriasPage() {
         errorMsg = e.message;
       }
       setError(errorMsg);
-      console.error('[BOE Search Error]', e);
-    } finally {
       setLoading(false);
+      console.error('[BOE Search Error]', e);
     }
   }, [currentUser]);
 
