@@ -94,3 +94,11 @@ export async function invalidateSession(): Promise<void> {
 export function hasSessionToken(): boolean {
   return !!localStorage.getItem(SESSION_KEY);
 }
+
+/**
+ * Token crudo de la sesión activa, para servicios que necesitan autenticar
+ * sus propias llamadas (p.ej. votingDatabase.ts al emitir un voto).
+ */
+export function getSessionToken(): string | null {
+  return localStorage.getItem(SESSION_KEY);
+}
