@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle, X } from 'lucide-react';
-import { hashPassword, verifyPassword } from '../services/passwordService';
-import { getUserByDni, updateUserPassword } from '../services/userDatabase';
 
 interface ChangePasswordModalProps {
   userData: {
@@ -108,65 +106,26 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
         return;
       }
 
-      console.log('🔍 [CAMBIO CONTRASEÑA] Buscando usuario en Supabase:', userData.dni);
-      
-      // Obtener datos del usuario desde Supabase
-      const supabaseUser = await getUserByDni(userData.dni);
+      const response = await fetch('/api/auth?action=change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dni: userData.dni,
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword,
+        }),
+      });
 
-      if (!supabaseUser || !supabaseUser.password) {
-        console.error('❌ [CAMBIO CONTRASEÑA] Usuario no encontrado o sin contraseña en Supabase');
-        setErrors({ general: 'Error: Usuario no encontrado en la base de datos' });
-        setIsLoading(false);
-        return;
-      }
+      const data = await response.json();
 
-      console.log('✅ [CAMBIO CONTRASEÑA] Usuario encontrado en Supabase');
-
-      // Verificar contraseña actual contra Supabase
-      const isCurrentPasswordValid = await verifyPassword(
-        formData.currentPassword,
-        supabaseUser.password
-      );
-
-      if (!isCurrentPasswordValid) {
-        console.error('❌ [CAMBIO CONTRASEÑA] Contraseña actual incorrecta');
-        setErrors({ currentPassword: 'Contraseña actual incorrecta' });
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('✅ [CAMBIO CONTRASEÑA] Contraseña actual verificada correctamente');
-
-      // Cifrar nueva contraseña
-      const hashedNewPassword = await hashPassword(formData.newPassword);
-      console.log('🔑 [CAMBIO CONTRASEÑA] Nueva contraseña hasheada');
-
-      // Actualizar contraseña en Supabase
-      const updated = await updateUserPassword(userData.dni, hashedNewPassword);
-      
-      if (!updated) {
-        console.error('❌ [CAMBIO CONTRASEÑA] Error al actualizar en Supabase');
-        setErrors({ general: 'Error al actualizar la contraseña en la base de datos' });
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('✅ [CAMBIO CONTRASEÑA] Contraseña actualizada en Supabase');
-
-      // También actualizar en localStorage para compatibilidad (si existe)
-      const userKey = `user_${userData.dni}`;
-      const userDataStr = localStorage.getItem(userKey);
-      if (userDataStr) {
-        try {
-          const storedUserData = JSON.parse(userDataStr);
-          storedUserData.password = hashedNewPassword;
-          storedUserData.requires_password_change = false;
-          storedUserData.password_changed_at = new Date().toISOString();
-          localStorage.setItem(userKey, JSON.stringify(storedUserData));
-          console.log('✅ [CAMBIO CONTRASEÑA] También actualizado en localStorage');
-        } catch (error) {
-          console.warn('⚠️ [CAMBIO CONTRASEÑA] No se pudo actualizar localStorage:', error);
+      if (!response.ok) {
+        if (response.status === 401) {
+          setErrors({ currentPassword: data.error || 'Contraseña actual incorrecta' });
+        } else {
+          setErrors({ general: data.error || 'Error al actualizar la contraseña' });
         }
+        setIsLoading(false);
+        return;
       }
 
       setSuccessMessage('¡Contraseña actualizada correctamente!');

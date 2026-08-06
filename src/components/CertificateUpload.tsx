@@ -5,7 +5,6 @@ import { selectClientCertificate, saveCertificateToSession, checkBrowserSupport,
 import { parseCertificateFile, isValidCertificateFile, getCertificateFileTypeMessage } from '../services/certificateFileParser';
 import { isCertificateRegistered } from '../services/fnmtService';
 import { initializeTestCertificates } from '../data/testCertificates';
-import { addUser } from '../services/userDatabase';
 import { sendNewUserNotificationToAdmin } from '../services/emailService';
 
 interface CertificateUploadProps {
@@ -150,20 +149,25 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
     }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (certificateData) {
       saveCertificateToSession(certificateData);
-      
-      // Guardar en la base de datos del panel admin
-      addUser({
-        nombre: certificateData.nombre,
-        email: certificateData.email || '',
-        terminos_aceptados: true,
-        certificado_nif: certificateData.nif,
-        certificado_thumbprint: certificateData.thumbprint,
-        certificado_fecha_validacion: new Date().toISOString(),
-        certificado_valido: true,
-      });
+
+      // Guardar en la base de datos del panel admin. El servidor no valida la cadena del
+      // certificado, así que el usuario queda sin verificar hasta que confirme por email
+      // (email que envía el propio servidor, no este componente).
+      fetch('/api/auth?action=register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: certificateData.nombre,
+          email: certificateData.email || '',
+          terminos_aceptados: true,
+          certificado_nif: certificateData.nif,
+          certificado_thumbprint: certificateData.thumbprint,
+          certificado_fecha_validacion: new Date().toISOString(),
+        }),
+      }).catch(error => console.error('Error al registrar usuario con certificado:', error));
 
       // Enviar notificación a admin de nuevo usuario registrado con certificado
       sendNewUserNotificationToAdmin({

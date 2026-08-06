@@ -1,53 +1,38 @@
-// Autenticación simple con contraseña para el panel admin
-// IMPORTANTE: La contraseña debe estar configurada en variables de entorno
+// Autenticación del panel admin: la contraseña se verifica en el servidor (api/admin.ts, resource=login).
+// El token que se guarda aquí es un JWT-like firmado con HMAC server-side, no un valor local.
 
-// Obtener contraseña de variable de entorno (VITE_ para cliente Vite)
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
-const AUTH_KEY = 'sepei_admin_auth';
-const AUTH_EXPIRY = 24 * 60 * 60 * 1000; // 24 horas
+const AUTH_KEY = 'sepei_admin_token';
 
-// Verificar que la contraseña está configurada
-if (!ADMIN_PASSWORD && import.meta.env.MODE !== 'development') {
-  console.error('⚠️ [AUTH] VITE_ADMIN_PASSWORD no está configurada en las variables de entorno');
-}
-
-interface AuthSession {
-  token: string;
-  timestamp: number;
-}
-
-// Verificar si está autenticado
+// Verificar si está autenticado (comprobación local rápida; el servidor revalida el token en cada llamada admin-*)
 export const isAuthenticated = (): boolean => {
-  const session = localStorage.getItem(AUTH_KEY);
-  if (!session) return false;
-  
-  try {
-    const auth: AuthSession = JSON.parse(session);
-    const now = Date.now();
-    
-    // Verificar si la sesión expiró
-    if (now - auth.timestamp > AUTH_EXPIRY) {
-      logout();
-      return false;
-    }
-    
-    return true;
-  } catch {
-    return false;
-  }
+  return !!localStorage.getItem(AUTH_KEY);
+};
+
+export const getAdminToken = (): string | null => {
+  return localStorage.getItem(AUTH_KEY);
 };
 
 // Iniciar sesión
-export const login = (password: string): boolean => {
-  if (password === ADMIN_PASSWORD) {
-    const auth: AuthSession = {
-      token: Math.random().toString(36).substring(7),
-      timestamp: Date.now(),
-    };
-    localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
-    return true;
+export const login = async (password: string): Promise<{ ok: boolean; error?: string }> => {
+  try {
+    const response = await fetch('/api/admin?resource=login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { ok: false, error: data.error || 'Error al iniciar sesión' };
+    }
+
+    localStorage.setItem(AUTH_KEY, data.token);
+    return { ok: true };
+  } catch (error) {
+    console.error('Error en login admin:', error);
+    return { ok: false, error: 'Error de conexión' };
   }
-  return false;
 };
 
 // Cerrar sesión
@@ -55,16 +40,17 @@ export const logout = (): void => {
   localStorage.removeItem(AUTH_KEY);
 };
 
-// Obtener tiempo restante de sesión (en minutos)
+// Tiempo restante de sesión en minutos, leído del payload del token (solo para UI; el servidor
+// es quien realmente valida la firma y expiración en cada llamada admin-*).
 export const getSessionTimeRemaining = (): number => {
-  const session = localStorage.getItem(AUTH_KEY);
-  if (!session) return 0;
-  
+  const token = localStorage.getItem(AUTH_KEY);
+  if (!token || !token.includes('.')) return 0;
+
   try {
-    const auth: AuthSession = JSON.parse(session);
-    const elapsed = Date.now() - auth.timestamp;
-    const remaining = AUTH_EXPIRY - elapsed;
-    return Math.floor(remaining / 1000 / 60); // convertir a minutos
+    const [encodedPayload] = token.split('.');
+    const payload = JSON.parse(atob(encodedPayload.replace(/-/g, '+').replace(/_/g, '/')));
+    const remainingMs = payload.exp - Date.now();
+    return remainingMs > 0 ? Math.floor(remainingMs / 1000 / 60) : 0;
   } catch {
     return 0;
   }

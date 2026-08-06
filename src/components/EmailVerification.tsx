@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Loader, Mail, Key, ArrowRight } from 'lucide-react';
 import type { UserData } from './TraditionalRegistration';
-import { getUserByVerificationToken, verifyUserEmail } from '../services/userDatabase';
 
 interface EmailVerificationProps {
   token?: string;
@@ -37,64 +36,25 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
 
   const verifyToken = async (verificationToken: string) => {
     try {
-      console.log('🔍 [VERIFICACIÓN] Iniciando verificación del token:', verificationToken);
-      
-      // Buscar usuario por token de verificación en Supabase
-      const user = await getUserByVerificationToken(verificationToken);
-      
-      if (!user) {
-        console.error('❌ [VERIFICACIÓN] No se encontró usuario con este token');
+      const response = await fetch('/api/auth?action=verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: verificationToken }),
+      });
+
+      const data = await response.json();
+
+      if (data.status === 'expired') {
         setStatus('expired');
         return;
       }
 
-      console.log('✅ [VERIFICACIÓN] Usuario encontrado:', {
-        nombre: user.nombre,
-        dni: user.dni,
-        verified: user.verified,
-        hasToken: !!user.verification_token,
-        expiresAt: user.verification_token_expires_at
-      });
-
-      // Verificar si ya está verificado
-      if (user.verified) {
-        console.log('⚠️ [VERIFICACIÓN] Usuario ya verificado previamente');
+      if (data.status !== 'success' || !data.user) {
         setStatus('error');
         return;
       }
 
-      // Verificar si el token ha expirado
-      if (user.verification_token_expires_at) {
-        const expiresAt = new Date(user.verification_token_expires_at);
-        const now = new Date();
-        
-        console.log('🔍 [VERIFICACIÓN] Comparación de fechas:', {
-          expira: expiresAt.toISOString(),
-          ahora: now.toISOString(),
-          expirado: now > expiresAt
-        });
-        
-        if (now > expiresAt) {
-          console.error('❌ [VERIFICACIÓN] Token expirado');
-          setStatus('expired');
-          return;
-        }
-      }
-      
-      console.log('✅ [VERIFICACIÓN] Token válido, procediendo a verificar usuario...');
-
-      // Verificar usuario en Supabase
-      const verified = await verifyUserEmail(user.id);
-      
-      if (!verified) {
-        console.error('❌ [VERIFICACIÓN] Error al actualizar usuario');
-        setStatus('error');
-        return;
-      }
-
-      console.log('✅ Usuario verificado correctamente en Supabase');
-
-      // Preparar datos para mostrar (sin exponer la contraseña hasheada)
+      const user = data.user;
       const verifiedUser: UserData = {
         nombre: user.nombre,
         apellidos: user.apellidos || '',

@@ -20,7 +20,6 @@ export default function SecurityPanel() {
   }>>([]);
   const [stats, setStats] = useState<SecurityStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showPasswords, setShowPasswords] = useState<{ [key: string]: boolean }>({});
   const [filter, setFilter] = useState<'all' | 'failed' | 'success'>('all');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -61,10 +60,6 @@ export default function SecurityPanel() {
     }
   };
 
-  const togglePasswordVisibility = (id: string) => {
-    setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
   const filteredAttempts = attempts.filter(attempt => {
     if (filter === 'all') return true;
     if (filter === 'failed') return !attempt.success;
@@ -73,11 +68,10 @@ export default function SecurityPanel() {
   });
 
   const exportToCSV = () => {
-    const headers = ['Fecha', 'IP', 'Contraseña Intentada', 'Éxito', 'Intentos', 'User Agent', 'País', 'Ciudad'];
+    const headers = ['Fecha', 'IP', 'Éxito', 'Intentos', 'User Agent', 'País', 'Ciudad'];
     const rows = attempts.map(a => [
       new Date(a.created_at).toLocaleString('es-ES'),
       a.ip_address,
-      a.attempted_password,
       a.success ? 'Sí' : 'No',
       a.attempt_number.toString(),
       a.user_agent,
@@ -241,7 +235,6 @@ export default function SecurityPanel() {
               <tr>
                 <th className="text-left p-3 text-gray-400 font-semibold text-sm">Fecha/Hora</th>
                 <th className="text-left p-3 text-gray-400 font-semibold text-sm">IP</th>
-                <th className="text-left p-3 text-gray-400 font-semibold text-sm">Contraseña</th>
                 <th className="text-center p-3 text-gray-400 font-semibold text-sm">Estado</th>
                 <th className="text-center p-3 text-gray-400 font-semibold text-sm">Intento #</th>
                 <th className="text-left p-3 text-gray-400 font-semibold text-sm">Ubicación</th>
@@ -273,20 +266,6 @@ export default function SecurityPanel() {
                       <code className="text-blue-300 text-sm bg-slate-900/50 px-2 py-1 rounded">
                         {attempt.ip_address}
                       </code>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <code className={`text-sm ${showPasswords[attempt.id] ? 'text-amber-300' : 'text-gray-500'}`}>
-                          {showPasswords[attempt.id] ? attempt.attempted_password : '••••••••'}
-                        </code>
-                        <button
-                          onClick={() => togglePasswordVisibility(attempt.id)}
-                          className="text-gray-500 hover:text-white transition"
-                          title={showPasswords[attempt.id] ? 'Ocultar' : 'Mostrar'}
-                        >
-                          {showPasswords[attempt.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
                     </td>
                     <td className="p-3 text-center">
                       {attempt.success ? (

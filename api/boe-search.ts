@@ -360,7 +360,7 @@ async function fetchDaySummary(dateStr: string): Promise<any[]> {
   }
 }
 
-module.exports = async function handler(req: any, res: any) {
+export default async function handler(req: any, res: any) {
   // Headers CORS más completos para compatibilidad con móviles
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -428,4 +428,4 @@ module.exports = async function handler(req: any, res: any) {
     console.error('[boe-search] Error:', err);
     return res.status(500).json({ ok: false, error: 'Error al consultar el BOE', details: err.message });
   }
-};
+}

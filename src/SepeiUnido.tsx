@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Flame, Users, Shield, Target, Mail, Phone, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, LogIn, FileSearch, HardHat, Lightbulb } from 'lucide-react';
-import { addUser } from './services/userDatabase';
 import { getCertificateFromSession, clearCertificateSession, type BrowserCertificate } from './services/browserCertificateService';
 import { sendNewUserNotificationToAdmin } from './services/emailService';
 import TermsModal from './components/TermsModal';
@@ -210,20 +209,24 @@ export default function SepeiUnido() {
     }
   };
 
-  const handleAcceptTerms = () => {
+  const handleAcceptTerms = async () => {
     if (!pendingUserData || !certificateData) return;
 
     try {
-      addUser({
-        nombre: pendingUserData.nombre,
-        email: pendingUserData.email,
-        telefono: pendingUserData.telefono || undefined,
-        terminos_aceptados: true,
-        // Datos del certificado FNMT
-        certificado_nif: certificateData.nif,
-        certificado_thumbprint: certificateData.thumbprint,
-        certificado_fecha_validacion: new Date(certificateData.notAfter).toISOString().split('T')[0],
-        certificado_valido: true,
+      // El servidor no valida la cadena del certificado, así que el usuario queda sin
+      // verificar hasta que confirme por email (email que envía el propio servidor).
+      await fetch('/api/auth?action=register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: pendingUserData.nombre,
+          email: pendingUserData.email,
+          telefono: pendingUserData.telefono || undefined,
+          terminos_aceptados: true,
+          certificado_nif: certificateData.nif,
+          certificado_thumbprint: certificateData.thumbprint,
+          certificado_fecha_validacion: new Date(certificateData.notAfter).toISOString().split('T')[0],
+        }),
       });
 
       // Enviar notificación a admin de nuevo usuario registrado con certificado
@@ -240,7 +243,7 @@ export default function SepeiUnido() {
 
       console.log('Usuario registrado con certificado FNMT validado:', certificateData.nif);
       
-      setFormStatus({ type: 'success', message: '¡Bienvenido a SEPEI UNIDO! Tu identidad ha sido verificada y registrada correctamente.' });
+      setFormStatus({ type: 'success', message: '¡Registro recibido! Revisa tu email para confirmar tu cuenta.' });
       
       setFormData({
         nombre: '',
