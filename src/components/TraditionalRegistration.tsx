@@ -168,7 +168,7 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         registeredAt: new Date().toISOString(),
       };
 
-      const registerResponse = await fetch('/api/auth-register', {
+      const registerResponse = await fetch('/api/auth?action=register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

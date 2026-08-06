@@ -1,5 +1,5 @@
 /**
- * Servicio de sesión de usuario. Todas las operaciones pasan por /api/auth-*
+ * Servicio de sesión de usuario. Todas las operaciones pasan por /api/auth
  * (el cliente ya no toca user_sessions ni users directamente).
  */
 
@@ -24,7 +24,7 @@ export async function loginWithPassword(
   password: string
 ): Promise<{ ok: true; user: SessionUser } | { ok: false; error: string }> {
   try {
-    const response = await fetch('/api/auth-login', {
+    const response = await fetch('/api/auth?action=login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dni, password }),
@@ -52,7 +52,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   if (!sessionToken) return null;
 
   try {
-    const response = await fetch('/api/auth-session', {
+    const response = await fetch('/api/auth?action=session', {
       headers: { Authorization: `Bearer ${sessionToken}` },
     });
 
@@ -79,7 +79,7 @@ export async function invalidateSession(): Promise<void> {
   if (!sessionToken) return;
 
   try {
-    await fetch('/api/auth-logout', {
+    await fetch('/api/auth?action=logout', {
       method: 'POST',
       headers: { Authorization: `Bearer ${sessionToken}` },
     });

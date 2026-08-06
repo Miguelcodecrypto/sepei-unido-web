@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Flame, Users, Shield, Target, Mail, Phone, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, LogIn, FileSearch, HardHat, Lightbulb } from 'lucide-react';
 import { getCertificateFromSession, clearCertificateSession, type BrowserCertificate } from './services/browserCertificateService';
-import { sendNewUserNotificationToAdmin } from './services/emailService';
+import { sendNewUserNotificationToAdmin, sendVerificationEmail } from './services/emailService';
 import TermsModal from './components/TermsModal';
 import SuggestionsForm from './components/SuggestionsForm';
 import CertificateUpload from './components/CertificateUpload';
@@ -209,11 +209,13 @@ export default function SepeiUnido() {
     }
   };
 
-  const handleAcceptTerms = () => {
+  const handleAcceptTerms = async () => {
     if (!pendingUserData || !certificateData) return;
 
     try {
-      fetch('/api/auth-register', {
+      // El servidor no valida la cadena del certificado, así que el usuario queda sin
+      // verificar hasta que confirme por email.
+      const response = await fetch('/api/auth?action=register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -224,9 +226,18 @@ export default function SepeiUnido() {
           certificado_nif: certificateData.nif,
           certificado_thumbprint: certificateData.thumbprint,
           certificado_fecha_validacion: new Date(certificateData.notAfter).toISOString().split('T')[0],
-          certificado_valido: true,
         }),
-      }).catch(error => console.error('Error al registrar usuario con certificado:', error));
+      });
+      const data = await response.json();
+      if (data.verificationToken) {
+        sendVerificationEmail({
+          email: pendingUserData.email,
+          nombre: pendingUserData.nombre,
+          tempPassword: '',
+          verificationToken: data.verificationToken,
+          dni: certificateData.nif || '',
+        }).catch(error => console.error('Error al enviar email de verificación:', error));
+      }
 
       // Enviar notificación a admin de nuevo usuario registrado con certificado
       sendNewUserNotificationToAdmin({
@@ -242,7 +253,7 @@ export default function SepeiUnido() {
 
       console.log('Usuario registrado con certificado FNMT validado:', certificateData.nif);
       
-      setFormStatus({ type: 'success', message: '¡Bienvenido a SEPEI UNIDO! Tu identidad ha sido verificada y registrada correctamente.' });
+      setFormStatus({ type: 'success', message: '¡Registro recibido! Revisa tu email para confirmar tu cuenta.' });
       
       setFormData({
         nombre: '',

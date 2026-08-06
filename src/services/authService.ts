@@ -1,4 +1,4 @@
-// Autenticación del panel admin: la contraseña se verifica en el servidor (api/admin-login.ts).
+// Autenticación del panel admin: la contraseña se verifica en el servidor (api/admin.ts, resource=login).
 // El token que se guarda aquí es un JWT-like firmado con HMAC server-side, no un valor local.
 
 const AUTH_KEY = 'sepei_admin_token';
@@ -15,7 +15,7 @@ export const getAdminToken = (): string | null => {
 // Iniciar sesión
 export const login = async (password: string): Promise<{ ok: boolean; error?: string }> => {
   try {
-    const response = await fetch('/api/admin-login', {
+    const response = await fetch('/api/admin?resource=login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password }),

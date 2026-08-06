@@ -1,5 +1,5 @@
 // Gestión de usuarios desde el panel admin. Todas las operaciones pasan por
-// /api/admin-users (protegido con el token de sesión de admin).
+// /api/admin (resource=users, protegido con el token de sesión de admin).
 
 import { getAdminToken } from './authService';
 
@@ -44,7 +44,7 @@ async function adminFetch(path: string, options: RequestInit = {}): Promise<any>
 
 export const getAllUsers = async (): Promise<AdminUser[]> => {
   try {
-    const { users } = await adminFetch('/api/admin-users');
+    const { users } = await adminFetch('/api/admin?resource=users');
     return users || [];
   } catch (error) {
     console.error('Error al obtener usuarios:', error);
@@ -54,7 +54,7 @@ export const getAllUsers = async (): Promise<AdminUser[]> => {
 
 export const deleteUser = async (id: string): Promise<boolean> => {
   try {
-    await adminFetch(`/api/admin-users?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    await adminFetch(`/api/admin?resource=users&id=${encodeURIComponent(id)}`, { method: 'DELETE' });
     return true;
   } catch (error) {
     console.error('Error al eliminar usuario:', error);
@@ -64,7 +64,7 @@ export const deleteUser = async (id: string): Promise<boolean> => {
 
 export const toggleVotingAuthorization = async (userId: string, autorizado: boolean): Promise<boolean> => {
   try {
-    await adminFetch('/api/admin-users', {
+    await adminFetch('/api/admin?resource=users', {
       method: 'PATCH',
       body: JSON.stringify({ action: 'toggle_voting', userId, autorizado }),
     });
@@ -77,7 +77,7 @@ export const toggleVotingAuthorization = async (userId: string, autorizado: bool
 
 export const resetTempPassword = async (userId: string): Promise<{ success: boolean; tempPassword?: string }> => {
   try {
-    const data = await adminFetch('/api/admin-users', {
+    const data = await adminFetch('/api/admin?resource=users', {
       method: 'PATCH',
       body: JSON.stringify({ action: 'reset_password', userId }),
     });

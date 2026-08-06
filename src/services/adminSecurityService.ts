@@ -1,5 +1,5 @@
 // Lectura de estadísticas de seguridad del panel admin.
-// Todas las consultas pasan por /api/admin-security (protegido con el token de sesión de admin);
+// Todas las consultas pasan por /api/admin (resource=security, protegido con el token de sesión de admin);
 // el cliente ya no toca las tablas admin_login_attempts / blocked_ips directamente.
 
 import { getAdminToken } from './authService';
@@ -47,7 +47,7 @@ async function adminFetch(path: string, options: RequestInit = {}): Promise<any>
 
 export async function getSecurityStats(): Promise<SecurityStats | null> {
   try {
-    const { stats } = await adminFetch('/api/admin-security?resource=stats');
+    const { stats } = await adminFetch('/api/admin?resource=security&detail=stats');
     return stats;
   } catch (error) {
     console.error('Error en getSecurityStats:', error);
@@ -57,7 +57,7 @@ export async function getSecurityStats(): Promise<SecurityStats | null> {
 
 export async function getRecentLoginAttempts(_limit: number = 50): Promise<LoginAttemptRecord[]> {
   try {
-    const { attempts } = await adminFetch('/api/admin-security?resource=attempts');
+    const { attempts } = await adminFetch('/api/admin?resource=security&detail=attempts');
     return attempts || [];
   } catch (error) {
     console.error('Error en getRecentLoginAttempts:', error);
@@ -73,7 +73,7 @@ export async function getBlockedIPs(): Promise<Array<{
   blocked_until: string | null;
 }>> {
   try {
-    const { blocked } = await adminFetch('/api/admin-security?resource=blocked');
+    const { blocked } = await adminFetch('/api/admin?resource=security&detail=blocked');
     return blocked || [];
   } catch (error) {
     console.error('Error en getBlockedIPs:', error);
@@ -83,7 +83,7 @@ export async function getBlockedIPs(): Promise<Array<{
 
 export async function unblockIP(ip: string): Promise<boolean> {
   try {
-    await adminFetch('/api/admin-security', {
+    await adminFetch('/api/admin?resource=security', {
       method: 'POST',
       body: JSON.stringify({ action: 'unblock', ip }),
     });

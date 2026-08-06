@@ -6,7 +6,7 @@ interface PasswordResetResult {
 /**
  * Solicitar reseteo de contraseña por email.
  * Toda la lógica (buscar usuario, generar contraseña temporal, hashear, enviar email)
- * ocurre en el servidor: ver api/auth-forgot-password.ts.
+ * ocurre en el servidor: ver api/auth.ts (action=forgot-password).
  */
 export async function requestPasswordResetByEmail(email: string): Promise<PasswordResetResult> {
   const normalizedEmail = email.trim().toLowerCase();
@@ -16,7 +16,7 @@ export async function requestPasswordResetByEmail(email: string): Promise<Passwo
   }
 
   try {
-    const response = await fetch('/api/auth-forgot-password', {
+    const response = await fetch('/api/auth?action=forgot-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: normalizedEmail }),

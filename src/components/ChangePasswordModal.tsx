@@ -106,7 +106,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
         return;
       }
 
-      const response = await fetch('/api/auth-change-password', {
+      const response = await fetch('/api/auth?action=change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

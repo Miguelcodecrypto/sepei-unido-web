@@ -36,7 +36,7 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
 
   const verifyToken = async (verificationToken: string) => {
     try {
-      const response = await fetch('/api/auth-verify-email', {
+      const response = await fetch('/api/auth?action=verify-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: verificationToken }),
