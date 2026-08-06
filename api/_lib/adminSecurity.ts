@@ -5,8 +5,8 @@
  * Traído server-side desde src/services/adminSecurityService.ts.
  * A diferencia del original, NUNCA se guarda la contraseña intentada en texto plano.
  */
-import { getSupabaseAdmin } from './supabaseAdmin';
-export { getClientIP } from './clientIp';
+import { getSupabaseAdmin } from './supabaseAdmin.js';
+export { getClientIP } from './clientIp.js';
 
 const MAX_ATTEMPTS_BEFORE_BLOCK = 3;
 const BLOCK_DURATION_HOURS = 24;

@@ -4,10 +4,10 @@
  * y se despachan por ?resource=).
  */
 import { timingSafeEqual } from 'crypto';
-import { getSupabaseAdmin } from './_lib/supabaseAdmin';
-import { createAdminToken, verifyAdminToken, getBearerToken } from './_lib/adminAuth';
-import { getClientIP, checkLoginAllowed, recordLoginAttempt } from './_lib/adminSecurity';
-import { generateTempPassword } from './_lib/password';
+import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
+import { createAdminToken, verifyAdminToken, getBearerToken } from './_lib/adminAuth.js';
+import { getClientIP, checkLoginAllowed, recordLoginAttempt } from './_lib/adminSecurity.js';
+import { generateTempPassword } from './_lib/password.js';
 
 const USERS_PUBLIC_COLUMNS = [
   'id', 'nombre', 'apellidos', 'dni', 'email', 'telefono', 'parque_sepei',

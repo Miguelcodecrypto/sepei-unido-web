@@ -4,12 +4,12 @@
  * y se despachan por ?action=).
  */
 import { randomBytes, randomUUID } from 'crypto';
-import { getSupabaseAdmin } from './_lib/supabaseAdmin';
-import { getBearerToken } from './_lib/adminAuth';
-import { generateTempPassword } from './_lib/password';
-import { sendEmailViaResend } from './_lib/resend';
-import { getClientIP } from './_lib/clientIp';
-import { checkLoginAllowed, recordLoginAttempt } from './_lib/adminSecurity';
+import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
+import { getBearerToken } from './_lib/adminAuth.js';
+import { generateTempPassword } from './_lib/password.js';
+import { sendEmailViaResend } from './_lib/resend.js';
+import { getClientIP } from './_lib/clientIp.js';
+import { checkLoginAllowed, recordLoginAttempt } from './_lib/adminSecurity.js';
 
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 const VERIFICATION_TOKEN_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
