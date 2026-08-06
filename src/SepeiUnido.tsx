@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Flame, Users, Shield, Target, Mail, Phone, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, LogIn, FileSearch, HardHat, Lightbulb } from 'lucide-react';
-import { addUser } from './services/userDatabase';
 import { getCertificateFromSession, clearCertificateSession, type BrowserCertificate } from './services/browserCertificateService';
 import { sendNewUserNotificationToAdmin } from './services/emailService';
 import TermsModal from './components/TermsModal';
@@ -214,17 +213,20 @@ export default function SepeiUnido() {
     if (!pendingUserData || !certificateData) return;
 
     try {
-      addUser({
-        nombre: pendingUserData.nombre,
-        email: pendingUserData.email,
-        telefono: pendingUserData.telefono || undefined,
-        terminos_aceptados: true,
-        // Datos del certificado FNMT
-        certificado_nif: certificateData.nif,
-        certificado_thumbprint: certificateData.thumbprint,
-        certificado_fecha_validacion: new Date(certificateData.notAfter).toISOString().split('T')[0],
-        certificado_valido: true,
-      });
+      fetch('/api/auth-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: pendingUserData.nombre,
+          email: pendingUserData.email,
+          telefono: pendingUserData.telefono || undefined,
+          terminos_aceptados: true,
+          certificado_nif: certificateData.nif,
+          certificado_thumbprint: certificateData.thumbprint,
+          certificado_fecha_validacion: new Date(certificateData.notAfter).toISOString().split('T')[0],
+          certificado_valido: true,
+        }),
+      }).catch(error => console.error('Error al registrar usuario con certificado:', error));
 
       // Enviar notificación a admin de nuevo usuario registrado con certificado
       sendNewUserNotificationToAdmin({

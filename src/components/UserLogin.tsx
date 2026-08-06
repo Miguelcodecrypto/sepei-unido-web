@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { LogIn, User, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { verifyPassword } from '../services/passwordService';
-import { getUserByDni, updateUser } from '../services/userDatabase';
 import { ChangePasswordModal } from './ChangePasswordModal';
-import { createSession } from '../services/sessionService';
+import { loginWithPassword } from '../services/sessionService';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 
 interface UserLoginProps {
@@ -58,103 +56,17 @@ export const UserLogin: React.FC<UserLoginProps> = ({
     setError(null);
 
     try {
-      // Normalizar DNI a mayúsculas
       const normalizedDNI = formData.dni.toUpperCase().trim();
 
-      console.log('🔍 [LOGIN] Buscando usuario en Supabase:', normalizedDNI);
-      
-      // Buscar usuario en Supabase primero
-      const userData = await getUserByDni(normalizedDNI);
+      const result = await loginWithPassword(normalizedDNI, formData.password);
 
-      // Si no está en Supabase, buscar en localStorage (fallback temporal)
-      if (!userData) {
-        console.log('⚠️ [LOGIN] Usuario no encontrado en Supabase, buscando en localStorage...');
-        const userKey = `user_${normalizedDNI}`;
-        const userDataStr = localStorage.getItem(userKey);
-        
-        if (!userDataStr) {
-          setError('Usuario no encontrado. ¿Necesitas registrarte?');
-          setIsLoading(false);
-          return;
-        }
-
-        const localUserData = JSON.parse(userDataStr);
-        
-        // Verificar contraseña del localStorage
-        const isPasswordValid = await verifyPassword(formData.password, localUserData.password);
-        
-        if (!isPasswordValid) {
-          setError('Contraseña incorrecta');
-          setIsLoading(false);
-          return;
-        }
-
-        // Verificar si la cuenta está verificada
-        if (!localUserData.verified) {
-          setError('Tu cuenta aún no está verificada. Revisa tu email.');
-          setIsLoading(false);
-          return;
-        }
-
-        // Login exitoso con localStorage
-        const loggedUser: LoggedUserData = {
-          dni: localUserData.dni,
-          nombre: localUserData.nombre,
-          apellidos: localUserData.apellidos,
-          email: localUserData.email,
-          verified: localUserData.verified,
-          lastLogin: new Date().toISOString(),
-        };
-
-        // Actualizar último login en localStorage
-        localUserData.lastLogin = loggedUser.lastLogin;
-        localStorage.setItem(userKey, JSON.stringify(localUserData));
-        localStorage.setItem('current_user', JSON.stringify(loggedUser));
-
-        // Verificar si necesita cambiar contraseña
-        if (localUserData.requires_password_change === true) {
-          console.log('⚠️ Usuario debe cambiar contraseña temporal (localStorage)');
-          setTempUserData(loggedUser);
-          setShowChangePassword(true);
-          setIsLoading(false);
-          return;
-        }
-
-        console.log('✅ Login exitoso (localStorage):', loggedUser);
-        onLoginSuccess(loggedUser);
+      if (!result.ok) {
+        setError(result.error);
         setIsLoading(false);
         return;
       }
 
-      console.log('✅ [LOGIN] Usuario encontrado en Supabase');
-
-      // Verificar que la contraseña existe
-      if (!userData.password) {
-        console.error('❌ [LOGIN] Usuario en Supabase no tiene contraseña guardada');
-        setError('Tu usuario no tiene contraseña configurada. Por favor contacta al administrador.');
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('🔑 [LOGIN] Hash de contraseña:', userData.password.substring(0, 20) + '...');
-
-      // Verificar contraseña usando bcrypt
-      const isPasswordValid = await verifyPassword(formData.password, userData.password);
-      
-      if (!isPasswordValid) {
-        setError('Contraseña incorrecta');
-        setIsLoading(false);
-        return;
-      }
-
-      // Verificar si la cuenta está verificada
-      if (!userData.verified) {
-        setError('Tu cuenta aún no está verificada. Revisa tu email.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Login exitoso - preparar datos de usuario
+      const userData = result.user;
       const loggedUser: LoggedUserData = {
         dni: userData.dni || '',
         nombre: userData.nombre,
@@ -164,41 +76,13 @@ export const UserLogin: React.FC<UserLoginProps> = ({
         lastLogin: new Date().toISOString(),
       };
 
-      // Crear sesión en Supabase (reemplaza localStorage)
-      console.log('🔐 [LOGIN] Creando sesión para usuario:', userData.id);
-      const sessionToken = await createSession(userData.id);
-      
-      if (!sessionToken) {
-        console.error('❌ [LOGIN] Error al crear sesión');
-        setError('Error al crear sesión. Por favor intenta de nuevo.');
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('✅ [LOGIN] Sesión creada exitosamente');
-
-      // Actualizar último login en Supabase
-      try {
-        await updateUser(userData.id, { last_login: new Date().toISOString() });
-      } catch (error) {
-        console.warn('⚠️ [LOGIN] No se pudo actualizar lastLogin en Supabase:', error);
-      }
-
-      // Verificar si necesita cambiar contraseña
-      console.log('🔑 [LOGIN] Verificando requires_password_change:', {
-        requiere: userData.requires_password_change,
-        tipo: typeof userData.requires_password_change,
-      });
-      
       if (userData.requires_password_change === true) {
-        console.log('⚠️ Usuario debe cambiar contraseña temporal');
         setTempUserData(loggedUser);
         setShowChangePassword(true);
         setIsLoading(false);
         return;
       }
 
-      console.log('✅ Login exitoso (Supabase session):', loggedUser);
       onLoginSuccess(loggedUser);
 
     } catch (error) {

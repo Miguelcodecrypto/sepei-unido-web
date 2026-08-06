@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle, Mail, User, CreditCard, AlertCircle, MapPin } from 'lucide-react';
 import { sendVerificationEmail, sendNewUserNotificationToAdmin } from '../services/emailService';
-import { hashPassword, generateTemporaryPassword } from '../services/passwordService';
-import { getUserByDni, addUser } from '../services/userDatabase';
 
 interface TraditionalRegistrationProps {
   onSuccess: (userData: UserData) => void;
@@ -159,37 +157,8 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
     setIsLoading(true);
 
     try {
-      // Normalizar DNI a may├║sculas
       const normalizedDNI = formData.dni.toUpperCase();
 
-      // Verificar si el DNI ya est├í registrado en Supabase
-      const existingUser = await getUserByDni(normalizedDNI);
-      if (existingUser) {
-        setErrors({ dni: 'Este DNI ya est├í registrado' });
-        setIsLoading(false);
-        return;
-      }
-
-      // Generar contrase├▒a temporal segura
-      const tempPassword = generateTemporaryPassword(12);
-      
-      // Cifrar la contraseña antes de guardarla
-      const hashedPassword = await hashPassword(tempPassword);
-
-      // Crear token de verificación
-      const verificationToken = crypto.randomUUID();
-
-      // Obtener IP del cliente
-      let userIP = 'unknown';
-      try {
-        const ipResponse = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipResponse.json();
-        userIP = ipData.ip;
-      } catch (error) {
-        console.error('Error obteniendo IP:', error);
-      }
-
-      // Crear usuario
       const userData: UserData = {
         nombre: formData.nombre.trim(),
         apellidos: formData.apellidos.trim(),
@@ -199,35 +168,26 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         registeredAt: new Date().toISOString(),
       };
 
-      // Calcular fecha de expiración del token (7 días)
-      const tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
-      // Guardar en Supabase inmediatamente con el token de verificación
-      console.log('💾 [REGISTRO] Guardando usuario en Supabase con token de verificación...');
-      const result = await addUser({
-        nombre: userData.nombre,
-        apellidos: userData.apellidos,
-        dni: userData.dni,
-        email: userData.email,
-        telefono: formData.telefono.trim(),
-        parque_sepei: formData.parque.trim(),
-        password: hashedPassword,
-        registration_ip: userIP,
-        terminos_aceptados: acceptedPrivacy,
-        verified: false,
-        requires_password_change: true, // Contraseña temporal requiere cambio
-        verification_token: verificationToken,
-        verification_token_expires_at: tokenExpiresAt,
-        certificado_nif: undefined,
-        certificado_thumbprint: undefined,
-        certificado_fecha_validacion: undefined,
-        certificado_valido: false,
+      const registerResponse = await fetch('/api/auth-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: userData.nombre,
+          apellidos: userData.apellidos,
+          dni: userData.dni,
+          email: userData.email,
+          telefono: formData.telefono.trim(),
+          parque_sepei: formData.parque.trim(),
+          terminos_aceptados: acceptedPrivacy,
+          generatePassword: true,
+        }),
       });
 
-      if (!result.user) {
-        console.error('❌ Error al guardar usuario en Supabase:', result.error);
-        
-        // Mostrar error específico según el tipo
+      const result = await registerResponse.json();
+
+      if (!registerResponse.ok || !result.user) {
+        console.error('❌ Error al guardar usuario:', result.error);
+
         if (result.error === 'email_duplicado') {
           setErrors({ email: 'Este email ya está registrado. Usa otro email o recupera tu contraseña.' });
         } else if (result.error === 'dni_duplicado') {
@@ -239,8 +199,8 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         return;
       }
 
-      const supabaseUser = result.user;
-      console.log('✅ Usuario guardado en Supabase:', supabaseUser.id);
+      const { tempPassword, verificationToken } = result;
+      console.log('✅ Usuario guardado:', result.user.id);
 
       // Enviar email de verificaci├│n usando el servicio real
       const emailSent = await sendVerificationEmail({

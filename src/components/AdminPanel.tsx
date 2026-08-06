@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award, Mail, BookOpen, AlertTriangle, UserX, Shield, Flame, MessageCircle, MapPin } from 'lucide-react';
-import { getAllUsers, deleteUser, exportUsersToCSV, toggleVotingAuthorization, resetTempPassword } from '../services/userDatabase';
+import { getAllUsers, deleteUser, exportUsersToCSV, toggleVotingAuthorization, resetTempPassword } from '../services/adminUsersService';
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
-import { hashPassword } from '../services/passwordService';
 import { trackInteraction, createSectionTimeTracker } from '../services/analyticsService';
 import { getEstadoPlantilla, EstadoPlantilla, COLORES_ESTADO_PLANTILLA } from '../data/plantillaOficialSEPEI';
 
@@ -250,19 +249,17 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
   };
 
   const handleResetTempPassword = async (userId: string, userName: string, userEmail: string) => {
-    // Generar contraseña temporal aleatoria
-    const tempPassword = `Sepei${Math.floor(1000 + Math.random() * 9000)}!`;
-    
-    if (confirm(`¿Resetear contraseña temporal de ${userName}?\n\nNueva contraseña: ${tempPassword}\n\n⚠️ Anota esta contraseña, se la debes comunicar al usuario.`)) {
-      const hashedPassword = await hashPassword(tempPassword);
-      const success = await resetTempPassword(userId, tempPassword, hashedPassword);
-      
-      if (success) {
-        await loadUsers();
-        alert(`✅ Contraseña reseteada correctamente\n\nUsuario: ${userName}\nEmail: ${userEmail}\nContraseña temporal: ${tempPassword}\n\n⚠️ El usuario DEBE cambiar esta contraseña en su próximo login.`);
-      } else {
-        alert(`❌ Error al resetear contraseña. Verifica la consola.`);
-      }
+    if (!confirm(`¿Resetear la contraseña de ${userName}? Se generará una nueva contraseña temporal.`)) {
+      return;
+    }
+
+    const { success, tempPassword } = await resetTempPassword(userId);
+
+    if (success && tempPassword) {
+      await loadUsers();
+      alert(`✅ Contraseña reseteada correctamente\n\nUsuario: ${userName}\nEmail: ${userEmail}\nContraseña temporal: ${tempPassword}\n\n⚠️ Anota esta contraseña, se la debes comunicar al usuario. El usuario DEBE cambiarla en su próximo login.`);
+    } else {
+      alert(`❌ Error al resetear contraseña. Verifica la consola.`);
     }
   };
 
