@@ -1,10 +1,20 @@
 /**
  * BOE Search API — Motor de búsqueda de convocatorias de bomberos
  * Vercel Serverless Function
- * 
- * REPLICA EXACTA de la lógica de desarrollo (vite.config.mjs)
+ *
+ * GET (sin action): lectura rápida de la tabla `boe_convocatorias` (poblada por el sync diario).
+ * GET/POST ?action=sync: ejecuta el barrido completo del BOE (90 días + verificación de
+ * contenido) y persiste el resultado. Tarda 60-90s — solo lo dispara el cron diario
+ * (vercel.json, autenticado con CRON_SECRET) o un admin desde el panel ("Recalcular ahora").
+ * Antes este barrido se ejecutaba en cada visita de cada usuario: además de ser lento,
+ * multiplicaba la carga sobre boe.es por cada visitante.
+ *
  * Usa la API de datos abiertos del BOE: /datosabiertos/api/boe/sumario/{fecha}
  */
+
+import { timingSafeEqual } from 'crypto';
+import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
+import { getBearerToken, verifyAdminToken } from './_lib/adminAuth.js';
 
 const BOE_BASE = 'https://www.boe.es';
 
@@ -360,72 +370,191 @@ async function fetchDaySummary(dateStr: string): Promise<any[]> {
   }
 }
 
+function isAuthorizedSync(req: any): boolean {
+  const token = getBearerToken(req);
+  if (!token) return false;
+  if (verifyAdminToken(token)) return true;
+
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) return false;
+  const a = Buffer.from(token);
+  const b = Buffer.from(cronSecret);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+// Ejecuta el barrido completo del BOE (motor sin cambios) y persiste el resultado.
+async function runSync(triggerSource: 'cron' | 'manual') {
+  const supabase = getSupabaseAdmin();
+  const startedAt = new Date();
+  const startedAtMs = Date.now();
+
+  console.log(`[boe-search] Iniciando sync (${triggerSource})...`);
+
+  const dates = getRecentDates(90);
+  console.log(`[boe-search] Consultando ${dates.length} días laborables...`);
+
+  const summaryResults: any[] = [];
+  const batchSize = 15;
+
+  for (let i = 0; i < dates.length; i += batchSize) {
+    const batch = dates.slice(i, i + batchSize);
+    const batchResults = await Promise.all(batch.map(d => fetchDaySummary(d)));
+    summaryResults.push(...batchResults.flat());
+
+    if ((i + batchSize) % 50 === 0 || i + batchSize >= dates.length) {
+      console.log(`[boe-search] Procesados ${Math.min(i + batchSize, dates.length)}/${dates.length} días, ${summaryResults.length} resultados`);
+    }
+  }
+
+  const seen = new Set<string>();
+  const merged: any[] = [];
+
+  for (const item of summaryResults) {
+    if (item.id && !seen.has(item.id)) {
+      seen.add(item.id);
+      const estadoPlazo = calcularEstadoPlazo(item.fechaISO, item.tipo);
+      merged.push({
+        ...item,
+        estadoPlazo: estadoPlazo.estado,
+        diasRestantes: estadoPlazo.diasRestantesEstimados,
+        diasDesdePublicacion: estadoPlazo.diasTranscurridos,
+        prioridad: estadoPlazo.prioridad
+      });
+    }
+  }
+
+  merged.sort((a, b) => b.fechaISO.localeCompare(a.fechaISO));
+  console.log(`[boe-search] Total: ${merged.length} resultados únicos`);
+
+  const rows = merged.map(item => ({
+    id: item.id,
+    titulo: item.titulo,
+    fecha: item.fecha,
+    fecha_iso: item.fechaISO,
+    anio: item.anio,
+    url_htm: item.urlHtm || null,
+    url_pdf: item.urlPdf || null,
+    tipo: item.tipo,
+    departamento: item.departamento || '',
+    estado_plazo: item.estadoPlazo,
+    dias_restantes: item.diasRestantes,
+    dias_desde_publicacion: item.diasDesdePublicacion,
+    prioridad: item.prioridad,
+    updated_at: new Date().toISOString(),
+  }));
+
+  // Rebuild completo: es un dataset pequeño (~20-30 filas) y diario, más simple y
+  // robusto que calcular un diff de altas/bajas.
+  const { error: deleteError } = await supabase.from('boe_convocatorias').delete().not('id', 'is', null);
+  if (deleteError) throw new Error(`Error al limpiar boe_convocatorias: ${deleteError.message}`);
+
+  if (rows.length > 0) {
+    const { error: insertError } = await supabase.from('boe_convocatorias').insert(rows as any);
+    if (insertError) throw new Error(`Error al insertar boe_convocatorias: ${insertError.message}`);
+  }
+
+  const durationMs = Date.now() - startedAtMs;
+
+  await supabase.from('boe_sync_log').insert({
+    started_at: startedAt.toISOString(),
+    finished_at: new Date().toISOString(),
+    status: 'success',
+    trigger_source: triggerSource,
+    dias_consultados: dates.length,
+    total_resultados: merged.length,
+    duracion_ms: durationMs,
+  } as any);
+
+  return { total: merged.length, durationMs };
+}
+
+async function handleSync(req: any, res: any, triggerSource: 'cron' | 'manual') {
+  const startedAt = new Date();
+  try {
+    const { total, durationMs } = await runSync(triggerSource);
+    return res.status(200).json({ ok: true, total, durationMs });
+  } catch (err: any) {
+    console.error('[boe-search] Error en sync:', err);
+    try {
+      const supabase = getSupabaseAdmin();
+      await supabase.from('boe_sync_log').insert({
+        started_at: startedAt.toISOString(),
+        finished_at: new Date().toISOString(),
+        status: 'error',
+        trigger_source: triggerSource,
+        error: err.message,
+      } as any);
+    } catch (logErr) {
+      console.error('[boe-search] Error al registrar el fallo del sync:', logErr);
+    }
+    return res.status(500).json({ ok: false, error: 'Error al sincronizar el BOE', details: err.message });
+  }
+}
+
+async function handleRead(req: any, res: any) {
+  const supabase = getSupabaseAdmin();
+  const { data: rawData, error } = await supabase
+    .from('boe_convocatorias')
+    .select('*')
+    .order('fecha_iso', { ascending: false });
+
+  if (error) {
+    console.error('[boe-search] Error al leer boe_convocatorias:', error);
+    return res.status(500).json({ ok: false, error: 'Error al consultar convocatorias', details: error.message });
+  }
+
+  const data = (rawData || []) as any[];
+
+  const results = data.map((row: any) => ({
+    id: row.id,
+    titulo: row.titulo,
+    fecha: row.fecha,
+    fechaISO: row.fecha_iso,
+    anio: row.anio,
+    urlHtm: row.url_htm || '',
+    urlPdf: row.url_pdf || '',
+    tipo: row.tipo,
+    departamento: row.departamento || '',
+    estadoPlazo: row.estado_plazo,
+    diasRestantes: row.dias_restantes,
+    diasDesdePublicacion: row.dias_desde_publicacion,
+    prioridad: row.prioridad,
+  }));
+
+  const ultimaActualizacion = data.length > 0
+    ? data.reduce((max: string, r: any) => (r.updated_at > max ? r.updated_at : max), data[0].updated_at)
+    : null;
+
+  return res.status(200).json({
+    ok: true,
+    total: results.length,
+    results,
+    fuente: 'Boletín Oficial del Estado (BOE) — www.boe.es',
+    timestamp: new Date().toISOString(),
+    ultimaActualizacion,
+    nota: 'Convocatorias ordenadas por relevancia (en plazo primero)'
+  });
+}
+
 export default async function handler(req: any, res: any) {
   // Headers CORS más completos para compatibilidad con móviles
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Origin');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Origin, Authorization');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=1800');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const action = req.query?.action;
+
+  if (action === 'sync') {
+    if (!isAuthorizedSync(req)) return res.status(401).json({ ok: false, error: 'No autorizado' });
+    const triggerSource = verifyAdminToken(getBearerToken(req)) ? 'manual' : 'cron';
+    return handleSync(req, res, triggerSource);
+  }
+
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  try {
-    console.log('[boe-search] Iniciando búsqueda...');
-    
-    // Usar 90 días (3 meses, excluye fines de semana)
-    const dates = getRecentDates(90);
-    console.log(`[boe-search] Consultando ${dates.length} días laborables...`);
-    
-    const summaryResults: any[] = [];
-    const batchSize = 15; // Igual que desarrollo
-    
-    // Procesar TODOS los días sin límite ni parada temprana (igual que desarrollo)
-    for (let i = 0; i < dates.length; i += batchSize) {
-      const batch = dates.slice(i, i + batchSize);
-      const batchResults = await Promise.all(batch.map(d => fetchDaySummary(d)));
-      summaryResults.push(...batchResults.flat());
-      
-      // Log de progreso
-      if ((i + batchSize) % 50 === 0 || i + batchSize >= dates.length) {
-        console.log(`[boe-search] Procesados ${Math.min(i + batchSize, dates.length)}/${dates.length} días, ${summaryResults.length} resultados`);
-      }
-    }
-    
-    // Eliminar duplicados y añadir estado de plazo
-    const seen = new Set<string>();
-    const merged: any[] = [];
-    
-    for (const item of summaryResults) {
-      if (item.id && !seen.has(item.id)) {
-        seen.add(item.id);
-        const estadoPlazo = calcularEstadoPlazo(item.fechaISO, item.tipo);
-        merged.push({
-          ...item,
-          estadoPlazo: estadoPlazo.estado,
-          diasRestantes: estadoPlazo.diasRestantesEstimados,
-          diasDesdePublicacion: estadoPlazo.diasTranscurridos,
-          prioridad: estadoPlazo.prioridad
-        });
-      }
-    }
-    
-    // Ordenar por fecha más reciente
-    merged.sort((a, b) => b.fechaISO.localeCompare(a.fechaISO));
-
-    console.log(`[boe-search] Total: ${merged.length} resultados únicos`);
-
-    return res.status(200).json({
-      ok: true,
-      total: merged.length,
-      results: merged,
-      fuente: 'Boletín Oficial del Estado (BOE) — www.boe.es',
-      timestamp: new Date().toISOString(),
-      nota: 'Convocatorias ordenadas por relevancia (en plazo primero)'
-    });
-  } catch (err: any) {
-    console.error('[boe-search] Error:', err);
-    return res.status(500).json({ ok: false, error: 'Error al consultar el BOE', details: err.message });
-  }
+  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=1800');
+  return handleRead(req, res);
 }
