@@ -2,9 +2,9 @@
  * API para gestionar códigos de vinculación de Telegram
  */
 
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
-module.exports = async function handler(req: any, res: any) {
+export default async function handler(req: any, res: any) {
   res.setHeader('Content-Type', 'application/json');
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -81,4 +81,4 @@ module.exports = async function handler(req: any, res: any) {
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
-};
+}

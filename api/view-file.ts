@@ -5,7 +5,7 @@
  * 
  * Uso: /api/view-file?url=https://xxx.supabase.co/storage/v1/object/public/...
  */
-module.exports = async function handler(req: any, res: any) {
+export default async function handler(req: any, res: any) {
   // Manejar preflight CORS
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -127,4 +127,4 @@ module.exports = async function handler(req: any, res: any) {
       message: error?.message || 'Unknown error'
     });
   }
-};
+}

@@ -9,7 +9,7 @@ interface TelegramSendRequest {
   parse_mode?: 'HTML' | 'Markdown';
 }
 
-module.exports = async function handler(req: any, res: any) {
+export default async function handler(req: any, res: any) {
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -65,7 +65,7 @@ module.exports = async function handler(req: any, res: any) {
     console.error('❌ Error en telegram-send:', error);
     return res.status(500).json({ 
       error: 'Internal server error',
-      details: error.message 
+      details: error.message
     });
   }
-};
+}
