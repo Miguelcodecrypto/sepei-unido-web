@@ -1,4 +1,10 @@
-import { supabase } from '../lib/supabase';
+/**
+ * Cliente de sugerencias/propuestas. Todas las operaciones pasan por /api/suggestions
+ * (service_role en el servidor) — antes se leía/escribía la tabla `suggestions`
+ * directo con la anon key, lo que permitía a cualquiera leer nombre, email y
+ * teléfono de todas las sugerencias enviadas (ver auditoría 2026-08-06).
+ */
+import { getAdminToken } from './authService';
 
 interface Suggestion {
   id: string;
@@ -13,111 +19,50 @@ interface Suggestion {
   fecha_registro: string;
 }
 
-// Obtener todas las sugerencias
+async function suggestionsFetch(action: string, options: RequestInit & { auth?: boolean } = {}): Promise<any> {
+  const { auth, ...init } = options;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(init.headers as any) };
+
+  if (auth) {
+    const token = getAdminToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+
+  const resp = await fetch(`/api/suggestions?action=${action}`, { ...init, headers });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(data.error || `Error en ${action}`);
+  return data;
+}
+
+// Obtener todas las sugerencias (admin)
 export const getAllSuggestions = async (): Promise<Suggestion[]> => {
   try {
-    const { data, error } = await supabase
-      .from('suggestions')
-      .select('*')
-      .order('fecha_registro', { ascending: false });
-
-    if (error) {
-      console.error('Error al obtener sugerencias:', error);
-      return [];
-    }
-
-    return data || [];
+    const data = await suggestionsFetch('list', { auth: true });
+    return data.suggestions || [];
   } catch (error) {
-    console.error('Error en getAllSuggestions:', error);
+    console.error('Error al obtener sugerencias:', error);
     return [];
   }
 };
 
-// Agregar nueva sugerencia
+// Agregar nueva sugerencia (público)
 export const addSuggestion = async (suggestionData: Omit<Suggestion, 'id' | 'fecha_registro'>): Promise<Suggestion | null> => {
   try {
-    const { data, error } = await supabase
-      .from('suggestions')
-      .insert([{
-        nombre: suggestionData.nombre,
-        apellidos: suggestionData.apellidos,
-        email: suggestionData.email,
-        telefono: suggestionData.telefono,
-        categoria: suggestionData.categoria,
-        lugar_trabajo: suggestionData.lugar_trabajo,
-        asunto: suggestionData.asunto,
-        descripcion: suggestionData.descripcion,
-      }])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error al agregar sugerencia:', error);
-      return null;
-    }
-
-    return data;
+    const data = await suggestionsFetch('create', {
+      method: 'POST',
+      body: JSON.stringify(suggestionData),
+    });
+    return data.suggestion || null;
   } catch (error) {
     console.error('Error en addSuggestion:', error);
     return null;
   }
 };
 
-// Obtener sugerencia por ID
-export const getSuggestionById = async (id: string): Promise<Suggestion | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('suggestions')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      console.error('Error al obtener sugerencia:', error);
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error en getSuggestionById:', error);
-    return null;
-  }
-};
-
-// Obtener sugerencias por email
-export const getSuggestionsByEmail = async (email: string): Promise<Suggestion[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('suggestions')
-      .select('*')
-      .eq('email', email)
-      .order('fecha_registro', { ascending: false });
-
-    if (error) {
-      console.error('Error al obtener sugerencias por email:', error);
-      return [];
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error('Error en getSuggestionsByEmail:', error);
-    return [];
-  }
-};
-
-// Eliminar sugerencia
+// Eliminar sugerencia (admin)
 export const deleteSuggestion = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('suggestions')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error al eliminar sugerencia:', error);
-      return false;
-    }
-
+    await suggestionsFetch('delete', { method: 'POST', auth: true, body: JSON.stringify({ id }) });
     return true;
   } catch (error) {
     console.error('Error en deleteSuggestion:', error);
@@ -125,19 +70,10 @@ export const deleteSuggestion = async (id: string): Promise<boolean> => {
   }
 };
 
-// Limpiar todas las sugerencias
+// Limpiar todas las sugerencias (admin)
 export const clearAllSuggestions = async (): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('suggestions')
-      .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // Eliminar todas
-
-    if (error) {
-      console.error('Error al limpiar sugerencias:', error);
-      return false;
-    }
-
+    await suggestionsFetch('clear', { method: 'POST', auth: true });
     return true;
   } catch (error) {
     console.error('Error en clearAllSuggestions:', error);
@@ -145,10 +81,10 @@ export const clearAllSuggestions = async (): Promise<boolean> => {
   }
 };
 
-// Exportar sugerencias a CSV
+// Exportar sugerencias a CSV (admin)
 export const exportSuggestionsToCSV = async (): Promise<void> => {
   const suggestions = await getAllSuggestions();
-  
+
   if (suggestions.length === 0) {
     alert('No hay sugerencias para exportar');
     return;
