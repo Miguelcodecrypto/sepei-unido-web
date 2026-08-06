@@ -105,28 +105,22 @@ export default function ConvocatoriasPage() {
 
   const fetchData = useCallback(async (retryCount = 0) => {
     if (!currentUser) return; // Solo cargar si hay usuario autenticado
-    
+
     setLoading(true);
     setError(null);
     setPage(1);
     try {
-      // Timeout de 90 segundos para móviles con conexión lenta
+      // Lectura simple de la tabla precalculada por el sync diario (ver api/boe-search.ts):
+      // ya no hace falta cache-buster ni un timeout largo, esto tarda milisegundos.
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 90000);
-      
-      // Añadir timestamp para evitar cache y forzar nueva petición
-      const cacheBuster = `?_t=${Date.now()}`;
-      const resp = await fetch(`/api/boe-search${cacheBuster}`, {
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      const resp = await fetch('/api/boe-search', {
         signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache, no-store',
-          'Pragma': 'no-cache',
-        },
-        cache: 'no-store',
+        headers: { 'Accept': 'application/json' },
       });
       clearTimeout(timeoutId);
-      
+
       if (!resp.ok) {
         const errorText = await resp.text().catch(() => '');
         throw new Error(`HTTP ${resp.status}${errorText ? `: ${errorText}` : ''}`);
@@ -143,16 +137,18 @@ export default function ConvocatoriasPage() {
 
       setRawResults(enriched);
       setTotalBOE(data.total);
-      setLastFetch(new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }));
+      setLastFetch(data.ultimaActualizacion
+        ? new Date(data.ultimaActualizacion).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+        : null);
       setLoading(false);
     } catch (e: any) {
-      // Retry automático una vez en caso de error de red
+      // Reintento único ante un fallo de red puntual
       if (retryCount < 1 && (e.name === 'AbortError' || e.message?.includes('Failed to fetch') || e.message?.includes('NetworkError'))) {
         console.log('[BOE Search] Reintentando...');
-        setTimeout(() => fetchData(retryCount + 1), 2000);
+        setTimeout(() => fetchData(retryCount + 1), 1000);
         return;
       }
-      
+
       // Mejorar mensajes de error para el usuario
       let errorMsg = 'Error desconocido';
       if (e.name === 'AbortError') {
@@ -323,7 +319,7 @@ export default function ConvocatoriasPage() {
           <div className="flex items-center gap-3">
             {lastFetch && !loading && (
               <span className="hidden sm:inline text-gray-500 text-xs">
-                Actualizado: {lastFetch}
+                Datos del BOE actualizados: {lastFetch}
               </span>
             )}
             <button

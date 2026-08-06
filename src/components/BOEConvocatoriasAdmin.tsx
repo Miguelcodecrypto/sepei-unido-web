@@ -21,6 +21,12 @@ import {
 } from 'lucide-react';
 import { PROVINCIAS_ES, detectProvincia, getProvinciaColor, type Provincia } from '../utils/provincias';
 import { createAnnouncement } from '../services/announcementDatabase';
+import { getAdminToken } from '../services/authService';
+
+// Duración estimada del recálculo: el barrido de 90 días del BOE con verificación de
+// contenido tarda 60-90s en la práctica (ver api/boe-search.ts). Se usa solo para el
+// contador visual, no corta la petición real.
+const SYNC_ESTIMATED_SECONDS = 90;
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -116,6 +122,11 @@ export default function BOEConvocatoriasAdmin() {
   const [newsSuccess, setNewsSuccess] = useState(false);
   const [newsError, setNewsError] = useState('');
 
+  // Recálculo manual (dispara el mismo barrido de 90 días que hace el cron diario)
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncSecondsLeft, setSyncSecondsLeft] = useState(0);
+
   // ── Carga de datos ─────────────────────────────────────────────────────────
 
   const fetchData = useCallback(async () => {
@@ -137,7 +148,9 @@ export default function BOEConvocatoriasAdmin() {
 
       setRawResults(enriched);
       setTotalBOE(data.total);
-      setLastFetch(new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }));
+      setLastFetch(data.ultimaActualizacion
+        ? new Date(data.ultimaActualizacion).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+        : null);
     } catch (e: any) {
       setError(e.message || 'Error desconocido');
     } finally {
@@ -147,6 +160,39 @@ export default function BOEConvocatoriasAdmin() {
 
   useEffect(() => {
     fetchData();
+  }, [fetchData]);
+
+  // ── Recálculo manual ───────────────────────────────────────────────────────
+  // Dispara el barrido completo del BOE bajo demanda, en vez de esperar al cron diario.
+  // Es la única operación de este panel que sigue siendo lenta (60-90s), de ahí el
+  // contador: sin feedback de progreso el admin tiende a pensar que se ha colgado y
+  // reintenta, duplicando el trabajo en el servidor.
+  const handleSync = useCallback(async () => {
+    setSyncing(true);
+    setSyncError(null);
+    setSyncSecondsLeft(SYNC_ESTIMATED_SECONDS);
+
+    const countdownInterval = setInterval(() => {
+      setSyncSecondsLeft(s => Math.max(0, s - 1));
+    }, 1000);
+
+    try {
+      const token = getAdminToken();
+      const resp = await fetch('/api/boe-search?action=sync', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+      await fetchData();
+    } catch (e: any) {
+      setSyncError(e.message || 'Error al recalcular');
+    } finally {
+      clearInterval(countdownInterval);
+      setSyncing(false);
+      setSyncSecondsLeft(0);
+    }
   }, [fetchData]);
 
   // ── Filtrado local ─────────────────────────────────────────────────────────
@@ -232,21 +278,38 @@ export default function BOEConvocatoriasAdmin() {
             Busca convocatorias de bomberos en el BOE y crea noticias para el sitio web
           </p>
         </div>
-        <button
-          onClick={fetchData}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/40 text-orange-300 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          {loading ? 'Cargando...' : 'Actualizar'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchData}
+            disabled={loading || syncing}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/40 text-orange-300 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            {loading ? 'Cargando...' : 'Actualizar'}
+          </button>
+          <button
+            onClick={handleSync}
+            disabled={syncing || loading}
+            title="Vuelve a consultar el BOE ahora mismo en vez de esperar al cron diario (tarda 60-90s)"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+          >
+            <Loader2 className={`w-4 h-4 ${syncing ? 'animate-spin' : 'hidden'}`} />
+            {syncing ? `Recalculando... ~${syncSecondsLeft}s` : 'Recalcular ahora'}
+          </button>
+        </div>
       </div>
 
       {/* Info */}
       {lastFetch && (
         <div className="flex items-center gap-4 text-sm text-gray-400">
           <span>📊 {totalBOE} publicaciones encontradas</span>
-          <span>🕒 Última consulta: {lastFetch}</span>
+          <span>🕒 Datos actualizados: {lastFetch}</span>
+        </div>
+      )}
+      {syncError && (
+        <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span>Error al recalcular: {syncError}</span>
         </div>
       )}
 
