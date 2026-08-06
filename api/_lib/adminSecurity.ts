@@ -1,22 +1,17 @@
 /**
- * Rate limiting y bloqueo de IPs para el login de admin.
+ * Rate limiting y bloqueo de IPs por intentos fallidos de login (admin y usuario comparten
+ * la misma tabla/bloqueo por IP; es una limitación aceptada, no un descuido: separar ambos
+ * requeriría una columna de contexto nueva en admin_login_attempts).
  * Traído server-side desde src/services/adminSecurityService.ts.
  * A diferencia del original, NUNCA se guarda la contraseña intentada en texto plano.
  */
 import { getSupabaseAdmin } from './supabaseAdmin';
+export { getClientIP } from './clientIp';
 
 const MAX_ATTEMPTS_BEFORE_BLOCK = 3;
 const BLOCK_DURATION_HOURS = 24;
 const RATE_LIMIT_WINDOW_MINUTES = 5;
 const MAX_ATTEMPTS_IN_WINDOW = 5;
-
-export function getClientIP(req: any): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.length > 0) {
-    return forwarded.split(',')[0].trim();
-  }
-  return req.socket?.remoteAddress || 'unknown';
-}
 
 export async function isIPBlocked(ip: string): Promise<boolean> {
   const supabase = getSupabaseAdmin();

@@ -8,18 +8,13 @@ import { getSupabaseAdmin } from './_lib/supabaseAdmin';
 import { getBearerToken } from './_lib/adminAuth';
 import { generateTempPassword } from './_lib/password';
 import { sendEmailViaResend } from './_lib/resend';
+import { getClientIP } from './_lib/clientIp';
+import { checkLoginAllowed, recordLoginAttempt } from './_lib/adminSecurity';
 
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 const VERIFICATION_TOKEN_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 const GENERIC_RESET_MESSAGE = 'Si el email está registrado, recibirás un correo con una nueva contraseña temporal.';
-
-function getClientIP(req: any): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.length > 0) {
-    return forwarded.split(',')[0].trim();
-  }
-  return req.socket?.remoteAddress || 'unknown';
-}
+const APP_URL = process.env.VITE_APP_URL || process.env.APP_URL || 'https://www.sepeiunido.org';
 
 function toPublicUser(user: any) {
   const { id, dni, nombre, apellidos, email, verified, autorizado_votar, requires_password_change } = user;
@@ -33,6 +28,14 @@ async function handleLogin(req: any, res: any, supabase: ReturnType<typeof getSu
     return res.status(400).json({ error: 'Faltan DNI o contraseña' });
   }
 
+  const ip = getClientIP(req);
+  const userAgent = req.headers['user-agent'] || 'unknown';
+
+  const gate = await checkLoginAllowed(ip);
+  if (!gate.allowed) {
+    return res.status(429).json({ error: gate.message });
+  }
+
   const { data: user, error: userError } = await supabase
     .from('users').select('*').eq('dni', dni.toUpperCase().trim()).maybeSingle();
 
@@ -40,13 +43,18 @@ async function handleLogin(req: any, res: any, supabase: ReturnType<typeof getSu
     console.error('Error al buscar usuario:', userError);
     return res.status(500).json({ error: 'Error interno' });
   }
-  if (!user || !(user as any).password) {
-    return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
-  }
 
+  const storedHash = user && (user as any).password;
   const bcrypt = await import('bcryptjs');
-  const isValid = await bcrypt.compare(password, (user as any).password);
-  if (!isValid) {
+  // Comparar siempre contra ALGÚN hash, exista o no el usuario, para no filtrar por timing
+  // si un DNI está registrado.
+  const isValid = storedHash
+    ? await bcrypt.compare(password, storedHash)
+    : await bcrypt.compare(password, '$2a$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinva');
+
+  await recordLoginAttempt(ip, userAgent, !!user && isValid);
+
+  if (!user || !storedHash || !isValid) {
     return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
   }
   if (!(user as any).verified) {
@@ -60,8 +68,8 @@ async function handleLogin(req: any, res: any, supabase: ReturnType<typeof getSu
     user_id: (user as any).id,
     session_token: sessionToken,
     expires_at: expiresAt,
-    ip_address: getClientIP(req),
-    user_agent: req.headers['user-agent'] || 'unknown',
+    ip_address: ip,
+    user_agent: userAgent,
     is_active: true,
   });
   if (sessionError) {
@@ -175,7 +183,30 @@ async function handleRegister(req: any, res: any, supabase: ReturnType<typeof ge
     return res.status(500).json({ error: 'Error al registrar usuario' });
   }
 
-  return res.status(200).json({ user, tempPassword, verificationToken });
+  // El token de verificación (y la contraseña temporal) NUNCA salen en la respuesta HTTP:
+  // solo se envían por email, para que la verificación no sea saltable llamando al endpoint
+  // directamente y leyendo el token de la respuesta.
+  const verificationLink = `${APP_URL}/verify?token=${verificationToken}`;
+  const html = `
+    <p>Hola ${insertData.nombre},</p>
+    <p>Confirma tu cuenta de SEPEI UNIDO haciendo clic en este enlace:</p>
+    <p><a href="${verificationLink}">${verificationLink}</a></p>
+    ${tempPassword ? `<p>Tu contraseña temporal es: <strong>${tempPassword}</strong> (deberás cambiarla al iniciar sesión).</p>` : ''}
+    <p>Este enlace caduca en 7 días.</p>
+  `;
+  const text = `Confirma tu cuenta: ${verificationLink}` + (tempPassword ? `\nTu contraseña temporal es: ${tempPassword}` : '');
+
+  const emailSent = await sendEmailViaResend({
+    to: normalizedEmail,
+    subject: 'Verifica tu cuenta - SEPEI UNIDO',
+    html,
+    text,
+  });
+  if (!emailSent) {
+    console.error('No se pudo enviar el email de verificación a', normalizedEmail);
+  }
+
+  return res.status(200).json({ user });
 }
 
 // ---- action=verify-email ----

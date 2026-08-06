@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle, Mail, User, CreditCard, AlertCircle, MapPin } from 'lucide-react';
-import { sendVerificationEmail, sendNewUserNotificationToAdmin } from '../services/emailService';
+import { sendNewUserNotificationToAdmin } from '../services/emailService';
 
 interface TraditionalRegistrationProps {
   onSuccess: (userData: UserData) => void;
@@ -199,23 +199,9 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
         return;
       }
 
-      const { tempPassword, verificationToken } = result;
       console.log('✅ Usuario guardado:', result.user.id);
-
-      // Enviar email de verificaci├│n usando el servicio real
-      const emailSent = await sendVerificationEmail({
-        email: userData.email,
-        nombre: userData.nombre,
-        tempPassword,
-        verificationToken,
-        dni: userData.dni
-      });
-
-      if (!emailSent) {
-        setErrors({ email: 'Error al enviar email de verificaci├│n. Intenta de nuevo.' });
-        setIsLoading(false);
-        return;
-      }
+      // El email de verificación (con la contraseña temporal) lo envía el propio servidor
+      // dentro de /api/auth?action=register; nunca viaja en esta respuesta.
 
       // Enviar notificación a admin de nuevo usuario registrado
       sendNewUserNotificationToAdmin({
@@ -232,15 +218,6 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
 
       setVerificationSent(true);
       setStep('verification');
-
-      // Solo en desarrollo, mostrar la info en consola
-      // @ts-ignore - import.meta.env existe en Vite pero TypeScript no lo reconoce
-      if (import.meta.env?.DEV) {
-        console.log('💻 [DESARROLLO] Datos de verificación:');
-        console.log('Email:', userData.email);
-        console.log('Contraseña temporal:', tempPassword);
-        console.log('Token:', verificationToken);
-      }
 
     } catch (error) {
       console.error('Error en registro:', error);

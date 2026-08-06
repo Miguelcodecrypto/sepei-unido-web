@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Flame, Users, Shield, Target, Mail, Phone, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, LogIn, FileSearch, HardHat, Lightbulb } from 'lucide-react';
 import { getCertificateFromSession, clearCertificateSession, type BrowserCertificate } from './services/browserCertificateService';
-import { sendNewUserNotificationToAdmin, sendVerificationEmail } from './services/emailService';
+import { sendNewUserNotificationToAdmin } from './services/emailService';
 import TermsModal from './components/TermsModal';
 import SuggestionsForm from './components/SuggestionsForm';
 import CertificateUpload from './components/CertificateUpload';
@@ -214,8 +214,8 @@ export default function SepeiUnido() {
 
     try {
       // El servidor no valida la cadena del certificado, así que el usuario queda sin
-      // verificar hasta que confirme por email.
-      const response = await fetch('/api/auth?action=register', {
+      // verificar hasta que confirme por email (email que envía el propio servidor).
+      await fetch('/api/auth?action=register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -228,16 +228,6 @@ export default function SepeiUnido() {
           certificado_fecha_validacion: new Date(certificateData.notAfter).toISOString().split('T')[0],
         }),
       });
-      const data = await response.json();
-      if (data.verificationToken) {
-        sendVerificationEmail({
-          email: pendingUserData.email,
-          nombre: pendingUserData.nombre,
-          tempPassword: '',
-          verificationToken: data.verificationToken,
-          dni: certificateData.nif || '',
-        }).catch(error => console.error('Error al enviar email de verificación:', error));
-      }
 
       // Enviar notificación a admin de nuevo usuario registrado con certificado
       sendNewUserNotificationToAdmin({

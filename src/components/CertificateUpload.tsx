@@ -5,7 +5,7 @@ import { selectClientCertificate, saveCertificateToSession, checkBrowserSupport,
 import { parseCertificateFile, isValidCertificateFile, getCertificateFileTypeMessage } from '../services/certificateFileParser';
 import { isCertificateRegistered } from '../services/fnmtService';
 import { initializeTestCertificates } from '../data/testCertificates';
-import { sendNewUserNotificationToAdmin, sendVerificationEmail } from '../services/emailService';
+import { sendNewUserNotificationToAdmin } from '../services/emailService';
 
 interface CertificateUploadProps {
   onCertificateLoaded: (data: BrowserCertificate) => void;
@@ -154,33 +154,20 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
       saveCertificateToSession(certificateData);
 
       // Guardar en la base de datos del panel admin. El servidor no valida la cadena del
-      // certificado, así que el usuario queda sin verificar hasta que confirme por email.
-      try {
-        const response = await fetch('/api/auth?action=register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nombre: certificateData.nombre,
-            email: certificateData.email || '',
-            terminos_aceptados: true,
-            certificado_nif: certificateData.nif,
-            certificado_thumbprint: certificateData.thumbprint,
-            certificado_fecha_validacion: new Date().toISOString(),
-          }),
-        });
-        const data = await response.json();
-        if (data.verificationToken) {
-          sendVerificationEmail({
-            email: certificateData.email || '',
-            nombre: certificateData.nombre,
-            tempPassword: '',
-            verificationToken: data.verificationToken,
-            dni: certificateData.nif || '',
-          }).catch(error => console.error('Error al enviar email de verificación:', error));
-        }
-      } catch (error) {
-        console.error('Error al registrar usuario con certificado:', error);
-      }
+      // certificado, así que el usuario queda sin verificar hasta que confirme por email
+      // (email que envía el propio servidor, no este componente).
+      fetch('/api/auth?action=register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: certificateData.nombre,
+          email: certificateData.email || '',
+          terminos_aceptados: true,
+          certificado_nif: certificateData.nif,
+          certificado_thumbprint: certificateData.thumbprint,
+          certificado_fecha_validacion: new Date().toISOString(),
+        }),
+      }).catch(error => console.error('Error al registrar usuario con certificado:', error));
 
       // Enviar notificación a admin de nuevo usuario registrado con certificado
       sendNewUserNotificationToAdmin({
