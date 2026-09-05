@@ -1,9 +1,10 @@
 /**
- * Servicio para gestionar emails externos
- * Emails que recibirán notificaciones sin ser usuarios registrados
+ * Servicio para gestionar emails externos (destinatarios de notificaciones que no
+ * son usuarios registrados). Todas las operaciones pasan por /api/admin
+ * (resource=external_emails, protegido con el token de sesión de admin) — antes se
+ * hacía CRUD completo directo contra Supabase con la anon key.
  */
-
-import { supabase } from '../lib/supabase';
+import { getAdminToken } from './authService';
 
 export interface ExternalEmail {
   id: string;
@@ -15,24 +16,44 @@ export interface ExternalEmail {
   updated_at: string;
 }
 
+export interface BulkImportContact {
+  email: string;
+  nombre: string;
+  descripcion?: string;
+}
+
+export interface BulkImportResult {
+  created: number;
+  alreadyExists: number;
+  invalid: Array<{ row: number; reason: string }>;
+}
+
+async function adminFetch(path: string, options: RequestInit = {}): Promise<any> {
+  const token = getAdminToken();
+  const response = await fetch(path, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'Content-Type': 'application/json',
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || `Error en ${path}`);
+  }
+  return data;
+}
+
 /**
  * Obtener todos los emails externos
  */
 export async function getAllExternalEmails(): Promise<ExternalEmail[]> {
   try {
-    const { data, error } = await supabase
-      .from('external_emails')
-      .select('*')
-      .order('nombre', { ascending: true });
-
-    if (error) {
-      console.error('Error obteniendo emails externos:', error);
-      return [];
-    }
-
-    return data || [];
+    const { externalEmails } = await adminFetch('/api/admin?resource=external_emails');
+    return externalEmails || [];
   } catch (error) {
-    console.error('Error en getAllExternalEmails:', error);
+    console.error('Error obteniendo emails externos:', error);
     return [];
   }
 }
@@ -41,23 +62,8 @@ export async function getAllExternalEmails(): Promise<ExternalEmail[]> {
  * Obtener solo emails externos activos
  */
 export async function getActiveExternalEmails(): Promise<ExternalEmail[]> {
-  try {
-    const { data, error } = await supabase
-      .from('external_emails')
-      .select('*')
-      .eq('activo', true)
-      .order('nombre', { ascending: true });
-
-    if (error) {
-      console.error('Error obteniendo emails activos:', error);
-      return [];
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error('Error en getActiveExternalEmails:', error);
-    return [];
-  }
+  const all = await getAllExternalEmails();
+  return all.filter((e) => e.activo);
 }
 
 /**
@@ -69,35 +75,31 @@ export async function createExternalEmail(
   descripcion?: string
 ): Promise<boolean> {
   try {
-    // Validar formato email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      console.error('Formato de email inválido');
-      return false;
-    }
-
-    const { error } = await supabase
-      .from('external_emails')
-      .insert([{
-        email: email.toLowerCase().trim(),
-        nombre: nombre.trim(),
-        descripcion: descripcion?.trim() || null,
-        activo: true
-      }]);
-
-    if (error) {
-      if (error.code === '23505') { // unique_violation
-        console.error('Este email ya existe');
-      } else {
-        console.error('Error creando email externo:', error);
-      }
-      return false;
-    }
-
+    await adminFetch('/api/admin?resource=external_emails', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'create', email, nombre, descripcion }),
+    });
     return true;
   } catch (error) {
     console.error('Error en createExternalEmail:', error);
     return false;
+  }
+}
+
+/**
+ * Importar varios emails externos a la vez (desde un archivo CSV/Excel/JSON ya
+ * parseado en el cliente). Los duplicados dentro del archivo y los que ya existen
+ * en la base de datos se omiten sin error — se reportan en el resultado.
+ */
+export async function bulkCreateExternalEmails(contacts: BulkImportContact[]): Promise<BulkImportResult | null> {
+  try {
+    return await adminFetch('/api/admin?resource=external_emails', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'bulk_create', contacts }),
+    });
+  } catch (error) {
+    console.error('Error en bulkCreateExternalEmails:', error);
+    return null;
   }
 }
 
@@ -109,19 +111,13 @@ export async function updateExternalEmail(
   updates: Partial<Omit<ExternalEmail, 'id' | 'created_at' | 'updated_at'>>
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('external_emails')
-      .update(updates)
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error actualizando email externo:', error);
-      return false;
-    }
-
+    await adminFetch('/api/admin?resource=external_emails', {
+      method: 'PATCH',
+      body: JSON.stringify({ id, updates }),
+    });
     return true;
   } catch (error) {
-    console.error('Error en updateExternalEmail:', error);
+    console.error('Error actualizando email externo:', error);
     return false;
   }
 }
@@ -131,19 +127,10 @@ export async function updateExternalEmail(
  */
 export async function deleteExternalEmail(id: string): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('external_emails')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error eliminando email externo:', error);
-      return false;
-    }
-
+    await adminFetch(`/api/admin?resource=external_emails&id=${encodeURIComponent(id)}`, { method: 'DELETE' });
     return true;
   } catch (error) {
-    console.error('Error en deleteExternalEmail:', error);
+    console.error('Error eliminando email externo:', error);
     return false;
   }
 }
