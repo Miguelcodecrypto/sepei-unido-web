@@ -7,6 +7,7 @@
  * vulnerabilidad de prototype pollution/ReDoS conocida y sin parche en el registro
  * de npm (mismo motivo por el que CERES migró de xlsx a exceljs).
  */
+import type ExcelJS from 'exceljs';
 import type { BulkImportContact } from '../services/externalEmailsDatabase';
 
 export interface ParsedContactsResult {
@@ -21,7 +22,8 @@ const NOMBRE_KEYS = ['nombre', 'name', 'nombre completo'];
 const DESCRIPCION_KEYS = ['descripcion', 'descripción', 'description', 'cargo', 'notas'];
 
 function normalizeKey(key: string): string {
-  return key.trim().toLowerCase();
+  // Excel añade un BOM (U+FEFF) al exportar CSV en UTF-8; trim() no lo elimina.
+  return key.replace(/^﻿/, '').trim().toLowerCase();
 }
 
 function findValueByAliases(record: Record<string, any>, aliases: string[]): string | undefined {
@@ -56,6 +58,26 @@ async function parseCsv(file: File): Promise<ParsedContactsResult> {
   return { rows, parseErrors };
 }
 
+/**
+ * exceljs no siempre da un string plano en `cell.value`: una celda con formato
+ * (negrita, rich text) devuelve `{ richText: [...] }`, un email autoconvertido en
+ * hipervínculo devuelve `{ text, hyperlink }`, y una fórmula devuelve
+ * `{ formula, result }`. Sin esto, `String(cell.value)` da "[object Object]".
+ */
+function excelCellToString(value: ExcelJS.CellValue): string {
+  if (value == null) return '';
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'object') {
+    if ('richText' in value && Array.isArray(value.richText)) {
+      return value.richText.map((rt) => rt.text).join('');
+    }
+    if ('text' in value && typeof value.text === 'string') return value.text;
+    if ('result' in value && value.result != null) return excelCellToString(value.result as ExcelJS.CellValue);
+    return '';
+  }
+  return String(value);
+}
+
 async function parseExcel(file: File): Promise<ParsedContactsResult> {
   const { default: ExcelJS } = await import('exceljs');
   const buffer = await file.arrayBuffer();
@@ -68,7 +90,7 @@ async function parseExcel(file: File): Promise<ParsedContactsResult> {
   const headerRow = worksheet.getRow(1);
   const headers: string[] = [];
   headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-    headers[colNumber] = String(cell.value ?? '').trim();
+    headers[colNumber] = excelCellToString(cell.value).trim();
   });
 
   const rows: BulkImportContact[] = [];
@@ -77,7 +99,7 @@ async function parseExcel(file: File): Promise<ParsedContactsResult> {
     const record: Record<string, any> = {};
     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
       const header = headers[colNumber];
-      if (header) record[header] = cell.value;
+      if (header) record[header] = excelCellToString(cell.value);
     });
     const contact = recordToContact(record);
     if (contact) rows.push(contact);
