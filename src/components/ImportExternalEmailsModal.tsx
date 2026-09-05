@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
-import { X, Upload, AlertCircle, CheckCircle2, FileSpreadsheet } from 'lucide-react';
-import { parseContactsFile } from '../utils/parseContactsFile';
+import { X, Upload, AlertCircle, CheckCircle2, FileSpreadsheet, ArrowLeft } from 'lucide-react';
+import { parseContactsFile, type ColumnMapping } from '../utils/parseContactsFile';
 import { bulkCreateExternalEmails, type BulkImportContact, type BulkImportResult } from '../services/externalEmailsDatabase';
 
 interface ImportExternalEmailsModalProps {
@@ -9,10 +9,15 @@ interface ImportExternalEmailsModalProps {
   onImported: () => void;
 }
 
+type Step = 'upload' | 'mapping' | 'preview' | 'result';
+
 export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: ImportExternalEmailsModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [step, setStep] = useState<Step>('upload');
   const [fileName, setFileName] = useState<string | null>(null);
-  const [rows, setRows] = useState<BulkImportContact[]>([]);
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [records, setRecords] = useState<Array<Record<string, string>>>([]);
+  const [mapping, setMapping] = useState<ColumnMapping>({});
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<BulkImportResult | null>(null);
@@ -20,8 +25,11 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
   if (!isOpen) return null;
 
   const reset = () => {
+    setStep('upload');
     setFileName(null);
-    setRows([]);
+    setHeaders([]);
+    setRecords([]);
+    setMapping({});
     setParseErrors([]);
     setResult(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -39,9 +47,25 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
     setResult(null);
     setFileName(file.name);
     const parsed = await parseContactsFile(file);
-    setRows(parsed.rows);
+    setHeaders(parsed.headers);
+    setRecords(parsed.records);
+    setMapping(parsed.suggestedMapping);
     setParseErrors(parsed.parseErrors);
+
+    if (parsed.headers.length > 0 && parsed.records.length > 0) {
+      setStep('mapping');
+    }
   };
+
+  const rows: BulkImportContact[] = mapping.email
+    ? records.map((record) => ({
+        email: record[mapping.email!] || '',
+        nombre: mapping.nombre ? record[mapping.nombre] || '' : '',
+        descripcion: mapping.descripcion ? record[mapping.descripcion] : undefined,
+      }))
+    : [];
+
+  const handleConfirmMapping = () => setStep('preview');
 
   const handleImport = async () => {
     if (rows.length === 0) return;
@@ -55,6 +79,7 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
     }
 
     setResult(importResult);
+    setStep('result');
     if (importResult.created > 0) onImported();
   };
 
@@ -68,12 +93,12 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
           </button>
         </div>
 
-        {!result && (
+        {step === 'upload' && (
           <>
             <p className="text-sm text-gray-400 mb-4">
-              Admite archivos <strong>.csv</strong>, <strong>.xlsx</strong>, <strong>.xls</strong> o <strong>.json</strong>{' '}
-              con columnas <code>email</code>, <code>nombre</code> y opcionalmente <code>descripcion</code> (los
-              nombres de columna admiten variantes como "correo" o "name").
+              Admite archivos <strong>.csv</strong>, <strong>.xlsx</strong>, <strong>.xls</strong> o{' '}
+              <strong>.json</strong>. En el siguiente paso podrás indicar qué columna de tu archivo
+              es el email y cuál el nombre, sea cual sea su cabecera.
             </p>
 
             <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-600 rounded-lg p-8 cursor-pointer hover:border-blue-500 transition mb-4">
@@ -102,44 +127,128 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
               </div>
             )}
 
-            {rows.length > 0 && (
-              <div className="flex-1 overflow-y-auto mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <FileSpreadsheet className="w-4 h-4 text-blue-400" />
-                  <span className="text-sm text-gray-300 font-semibold">{rows.length} contactos encontrados</span>
-                </div>
-                <div className="bg-gray-900 rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-700">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-gray-300">Email</th>
-                        <th className="px-3 py-2 text-left text-gray-300">Nombre</th>
-                        <th className="px-3 py-2 text-left text-gray-300">Descripción</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-700">
-                      {rows.slice(0, 50).map((row, i) => (
-                        <tr key={i}>
-                          <td className="px-3 py-2 text-white">{row.email}</td>
-                          <td className="px-3 py-2 text-white">{row.nombre || <span className="text-red-400">(sin nombre)</span>}</td>
-                          <td className="px-3 py-2 text-gray-400">{row.descripcion || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {rows.length > 50 && (
-                    <p className="text-center text-gray-500 text-xs py-2">... y {rows.length - 50} más</p>
-                  )}
-                </div>
-              </div>
+            {fileName && headers.length === 0 && parseErrors.length === 0 && (
+              <p className="text-sm text-yellow-400">El archivo no contiene ninguna columna reconocible.</p>
             )}
+
+            <button
+              onClick={handleClose}
+              className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition"
+            >
+              Cancelar
+            </button>
+          </>
+        )}
+
+        {step === 'mapping' && (
+          <>
+            <p className="text-sm text-gray-400 mb-4">
+              {fileName} — {records.length} filas encontradas. Indica qué columna corresponde a cada
+              campo (marcadas automáticamente cuando la cabecera lo dejaba claro).
+            </p>
+
+            <div className="space-y-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Columna del email *</label>
+                <select
+                  value={mapping.email || ''}
+                  onChange={(e) => setMapping({ ...mapping, email: e.target.value || undefined })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                >
+                  <option value="">-- Selecciona una columna --</option>
+                  {headers.map((h) => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Columna del nombre *</label>
+                <select
+                  value={mapping.nombre || ''}
+                  onChange={(e) => setMapping({ ...mapping, nombre: e.target.value || undefined })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                >
+                  <option value="">-- Selecciona una columna --</option>
+                  {headers.map((h) => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Columna de descripción (opcional)</label>
+                <select
+                  value={mapping.descripcion || ''}
+                  onChange={(e) => setMapping({ ...mapping, descripcion: e.target.value || undefined })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                >
+                  <option value="">-- Ninguna --</option>
+                  {headers.map((h) => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             <div className="flex gap-2 pt-2">
               <button
-                onClick={handleClose}
-                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition"
+                onClick={() => setStep('upload')}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition flex items-center gap-2"
               >
-                Cancelar
+                <ArrowLeft className="w-4 h-4" />
+                Atrás
+              </button>
+              <button
+                onClick={handleConfirmMapping}
+                disabled={!mapping.email || !mapping.nombre}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Continuar
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 'preview' && (
+          <>
+            <div className="flex-1 overflow-y-auto mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <FileSpreadsheet className="w-4 h-4 text-blue-400" />
+                <span className="text-sm text-gray-300 font-semibold">{rows.length} contactos a importar</span>
+              </div>
+              <div className="bg-gray-900 rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-700">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-gray-300">Email</th>
+                      <th className="px-3 py-2 text-left text-gray-300">Nombre</th>
+                      <th className="px-3 py-2 text-left text-gray-300">Descripción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700">
+                    {rows.slice(0, 50).map((row, i) => (
+                      <tr key={i}>
+                        <td className="px-3 py-2 text-white">{row.email || <span className="text-red-400">(vacío)</span>}</td>
+                        <td className="px-3 py-2 text-white">{row.nombre || <span className="text-red-400">(vacío)</span>}</td>
+                        <td className="px-3 py-2 text-gray-400">{row.descripcion || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {rows.length > 50 && (
+                  <p className="text-center text-gray-500 text-xs py-2">... y {rows.length - 50} más</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setStep('mapping')}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Atrás
               </button>
               <button
                 onClick={handleImport}
@@ -152,7 +261,7 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
           </>
         )}
 
-        {result && (
+        {step === 'result' && result && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 p-4 bg-green-900/30 border border-green-600 rounded-lg">
               <CheckCircle2 className="w-6 h-6 text-green-400" />
