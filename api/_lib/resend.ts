@@ -1,3 +1,9 @@
+export interface EmailAttachment {
+  /** URL pública del archivo (p.ej. Supabase Storage) — Resend lo descarga él mismo, no hace falta base64. */
+  path: string;
+  filename: string;
+}
+
 /**
  * Envío de email vía Resend, llamado directamente desde código server-side
  * (nunca por HTTP interno basado en el header Host, que es controlable por el cliente).
@@ -7,6 +13,7 @@ export async function sendEmailViaResend(params: {
   subject: string;
   html: string;
   text?: string;
+  attachments?: EmailAttachment[];
 }): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -23,6 +30,7 @@ export async function sendEmailViaResend(params: {
       subject: params.subject,
       html: params.html,
       text: params.text,
+      attachments: params.attachments,
     });
 
     if (result.error) {
