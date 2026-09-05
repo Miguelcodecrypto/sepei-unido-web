@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './sessionService';
 import { getClientIP } from '../utils/network';
+import { getAllUsers } from './adminUsersService';
 
 /**
  * Servicio de Analytics para rastrear visitas e interacciones
@@ -354,10 +355,8 @@ export async function getInterinosAnalytics(days: number = 30): Promise<{
     let topUsers: Array<{ user_id: string; user_name: string; interactions: number }> = [];
     
     if (userIds.length > 0) {
-      const { data: usersData } = await supabase
-        .from('users')
-        .select('id, nombre, apellidos')
-        .in('id', userIds);
+      const allUsers = await getAllUsers();
+      const usersData = allUsers.filter((u) => userIds.includes(u.id));
 
       topUsers = Object.entries(userInteractionCount)
         .map(([userId, count]) => {
