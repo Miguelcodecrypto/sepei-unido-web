@@ -490,7 +490,7 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-ui': ['lucide-react'],
-          'vendor-crypto': ['bcryptjs', 'node-forge', 'jsrsasign'],
+          'vendor-crypto': ['bcryptjs', 'node-forge'],
           // Separar servicios pesados
           'services': [
             './src/services/emailNotificationService.ts',

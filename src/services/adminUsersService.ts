@@ -1,7 +1,7 @@
 // Gestión de usuarios desde el panel admin. Todas las operaciones pasan por
 // /api/admin (resource=users, protegido con el token de sesión de admin).
 
-import { getAdminToken } from './authService';
+import { adminFetch } from './adminFetch';
 
 export interface AdminUser {
   id: string;
@@ -25,23 +25,6 @@ export interface AdminUser {
   telegram_linked_at?: string;
   verified?: boolean;
   email_notifications?: boolean;
-}
-
-async function adminFetch(path: string, options: RequestInit = {}): Promise<any> {
-  const token = getAdminToken();
-  const response = await fetch(path, {
-    ...options,
-    headers: {
-      ...(options.headers || {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      'Content-Type': 'application/json',
-    },
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.error || `Error en ${path}`);
-  }
-  return data;
 }
 
 export const getAllUsers = async (): Promise<AdminUser[]> => {
