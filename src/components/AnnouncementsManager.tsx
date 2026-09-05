@@ -9,7 +9,6 @@ import {
   uploadAnnouncementFile,
   addAnnouncementAttachment,
   deleteAnnouncementAttachment,
-  getShareableFileUrl,
   type Announcement,
   type AnnouncementAttachment
 } from '../services/announcementDatabase';
@@ -127,9 +126,10 @@ export default function AnnouncementsManager() {
       }
 
       // Subir y registrar adjuntos nuevos PRIMERO
-      let firstAttachmentUrl: string | undefined;
-      let firstAttachmentName: string | undefined;
-      
+      // Adjuntos reales para el email (URL directa de Supabase Storage, no la del
+      // proxy view-file — Resend necesita poder descargarla él mismo).
+      const emailAttachments: { url: string; filename: string; size: number }[] = [];
+
       if (targetId) {
         for (const file of attachmentFiles) {
           setUploadProgress(`Subiendo ${file.name}...`);
@@ -142,11 +142,7 @@ export default function AnnouncementsManager() {
               tipo: file.type,
               categoria: categorizeAttachment(file),
             });
-            // Guardar el primer adjunto para el email
-            if (!firstAttachmentUrl) {
-              firstAttachmentUrl = uploadedFileUrl;
-              firstAttachmentName = file.name;
-            }
+            emailAttachments.push({ url: uploadedFileUrl, filename: file.name, size: file.size });
           }
         }
 
@@ -158,26 +154,29 @@ export default function AnnouncementsManager() {
             tipo: 'link',
             categoria: 'link',
           });
-          // Si no hay archivo adjunto, usar el primer enlace
-          if (!firstAttachmentUrl) {
-            firstAttachmentUrl = link.url;
-            firstAttachmentName = link.title;
-          }
+          // Los enlaces externos no son archivos: no se pueden adjuntar de verdad
+          // al email, se quedan como enlace en la propia web del anuncio.
         }
       }
 
       // Si se marcó enviar notificación y está publicado, abrir modal DESPUÉS de subir adjuntos
       if (!editingId && sendNotification && formData.publicado && targetId) {
-        // Convertir URL de Supabase a URL del proxy para que se abra correctamente
-        const shareableAttachmentUrl = firstAttachmentUrl ? getShareableFileUrl(firstAttachmentUrl) : undefined;
-        
+        const totalBytes = emailAttachments.reduce((sum, a) => sum + a.size, 0);
+        const MAX_EMAIL_ATTACHMENTS_BYTES = 28 * 1024 * 1024; // margen bajo el límite real de Resend (40MB tras base64)
+        if (totalBytes > MAX_EMAIL_ATTACHMENTS_BYTES) {
+          alert(
+            `Los adjuntos suman ${(totalBytes / 1024 / 1024).toFixed(1)}MB, por encima del límite que admite el email (unos 28MB). ` +
+            `El anuncio se ha guardado igualmente, pero el envío por email fallará para todos los destinatarios — quita algún adjunto antes de notificar.`
+          );
+        }
+
         setPendingAnnouncementData({
           id: targetId,
           titulo: announcementData.titulo,
           descripcion: announcementData.contenido,
+          esHtml: formData.es_html,
           categoria: announcementData.categoria,
-          attachmentUrl: shareableAttachmentUrl,
-          attachmentName: firstAttachmentName,
+          attachments: emailAttachments.map(({ url, filename }) => ({ url, filename })),
         });
         setShowNotificationModal(true);
       }
@@ -266,10 +265,10 @@ export default function AnnouncementsManager() {
         {
           titulo: pendingAnnouncementData.titulo,
           descripcion: pendingAnnouncementData.descripcion,
+          esHtml: pendingAnnouncementData.esHtml,
           categoria: pendingAnnouncementData.categoria,
           url: `https://www.sepeiunido.org/?anuncio=${pendingAnnouncementData.id}#announcements`,
-          attachmentUrl: pendingAnnouncementData.attachmentUrl,
-          attachmentName: pendingAnnouncementData.attachmentName,
+          attachments: pendingAnnouncementData.attachments,
         }
       );
 
@@ -340,11 +339,17 @@ export default function AnnouncementsManager() {
   };
 
   const handleNotifyExistingAnnouncement = (announcement: Announcement) => {
+    const fileAttachments = (announcement.attachments || [])
+      .filter((a) => a.categoria !== 'link')
+      .map((a) => ({ url: a.url, filename: a.nombre }));
+
     setPendingAnnouncementData({
       id: announcement.id,
       titulo: announcement.titulo,
       descripcion: announcement.contenido,
-      categoria: announcement.categoria
+      esHtml: announcement.es_html,
+      categoria: announcement.categoria,
+      attachments: fileAttachments,
     });
     setNotifyingAnnouncementId(announcement.id);
     setShowNotificationModal(true);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Plus, Trash2, Edit2, X, Check, AlertCircle } from 'lucide-react';
+import { Mail, Plus, Trash2, Edit2, X, Check, AlertCircle, Upload } from 'lucide-react';
 import {
   ExternalEmail,
   getAllExternalEmails,
@@ -8,11 +8,13 @@ import {
   deleteExternalEmail,
   toggleExternalEmailStatus
 } from '../services/externalEmailsDatabase';
+import { ImportExternalEmailsModal } from './ImportExternalEmailsModal';
 
 export function ExternalEmailsManager() {
   const [externalEmails, setExternalEmails] = useState<ExternalEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
   // Form state
@@ -133,13 +135,22 @@ export function ExternalEmailsManager() {
             Gestiona contactos externos que recibirán notificaciones
           </p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition"
-        >
-          <Plus className="w-5 h-5" />
-          Agregar Email
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center gap-2 transition"
+          >
+            <Upload className="w-5 h-5" />
+            Importar desde archivo
+          </button>
+          <button
+            onClick={() => handleOpenModal()}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition"
+          >
+            <Plus className="w-5 h-5" />
+            Agregar Email
+          </button>
+        </div>
       </div>
 
       {/* Lista de emails */}
@@ -299,6 +310,13 @@ export function ExternalEmailsManager() {
           </div>
         </div>
       )}
+
+      {/* Modal Importar desde archivo */}
+      <ImportExternalEmailsModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImported={loadExternalEmails}
+      />
     </div>
   );
 }

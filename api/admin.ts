@@ -111,6 +111,156 @@ async function handleUsers(req: any, res: any, supabase: ReturnType<typeof getSu
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_BULK_CONTACTS = 2000;
+
+// ---- resource=external_emails (protegido) ----
+async function handleExternalEmails(req: any, res: any, supabase: ReturnType<typeof getSupabaseAdmin>) {
+  if (req.method === 'GET') {
+    const { data, error } = await supabase.from('external_emails').select('*').order('nombre', { ascending: true });
+    if (error) {
+      console.error('Error al listar emails externos:', error);
+      return res.status(500).json({ error: 'Error al listar emails externos' });
+    }
+    return res.status(200).json({ externalEmails: data || [] });
+  }
+
+  if (req.method === 'POST') {
+    const { action } = req.body || {};
+
+    if (action === 'create') {
+      const { email, nombre, descripcion } = req.body || {};
+      if (typeof email !== 'string' || typeof nombre !== 'string' || !email.trim() || !nombre.trim()) {
+        return res.status(400).json({ error: 'Email y nombre son obligatorios' });
+      }
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!EMAIL_REGEX.test(normalizedEmail)) {
+        return res.status(400).json({ error: 'Formato de email inválido' });
+      }
+
+      const { data, error } = await supabase
+        .from('external_emails')
+        .insert([{ email: normalizedEmail, nombre: nombre.trim(), descripcion: descripcion?.trim() || null, activo: true }])
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === '23505') return res.status(409).json({ error: 'Este email ya existe' });
+        console.error('Error al crear email externo:', error);
+        return res.status(500).json({ error: 'Error al crear email externo' });
+      }
+      return res.status(200).json({ externalEmail: data });
+    }
+
+    if (action === 'bulk_create') {
+      const { contacts } = req.body || {};
+      if (!Array.isArray(contacts)) return res.status(400).json({ error: 'Falta el array de contactos' });
+      if (contacts.length === 0) return res.status(400).json({ error: 'El archivo no contiene contactos' });
+      if (contacts.length > MAX_BULK_CONTACTS) {
+        return res.status(400).json({ error: `Máximo ${MAX_BULK_CONTACTS} contactos por importación` });
+      }
+
+      const invalid: Array<{ row: number; reason: string }> = [];
+      const seenInFile = new Set<string>();
+      const toInsert: Array<{ email: string; nombre: string; descripcion: string | null }> = [];
+
+      contacts.forEach((contact: any, index: number) => {
+        const row = index + 1;
+        const rawEmail = typeof contact?.email === 'string' ? contact.email.trim().toLowerCase() : '';
+        const rawNombre = typeof contact?.nombre === 'string' ? contact.nombre.trim() : '';
+        const rawDescripcion = typeof contact?.descripcion === 'string' ? contact.descripcion.trim() : '';
+
+        if (!rawEmail || !EMAIL_REGEX.test(rawEmail)) {
+          invalid.push({ row, reason: 'Email inválido o vacío' });
+          return;
+        }
+        if (!rawNombre) {
+          invalid.push({ row, reason: 'Falta el nombre' });
+          return;
+        }
+        if (seenInFile.has(rawEmail)) {
+          invalid.push({ row, reason: 'Email duplicado dentro del propio archivo' });
+          return;
+        }
+        seenInFile.add(rawEmail);
+        toInsert.push({ email: rawEmail, nombre: rawNombre, descripcion: rawDescripcion || null });
+      });
+
+      let alreadyExists = 0;
+      let created = 0;
+
+      if (toInsert.length > 0) {
+        const { data: existingRows, error: existingError } = await supabase
+          .from('external_emails')
+          .select('email')
+          .in('email', toInsert.map((c) => c.email));
+
+        if (existingError) {
+          console.error('Error al comprobar emails existentes:', existingError);
+          return res.status(500).json({ error: 'Error al comprobar emails existentes' });
+        }
+
+        const existingSet = new Set((existingRows || []).map((r: any) => r.email));
+        alreadyExists = toInsert.filter((c) => existingSet.has(c.email)).length;
+        const finalInsert = toInsert
+          .filter((c) => !existingSet.has(c.email))
+          .map((c) => ({ ...c, activo: true }));
+
+        if (finalInsert.length > 0) {
+          const { error: insertError } = await supabase.from('external_emails').insert(finalInsert);
+          if (insertError) {
+            console.error('Error al importar emails externos:', insertError);
+            return res.status(500).json({ error: 'Error al importar emails externos' });
+          }
+          created = finalInsert.length;
+        }
+      }
+
+      return res.status(200).json({ created, alreadyExists, invalid });
+    }
+
+    return res.status(400).json({ error: 'Acción no reconocida' });
+  }
+
+  if (req.method === 'PATCH') {
+    const { id, updates } = req.body || {};
+    if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Falta id' });
+    if (!updates || typeof updates !== 'object') return res.status(400).json({ error: 'Faltan datos a actualizar' });
+
+    const allowedFields = ['email', 'nombre', 'descripcion', 'activo'];
+    const sanitized: Record<string, any> = {};
+    for (const field of allowedFields) {
+      if (field in updates) sanitized[field] = updates[field];
+    }
+    if (typeof sanitized.email === 'string') {
+      sanitized.email = sanitized.email.trim().toLowerCase();
+      if (!EMAIL_REGEX.test(sanitized.email)) return res.status(400).json({ error: 'Formato de email inválido' });
+    }
+    if (Object.keys(sanitized).length === 0) return res.status(400).json({ error: 'Nada que actualizar' });
+
+    const { error } = await supabase.from('external_emails').update(sanitized).eq('id', id);
+    if (error) {
+      if (error.code === '23505') return res.status(409).json({ error: 'Este email ya existe' });
+      console.error('Error al actualizar email externo:', error);
+      return res.status(500).json({ error: 'Error al actualizar email externo' });
+    }
+    return res.status(200).json({ success: true });
+  }
+
+  if (req.method === 'DELETE') {
+    const { id } = req.query;
+    if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Falta id' });
+    const { error } = await supabase.from('external_emails').delete().eq('id', id);
+    if (error) {
+      console.error('Error al eliminar email externo:', error);
+      return res.status(500).json({ error: 'Error al eliminar email externo' });
+    }
+    return res.status(200).json({ success: true });
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
+}
+
 // ---- resource=security (protegido) ----
 async function handleSecurity(req: any, res: any, supabase: ReturnType<typeof getSupabaseAdmin>) {
   if (req.method === 'GET') {
@@ -171,6 +321,7 @@ export default async function handler(req: any, res: any) {
     const supabase = getSupabaseAdmin();
 
     if (resource === 'users') return await handleUsers(req, res, supabase);
+    if (resource === 'external_emails') return await handleExternalEmails(req, res, supabase);
     if (resource === 'security') return await handleSecurity(req, res, supabase);
 
     return res.status(400).json({ error: 'resource no reconocido' });

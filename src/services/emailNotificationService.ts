@@ -2,6 +2,8 @@
  * Servicio de notificaciones por email para anuncios y votaciones
  * Permite enviar emails masivos a usuarios seleccionados
  */
+import DOMPurify from 'dompurify';
+import { getAdminToken } from './authService';
 
 export interface EmailRecipient {
   id: string;
@@ -10,13 +12,41 @@ export interface EmailRecipient {
   apellidos?: string;
 }
 
+export interface AnnouncementAttachmentFile {
+  url: string;      // URL directa de Supabase Storage (no la del proxy view-file)
+  filename: string;
+}
+
 export interface AnnouncementNotificationData {
   titulo: string;
   descripcion: string;
+  esHtml?: boolean; // si true, `descripcion` es HTML (se sanitiza antes de insertarlo en el email)
   categoria: string;
   url: string;
-  attachmentUrl?: string;  // URL directa al documento adjunto (PDF, DOCX, HTML, etc.)
-  attachmentName?: string; // Nombre del archivo adjunto
+  attachments?: AnnouncementAttachmentFile[]; // adjuntos reales del email, no solo enlaces
+}
+
+/** Texto plano a partir de HTML, para la versión text/plain del email y como fallback. */
+function htmlToPlainText(html: string): string {
+  return DOMPurify.sanitize(html, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }).trim();
+}
+
+/** HTML seguro para insertar en el cuerpo del email (permite solo formato básico). */
+function sanitizeForEmail(html: string): string {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['p', 'br', 'b', 'strong', 'i', 'em', 'u', 'ul', 'ol', 'li', 'a', 'h1', 'h2', 'h3', 'blockquote', 'span'],
+    ALLOWED_ATTR: ['href', 'target', 'rel'],
+  });
+}
+
+/** Escapa texto plano (título, nombre, categoría...) antes de insertarlo en HTML. */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 export interface VotingNotificationData {
@@ -68,12 +98,16 @@ export async function sendAnnouncementNotification(
 
       const response = await fetch('/api/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(getAdminToken() ? { Authorization: `Bearer ${getAdminToken()}` } : {}),
+        },
         body: JSON.stringify({
           to: recipient.email,
           subject: `📢 Nuevo anuncio: ${announcement.titulo}`,
           html,
           text,
+          attachments: announcement.attachments?.map((a) => ({ path: a.url, filename: a.filename })),
         }),
       });
 
@@ -90,9 +124,10 @@ export async function sendAnnouncementNotification(
       failed++;
     }
 
-    // Delay de 500ms entre cada email (2 emails/segundo = rate limit de Resend)
+    // Delay entre cada email para no chocar con el rate limit de Resend
+    // (10 req/s por equipo; 150ms de margen es de sobra y hace el envío ~3x más rápido que antes)
     if (i < recipients.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 150));
     }
   }
 
@@ -176,6 +211,20 @@ function generateAnnouncementEmailHTML(
 
   const color = categoryColors[announcement.categoria] || categoryColors.informacion;
 
+  const contenidoHtml = announcement.esHtml
+    ? sanitizeForEmail(announcement.descripcion)
+    : `<p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin: 0; white-space: pre-line;">${escapeHtml(announcement.descripcion)}</p>`;
+
+  const attachmentsHtml = (announcement.attachments || [])
+    .map(
+      (a) => `
+                    <a href="${escapeHtml(a.url)}" style="display: inline-block; background-color: #16a34a; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 15px; font-weight: bold; margin: 0 0 10px 0;">
+                      📄 ${escapeHtml(a.filename)}
+                    </a>
+                    <br>`
+    )
+    .join('');
+
   return `
 <!DOCTYPE html>
 <html>
@@ -201,32 +250,33 @@ function generateAnnouncementEmailHTML(
           <tr>
             <td style="padding: 40px 30px;">
               <p style="color: #4b5563; font-size: 16px; margin: 0 0 20px 0;">
-                Hola <strong>${recipient.nombre}</strong>,
+                Hola <strong>${escapeHtml(recipient.nombre)}</strong>,
               </p>
 
               <!-- Categoría Badge -->
               <div style="display: inline-block; background-color: ${color.bg}; color: ${color.text}; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; margin: 0 0 20px 0;">
-                ${announcement.categoria}
+                ${escapeHtml(announcement.categoria)}
               </div>
 
               <!-- Anuncio Box -->
               <div style="background-color: #f9fafb; border-left: 4px solid #3b82f6; padding: 20px; margin: 20px 0; border-radius: 4px;">
-                <h2 style="color: #1f2937; margin: 0 0 15px 0; font-size: 20px;">${announcement.titulo}</h2>
-                <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin: 0; white-space: pre-line;">${announcement.descripcion.length > 300 ? announcement.descripcion.substring(0, 300) + '...' : announcement.descripcion}</p>
+                <h2 style="color: #1f2937; margin: 0 0 15px 0; font-size: 20px;">${escapeHtml(announcement.titulo)}</h2>
+                ${contenidoHtml}
               </div>
+
+              ${attachmentsHtml ? `
+              <!-- Adjuntos -->
+              <div style="margin: 0 0 20px 0;">
+                ${attachmentsHtml}
+              </div>
+              ` : ''}
 
               <!-- CTA Button -->
               <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                 <tr>
                   <td align="center">
-                    ${announcement.attachmentUrl ? `
-                    <a href="${announcement.attachmentUrl}" style="display: inline-block; background-color: #16a34a; color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-size: 16px; font-weight: bold; margin-bottom: 12px;">
-                      📄 ${announcement.attachmentName ? `Abrir ${announcement.attachmentName}` : 'Abrir documento adjunto'}
-                    </a>
-                    <br><br>
-                    ` : ''}
-                    <a href="${announcement.url}" style="display: inline-block; background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-size: 16px; font-weight: bold;">
-                      📖 ${announcement.attachmentUrl ? 'Ver en la web' : 'Leer noticia completa'}
+                    <a href="${escapeHtml(announcement.url)}" style="display: inline-block; background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-size: 16px; font-weight: bold;">
+                      📖 Ver en la web
                     </a>
                   </td>
                 </tr>
@@ -262,6 +312,11 @@ function generateAnnouncementEmailText(
   recipient: EmailRecipient,
   announcement: AnnouncementNotificationData
 ): string {
+  const contenidoTexto = announcement.esHtml ? htmlToPlainText(announcement.descripcion) : announcement.descripcion;
+  const attachmentsTexto = (announcement.attachments || [])
+    .map((a) => `📄 ${a.filename}: ${a.url}`)
+    .join('\n');
+
   return `
 SEPEI UNIDO - Nuevo Anuncio
 
@@ -272,10 +327,8 @@ Hola ${recipient.nombre},
 ${announcement.titulo}
 ${'='.repeat(announcement.titulo.length)}
 
-${announcement.descripcion.length > 300 ? announcement.descripcion.substring(0, 300) + '...' : announcement.descripcion}
-${announcement.attachmentUrl ? `
-📄 Abrir documento: ${announcement.attachmentUrl}
-` : ''}
+${contenidoTexto}
+${attachmentsTexto ? `\n${attachmentsTexto}\n` : ''}
 📖 Ver en la web: ${announcement.url}
 
 ---
