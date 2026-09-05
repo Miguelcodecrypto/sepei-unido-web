@@ -14,6 +14,7 @@ const USERS_PUBLIC_COLUMNS = [
   'fecha_registro', 'terminos_aceptados', 'fecha_aceptacion_terminos', 'version_terminos',
   'certificado_nif', 'certificado_thumbprint', 'certificado_fecha_validacion', 'certificado_valido',
   'autorizado_votar', 'telegram_chat_id', 'telegram_username', 'telegram_linked_at',
+  'verified', 'email_notifications',
 ].join(', ');
 
 function passwordMatches(input: string, expected: string): boolean {

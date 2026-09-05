@@ -23,6 +23,8 @@ export interface AdminUser {
   telegram_chat_id?: string;
   telegram_username?: string;
   telegram_linked_at?: string;
+  verified?: boolean;
+  email_notifications?: boolean;
 }
 
 async function adminFetch(path: string, options: RequestInit = {}): Promise<any> {

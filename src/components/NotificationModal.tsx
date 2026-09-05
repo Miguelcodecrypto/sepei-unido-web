@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Users, Mail, Check, UserPlus } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { getAllUsers } from '../services/adminUsersService';
 import { ExternalEmail, getActiveExternalEmails } from '../services/externalEmailsDatabase';
 
 interface User {
@@ -40,19 +40,16 @@ export default function NotificationModal({ isOpen, onClose, onConfirm, title }:
       setLoading(true);
       
       // Obtener usuarios verificados con notificaciones activas
-      const { data: usersData, error: usersError } = await supabase
-        .from('users')
-        .select('id, nombre, apellidos, email, verified, email_notifications')
-        .eq('verified', true)
-        .eq('email_notifications', true)
-        .order('nombre');
-
-      if (usersError) throw usersError;
+      const allUsers = await getAllUsers();
+      const usersData = allUsers
+        .filter((u) => u.verified && u.email_notifications)
+        .map((u) => ({ id: u.id, nombre: u.nombre, apellidos: u.apellidos, email: u.email, verified: !!u.verified, email_notifications: !!u.email_notifications }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
       // Obtener emails externos activos
       const externalsData = await getActiveExternalEmails();
 
-      setUsers(usersData || []);
+      setUsers(usersData);
       setExternalEmails(externalsData);
     } catch (error) {
       console.error('Error cargando destinatarios:', error);

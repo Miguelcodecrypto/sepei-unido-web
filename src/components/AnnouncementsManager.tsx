@@ -14,7 +14,7 @@ import {
 } from '../services/announcementDatabase';
 import { sendAnnouncementNotification, type EmailRecipient } from '../services/emailNotificationService';
 import { sendAnnouncementTelegram, type TelegramRecipient } from '../services/telegramNotificationService';
-import { supabase } from '../lib/supabase';
+import { getAllUsers } from '../services/adminUsersService';
 import NotificationModal from './NotificationModal';
 import DOMPurify from 'dompurify';
 
@@ -282,18 +282,15 @@ export default function AnnouncementsManager() {
       
       if (userIds.length > 0) {
         // Buscar usuarios con telegram_chat_id
-        const { data: telegramUsers } = await supabase
-          .from('users')
-          .select('id, nombre, apellidos, telegram_chat_id')
-          .in('id', userIds)
-          .not('telegram_chat_id', 'is', null);
-        
-        if (telegramUsers && telegramUsers.length > 0) {
+        const allUsers = await getAllUsers();
+        const telegramUsers = allUsers.filter((u) => userIds.includes(u.id) && u.telegram_chat_id);
+
+        if (telegramUsers.length > 0) {
           setUploadProgress('Enviando notificaciones por Telegram...');
-          
+
           const telegramRecipients: TelegramRecipient[] = telegramUsers.map(u => ({
             id: u.id,
-            telegram_chat_id: u.telegram_chat_id,
+            telegram_chat_id: u.telegram_chat_id!,
             nombre: u.nombre,
             apellidos: u.apellidos
           }));
