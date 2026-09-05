@@ -2,7 +2,7 @@
 // Todas las consultas pasan por /api/admin (resource=security, protegido con el token de sesión de admin);
 // el cliente ya no toca las tablas admin_login_attempts / blocked_ips directamente.
 
-import { getAdminToken } from './authService';
+import { adminFetch } from './adminFetch';
 
 export interface SecurityStats {
   total_attempts: number;
@@ -27,22 +27,6 @@ export interface LoginAttemptRecord {
   city: string | null;
   blocked: boolean;
   created_at: string;
-}
-
-async function adminFetch(path: string, options: RequestInit = {}): Promise<any> {
-  const token = getAdminToken();
-  const response = await fetch(path, {
-    ...options,
-    headers: {
-      ...(options.headers || {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`Error en ${path}: ${response.status}`);
-  }
-  return response.json();
 }
 
 export async function getSecurityStats(): Promise<SecurityStats | null> {

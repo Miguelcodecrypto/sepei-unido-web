@@ -4,7 +4,7 @@
  * (resource=external_emails, protegido con el token de sesión de admin) — antes se
  * hacía CRUD completo directo contra Supabase con la anon key.
  */
-import { getAdminToken } from './authService';
+import { adminFetch } from './adminFetch';
 
 export interface ExternalEmail {
   id: string;
@@ -26,23 +26,6 @@ export interface BulkImportResult {
   created: number;
   alreadyExists: number;
   invalid: Array<{ row: number; reason: string }>;
-}
-
-async function adminFetch(path: string, options: RequestInit = {}): Promise<any> {
-  const token = getAdminToken();
-  const response = await fetch(path, {
-    ...options,
-    headers: {
-      ...(options.headers || {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      'Content-Type': 'application/json',
-    },
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.error || `Error en ${path}`);
-  }
-  return data;
 }
 
 /**
