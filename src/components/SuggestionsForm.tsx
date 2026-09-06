@@ -19,7 +19,9 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
     nombre: certificateData?.nombre || userData?.nombre || '',
     apellidos: certificateData?.apellidos || userData?.apellidos || '',
     email: certificateData?.email || userData?.email || '',
-    telefono: userData?.telefono || '',
+    // El teléfono no viaja en la sesión (toPublicUser en api/auth.ts no lo
+    // incluye), así que no se puede autorrellenar: lo escribe el usuario.
+    telefono: '',
     categoria: 'bombero' as const,
     lugarTrabajo: 'Villarrobledo' as const,
     asunto: '',
@@ -34,7 +36,6 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
         nombre: userData.nombre || prev.nombre,
         apellidos: userData.apellidos || prev.apellidos,
         email: userData.email || prev.email,
-        telefono: userData.telefono || prev.telefono,
       }));
     }
   }, [userData]);
