@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { adminFetch } from './adminFetch';
 
 export type InterinosCategoria =
   | 'bibliografia'
@@ -79,6 +80,8 @@ export const uploadInterinosBibliografiaFile = async (file: File): Promise<strin
   }
 };
 
+// La creación pasa por /api/admin?resource=interinos (service_role tras el token
+// de admin): la tabla ya no acepta escritura con la anon key.
 export const createInterinosContenidoRecord = async (params: {
   titulo: string;
   descripcion?: string;
@@ -89,10 +92,10 @@ export const createInterinosContenidoRecord = async (params: {
   created_by?: string | null;
 }): Promise<InterinosBibliografiaItem | null> => {
   try {
-    const { data, error } = await supabase
-      .from('interinos_bibliografia')
-      .insert([
-        {
+    const { item } = await adminFetch('/api/admin?resource=interinos', {
+      method: 'POST',
+      body: JSON.stringify({
+        item: {
           titulo: params.titulo,
           descripcion: params.descripcion,
           url: params.url,
@@ -101,37 +104,23 @@ export const createInterinosContenidoRecord = async (params: {
           categoria: params.categoria || 'bibliografia',
           created_by: params.created_by || null,
         },
-      ])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error al crear contenido de interinos:', error);
-      return null;
-    }
-
-    return data as InterinosBibliografiaItem;
-  } catch (err) {
-    console.error('Error en createInterinosContenidoRecord:', err);
+      }),
+    });
+    return (item as InterinosBibliografiaItem) || null;
+  } catch (error) {
+    console.error('Error al crear contenido de interinos:', error);
     return null;
   }
 };
 
 export const deleteInterinosContenido = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('interinos_bibliografia')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error al eliminar contenido de interinos:', error);
-      return false;
-    }
-
+    await adminFetch(`/api/admin?resource=interinos&id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
     return true;
-  } catch (err) {
-    console.error('Error en deleteInterinosContenido:', err);
+  } catch (error) {
+    console.error('Error al eliminar contenido de interinos:', error);
     return false;
   }
 };
