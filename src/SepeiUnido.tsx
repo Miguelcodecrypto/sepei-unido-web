@@ -460,8 +460,8 @@ export default function SepeiUnido() {
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center space-x-4 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
               <div className="relative">
-                <Flame className="w-11 h-11 text-orange-500" />
                 <div className="absolute inset-0 bg-orange-500 blur-xl opacity-50"></div>
+                <Flame className="relative w-11 h-11 text-orange-500" />
               </div>
               <div>
                 <h1 className="text-2xl font-black text-white">SEPEI UNIDO</h1>
