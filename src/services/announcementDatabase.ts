@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { adminFetch } from './adminFetch';
 
 /**
  * Convierte una URL de Supabase Storage a una URL del proxy que permite
@@ -52,20 +53,12 @@ export interface AnnouncementAttachment {
   created_at: string;
 }
 
-// Obtener todos los anuncios
+// Obtener todos los anuncios (panel admin: incluye borradores, que la política
+// pública de RLS no deja leer — por eso pasa por el backend con service_role).
 export const getAllAnnouncements = async (): Promise<Announcement[]> => {
   try {
-    const { data, error } = await supabase
-      .from('announcements')
-      .select('*, attachments:announcements_attachments(*)')
-      .order('fecha_publicacion', { ascending: false });
-
-    if (error) {
-      console.error('Error al obtener anuncios:', error);
-      return [];
-    }
-
-    return data || [];
+    const { announcements } = await adminFetch('/api/admin?resource=announcements');
+    return announcements || [];
   } catch (error) {
     console.error('Error en getAllAnnouncements:', error);
     return [];
@@ -94,59 +87,32 @@ export const getPublishedAnnouncements = async (): Promise<Announcement[]> => {
   }
 };
 
-// Crear nuevo anuncio
+// Crear nuevo anuncio (solo admin, vía backend)
 export const createAnnouncement = async (
   announcementData: Omit<Announcement, 'id' | 'fecha_creacion' | 'vistas'>
 ): Promise<Announcement | null> => {
   try {
-    const { data, error } = await supabase
-      .from('announcements')
-      .insert([{
-        titulo: announcementData.titulo,
-        contenido: announcementData.contenido,
-        categoria: announcementData.categoria,
-        imagen_url: announcementData.imagen_url,
-        archivo_url: announcementData.archivo_url,
-        archivo_nombre: announcementData.archivo_nombre,
-        archivo_tipo: announcementData.archivo_tipo,
-        publicado: announcementData.publicado,
-        destacado: announcementData.destacado,
-        es_html: announcementData.es_html || false,
-        fecha_publicacion: announcementData.fecha_publicacion,
-        autor: announcementData.autor,
-        vistas: 0,
-      }])
-      .select('*, attachments:announcements_attachments(*)')
-      .single();
-
-    if (error) {
-      console.error('Error al crear anuncio:', error);
-      return null;
-    }
-
-    return data;
+    const { announcement } = await adminFetch('/api/admin?resource=announcements', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'create', announcement: announcementData }),
+    });
+    return announcement || null;
   } catch (error) {
     console.error('Error en createAnnouncement:', error);
     return null;
   }
 };
 
-// Actualizar anuncio
+// Actualizar anuncio (solo admin, vía backend)
 export const updateAnnouncement = async (
   id: string,
   updates: Partial<Announcement>
 ): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('announcements')
-      .update(updates)
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error al actualizar anuncio:', error);
-      return false;
-    }
-
+    await adminFetch('/api/admin?resource=announcements', {
+      method: 'PATCH',
+      body: JSON.stringify({ id, updates }),
+    });
     return true;
   } catch (error) {
     console.error('Error en updateAnnouncement:', error);
@@ -154,19 +120,12 @@ export const updateAnnouncement = async (
   }
 };
 
-// Eliminar anuncio
+// Eliminar anuncio (solo admin, vía backend)
 export const deleteAnnouncement = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('announcements')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error al eliminar anuncio:', error);
-      return false;
-    }
-
+    await adminFetch(`/api/admin?resource=announcements&id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
     return true;
   } catch (error) {
     console.error('Error en deleteAnnouncement:', error);
@@ -289,21 +248,14 @@ export const uploadAnnouncementFile = async (file: File): Promise<string | null>
   }
 };
 
-// Adjuntos múltiples
+// Adjuntos múltiples (solo admin, vía backend)
 export const addAnnouncementAttachment = async (attachment: Omit<AnnouncementAttachment, 'id' | 'created_at'>): Promise<AnnouncementAttachment | null> => {
   try {
-    const { data, error } = await supabase
-      .from('announcements_attachments')
-      .insert([attachment])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error al crear adjunto:', error);
-      return null;
-    }
-
-    return data;
+    const { attachment: created } = await adminFetch('/api/admin?resource=announcements', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'add_attachment', attachment }),
+    });
+    return created || null;
   } catch (error) {
     console.error('Error en addAnnouncementAttachment:', error);
     return null;
@@ -312,16 +264,9 @@ export const addAnnouncementAttachment = async (attachment: Omit<AnnouncementAtt
 
 export const deleteAnnouncementAttachment = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('announcements_attachments')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error al eliminar adjunto:', error);
-      return false;
-    }
-
+    await adminFetch(`/api/admin?resource=announcements&attachment_id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
     return true;
   } catch (error) {
     console.error('Error en deleteAnnouncementAttachment:', error);
