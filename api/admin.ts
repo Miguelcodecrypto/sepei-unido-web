@@ -262,6 +262,141 @@ async function handleExternalEmails(req: any, res: any, supabase: ReturnType<typ
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
+// ---- resource=announcements (protegido) ----
+// La lectura pública (solo publicados) sigue haciéndose con la anon key desde
+// getPublishedAnnouncements; aquí van las operaciones que no debe poder hacer
+// cualquier visitante: listar borradores y crear/editar/borrar.
+const ANNOUNCEMENT_WRITABLE_COLUMNS = [
+  'titulo',
+  'contenido',
+  'categoria',
+  'imagen_url',
+  'archivo_url',
+  'archivo_nombre',
+  'archivo_tipo',
+  'publicado',
+  'destacado',
+  'es_html',
+  'fecha_publicacion',
+  'autor',
+];
+
+const ATTACHMENT_WRITABLE_COLUMNS = ['announcement_id', 'url', 'nombre', 'tipo', 'categoria'];
+
+function pickColumns(source: Record<string, any>, allowed: string[]): Record<string, any> {
+  const picked: Record<string, any> = {};
+  for (const field of allowed) {
+    if (field in source) picked[field] = source[field];
+  }
+  return picked;
+}
+
+async function handleAnnouncements(req: any, res: any, supabase: ReturnType<typeof getSupabaseAdmin>) {
+  // Listado completo del panel (incluye borradores, que la política pública no deja ver)
+  if (req.method === 'GET') {
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('*, attachments:announcements_attachments(*)')
+      .order('fecha_publicacion', { ascending: false });
+
+    if (error) {
+      console.error('Error al listar anuncios:', error);
+      return res.status(500).json({ error: 'Error al listar anuncios' });
+    }
+    return res.status(200).json({ announcements: data || [] });
+  }
+
+  if (req.method === 'POST') {
+    const { action } = req.body || {};
+
+    if (action === 'create') {
+      const { announcement } = req.body || {};
+      if (!announcement || typeof announcement.titulo !== 'string' || !announcement.titulo.trim()) {
+        return res.status(400).json({ error: 'El título es obligatorio' });
+      }
+
+      const values = pickColumns(announcement, ANNOUNCEMENT_WRITABLE_COLUMNS);
+      values.es_html = values.es_html || false;
+      values.vistas = 0;
+
+      const { data, error } = await supabase
+        .from('announcements')
+        .insert([values])
+        .select('*, attachments:announcements_attachments(*)')
+        .single();
+
+      if (error) {
+        console.error('Error al crear anuncio:', error);
+        return res.status(500).json({ error: 'Error al crear anuncio' });
+      }
+      return res.status(200).json({ announcement: data });
+    }
+
+    if (action === 'add_attachment') {
+      const { attachment } = req.body || {};
+      if (!attachment || typeof attachment.announcement_id !== 'string' || typeof attachment.url !== 'string') {
+        return res.status(400).json({ error: 'Faltan announcement_id o url' });
+      }
+
+      const { data, error } = await supabase
+        .from('announcements_attachments')
+        .insert([pickColumns(attachment, ATTACHMENT_WRITABLE_COLUMNS)])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error al crear adjunto:', error);
+        return res.status(500).json({ error: 'Error al crear adjunto' });
+      }
+      return res.status(200).json({ attachment: data });
+    }
+
+    return res.status(400).json({ error: 'Acción no reconocida' });
+  }
+
+  if (req.method === 'PATCH') {
+    const { id, updates } = req.body || {};
+    if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Falta id' });
+    if (!updates || typeof updates !== 'object') return res.status(400).json({ error: 'Faltan updates' });
+
+    const sanitized = pickColumns(updates, ANNOUNCEMENT_WRITABLE_COLUMNS);
+    if (Object.keys(sanitized).length === 0) return res.status(400).json({ error: 'Nada que actualizar' });
+
+    const { error } = await supabase.from('announcements').update(sanitized).eq('id', id);
+    if (error) {
+      console.error('Error al actualizar anuncio:', error);
+      return res.status(500).json({ error: 'Error al actualizar anuncio' });
+    }
+    return res.status(200).json({ success: true });
+  }
+
+  if (req.method === 'DELETE') {
+    const { id, attachment_id } = req.query;
+
+    if (typeof attachment_id === 'string' && attachment_id) {
+      const { error } = await supabase.from('announcements_attachments').delete().eq('id', attachment_id);
+      if (error) {
+        console.error('Error al eliminar adjunto:', error);
+        return res.status(500).json({ error: 'Error al eliminar adjunto' });
+      }
+      return res.status(200).json({ success: true });
+    }
+
+    if (typeof id === 'string' && id) {
+      const { error } = await supabase.from('announcements').delete().eq('id', id);
+      if (error) {
+        console.error('Error al eliminar anuncio:', error);
+        return res.status(500).json({ error: 'Error al eliminar anuncio' });
+      }
+      return res.status(200).json({ success: true });
+    }
+
+    return res.status(400).json({ error: 'Falta id o attachment_id' });
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
+}
+
 // ---- resource=security (protegido) ----
 async function handleSecurity(req: any, res: any, supabase: ReturnType<typeof getSupabaseAdmin>) {
   if (req.method === 'GET') {
@@ -323,6 +458,7 @@ export default async function handler(req: any, res: any) {
 
     if (resource === 'users') return await handleUsers(req, res, supabase);
     if (resource === 'external_emails') return await handleExternalEmails(req, res, supabase);
+    if (resource === 'announcements') return await handleAnnouncements(req, res, supabase);
     if (resource === 'security') return await handleSecurity(req, res, supabase);
 
     return res.status(400).json({ error: 'resource no reconocido' });
