@@ -9,6 +9,25 @@
 
 // Importar cliente de Supabase directamente para usar en serverless
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { timingSafeEqual } from 'crypto';
+
+/**
+ * Comprueba la cabecera `X-Telegram-Bot-Api-Secret-Token` que Telegram envía en cada
+ * webhook cuando se configura `secret_token` en `setWebhook`. Sin esto, cualquiera que
+ * conozca la URL (fija y pública: /api/telegram-webhook) puede mandar updates falsos y
+ * vincular/desvincular la cuenta de Telegram de cualquier usuario simulando su chat_id.
+ */
+function isValidTelegramSecret(req: any): boolean {
+  const expected = process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (!expected) return false;
+
+  const provided = req.headers['x-telegram-bot-api-secret-token'];
+  if (typeof provided !== 'string') return false;
+
+  const providedBuf = Buffer.from(provided);
+  const expectedBuf = Buffer.from(expected);
+  return providedBuf.length === expectedBuf.length && timingSafeEqual(providedBuf, expectedBuf);
+}
 
 interface TelegramUpdate {
   update_id: number;
@@ -40,6 +59,10 @@ export default async function handler(req: any, res: any) {
   // Telegram envía POST para webhooks
   if (req.method !== 'POST') {
     return res.status(200).json({ ok: true, message: 'Webhook active' });
+  }
+
+  if (!isValidTelegramSecret(req)) {
+    return res.status(401).json({ ok: false, error: 'Invalid secret token' });
   }
 
   try {
