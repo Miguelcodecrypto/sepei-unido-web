@@ -245,15 +245,23 @@ async function handleChangePassword(req: any, res: any, supabase: ReturnType<typ
   const { dni, currentPassword, newPassword } = req.body || {};
   if (!dni || !currentPassword || !newPassword) return res.status(400).json({ error: 'Faltan datos' });
 
+  const ip = getClientIP(req);
+  const userAgent = req.headers['user-agent'] || 'unknown';
+
+  const gate = await checkLoginAllowed(ip);
+  if (!gate.allowed) return res.status(429).json({ error: gate.message });
+
   const { data: user, error: findError } = await supabase
     .from('users').select('id, password').eq('dni', String(dni).toUpperCase().trim()).maybeSingle();
 
   if (findError || !user || !(user as any).password) {
+    await recordLoginAttempt(ip, userAgent, false);
     return res.status(404).json({ error: 'Usuario no encontrado' });
   }
 
   const bcrypt = await import('bcryptjs');
   const isValid = await bcrypt.compare(currentPassword, (user as any).password);
+  await recordLoginAttempt(ip, userAgent, isValid);
   if (!isValid) return res.status(401).json({ error: 'Contraseña actual incorrecta' });
 
   const hashedNewPassword = await bcrypt.hash(newPassword, 10);
@@ -274,6 +282,16 @@ async function handleChangePassword(req: any, res: any, supabase: ReturnType<typ
 async function handleForgotPassword(req: any, res: any, supabase: ReturnType<typeof getSupabaseAdmin>) {
   const { email } = req.body || {};
   if (!email || typeof email !== 'string') return res.status(400).json({ error: 'Falta email' });
+
+  const ip = getClientIP(req);
+  const userAgent = req.headers['user-agent'] || 'unknown';
+
+  const gate = await checkLoginAllowed(ip);
+  if (!gate.allowed) return res.status(429).json({ error: gate.message });
+  // Se registra siempre como éxito: no es un intento de adivinar una credencial,
+  // solo se usa la ventana de la tabla para limitar el ritmo de envío de emails
+  // (no debe poder bloquear la IP de login por pedir varios resets).
+  await recordLoginAttempt(ip, userAgent, true);
 
   const normalizedEmail = email.trim().toLowerCase();
   const { data: user } = await supabase
