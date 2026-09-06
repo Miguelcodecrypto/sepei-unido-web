@@ -85,7 +85,22 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Esta función devuelve email y nombre de usuarios: que no la pueda llamar
 -- cualquiera con la anon key. El dashboard la invoca con service_role.
+--
+-- ⚠️ HAY QUE REVOCAR DE **PUBLIC**, NO SOLO DE anon. PostgreSQL concede EXECUTE
+-- a PUBLIC en toda función nueva, y anon hereda ese privilegio: un
+-- "REVOKE ... FROM anon" a secas NO hace nada y la función se queda abierta.
+-- Comprobado en producción el 2026-09-06: tras ejecutar la primera versión de
+-- este script, un POST anónimo a /rest/v1/rpc/get_top_active_users seguía
+-- devolviendo nombres y emails reales de usuarios.
+-- (Con las vistas de arriba no pasa: ahí Supabase concede a anon explícitamente,
+-- así que el REVOKE FROM anon sí surte efecto.)
+REVOKE EXECUTE ON FUNCTION get_top_active_users(INTEGER) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION get_top_active_users(INTEGER) FROM anon;
+REVOKE EXECUTE ON FUNCTION get_top_active_users(INTEGER) FROM authenticated;
+
+-- Tras revocar de PUBLIC hay que conceder explícitamente a quien sí debe poder
+-- llamarla: el backend admin, que usa service_role.
+GRANT EXECUTE ON FUNCTION get_top_active_users(INTEGER) TO service_role;
 
 -- ── 5. VERIFICACIÓN (obligatoria — no fiarse de que "se ejecutó") ───────────
 -- Lo esperado: rowsecurity = true en ambas tablas, y exactamente 1 política por
@@ -100,7 +115,13 @@ SELECT tablename, rowsecurity
 FROM pg_tables
 WHERE tablename IN ('site_visits', 'user_interactions');
 
--- Y que la función quedó con search_path fijo (proconfig debe incluir search_path=public):
-SELECT proname, prosecdef, proconfig
+-- Y que la función quedó con search_path fijo (proconfig debe incluir
+-- search_path=public) y sin EXECUTE para PUBLIC/anon:
+SELECT proname, prosecdef, proconfig, proacl
 FROM pg_proc
 WHERE proname = 'get_top_active_users';
+-- En proacl NO debe aparecer "=X/" (eso es PUBLIC) ni "anon=X/". Sí debe
+-- aparecer service_role=X/. La verificación de verdad es desde fuera:
+--   curl -X POST "$URL/rest/v1/rpc/get_top_active_users" -H "apikey: $ANON" \
+--        -H "Content-Type: application/json" -d '{"limit_count":5}'
+-- debe responder 401/permission denied, no una lista de usuarios.
