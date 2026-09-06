@@ -2,9 +2,43 @@
  * Proxy para servir archivos de Supabase Storage con Content-Disposition: inline
  * Esto permite que los archivos HTML, PDF, etc. se abran en el navegador
  * en vez de forzar la descarga.
- * 
+ *
  * Uso: /api/view-file?url=https://xxx.supabase.co/storage/v1/object/public/...
  */
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
+
+/**
+ * Valida que la URL apunte exactamente al storage público de ESTE proyecto Supabase
+ * (no solo "algún dominio *.supabase.co", que cualquiera puede tener con contenido
+ * propio). Un `includes('supabase.co/storage/')` se evade con
+ * `https://atacante.com/x?supabase.co/storage/` — este proxy serviría entonces
+ * cualquier archivo arbitrario desde el propio origen de la app (XSS/SSRF).
+ */
+function isValidStorageUrl(decodedUrl: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(decodedUrl);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'https:') return false;
+
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  if (!supabaseUrl) return false;
+
+  let expectedHost: string;
+  try {
+    expectedHost = new URL(supabaseUrl).hostname;
+  } catch {
+    return false;
+  }
+
+  if (parsed.hostname !== expectedHost) return false;
+  if (!parsed.pathname.startsWith('/storage/v1/object/public/')) return false;
+
+  return true;
+}
+
 export default async function handler(req: any, res: any) {
   // Manejar preflight CORS
   if (req.method === 'OPTIONS') {
@@ -33,9 +67,9 @@ export default async function handler(req: any, res: any) {
     decodedUrl = url;
   }
 
-  // Validar que la URL es de Supabase Storage
-  if (!decodedUrl.includes('supabase.co/storage/')) {
-    return res.status(400).json({ error: 'Invalid URL - must be a Supabase Storage URL', received: decodedUrl });
+  // Validar que la URL apunta exactamente al storage público de este proyecto Supabase
+  if (!isValidStorageUrl(decodedUrl)) {
+    return res.status(400).json({ error: 'Invalid URL - must be a Supabase Storage URL of this project' });
   }
 
   try {
@@ -47,11 +81,16 @@ export default async function handler(req: any, res: any) {
     });
 
     if (!response.ok) {
-      return res.status(response.status).json({ 
+      return res.status(response.status).json({
         error: 'Failed to fetch file from Supabase',
         status: response.status,
         statusText: response.statusText
       });
+    }
+
+    const contentLength = response.headers.get('content-length');
+    if (contentLength && Number(contentLength) > MAX_FILE_SIZE_BYTES) {
+      return res.status(413).json({ error: 'File too large' });
     }
 
     // Obtener el tipo de contenido de la respuesta
@@ -118,6 +157,9 @@ export default async function handler(req: any, res: any) {
 
     // Obtener el body y enviarlo
     const buffer = await response.arrayBuffer();
+    if (buffer.byteLength > MAX_FILE_SIZE_BYTES) {
+      return res.status(413).json({ error: 'File too large' });
+    }
     return res.status(200).send(Buffer.from(buffer));
 
   } catch (error: any) {
