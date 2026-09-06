@@ -82,7 +82,7 @@ async function handleClear(req: any, res: any, supabase: ReturnType<typeof getSu
 }
 
 export default async function handler(req: any, res: any) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', 'https://www.sepeiunido.org');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Origin, Authorization');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
