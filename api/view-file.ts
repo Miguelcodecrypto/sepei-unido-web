@@ -42,7 +42,7 @@ function isValidStorageUrl(decodedUrl: string): boolean {
 export default async function handler(req: any, res: any) {
   // Manejar preflight CORS
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Origin', 'https://www.sepeiunido.org');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     return res.status(200).end();
@@ -152,7 +152,7 @@ export default async function handler(req: any, res: any) {
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     
     // CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Origin', 'https://www.sepeiunido.org');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
 
     // Obtener el body y enviarlo
