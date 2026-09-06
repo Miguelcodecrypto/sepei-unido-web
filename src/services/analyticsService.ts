@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './sessionService';
 import { getClientIP } from '../utils/network';
-import { getAllUsers } from './adminUsersService';
+import { adminFetch } from './adminFetch';
 
 /**
  * Servicio de Analytics para rastrear visitas e interacciones
@@ -114,67 +114,8 @@ export async function getAnalyticsSummary(days: number = 30): Promise<{
   visitsByDay: Array<{ date: string; visits: number }>;
 }> {
   try {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    // Total de visitas
-    const { count: totalVisits } = await supabase
-      .from('site_visits')
-      .select('*', { count: 'exact', head: true })
-      .gte('visited_at', startDate.toISOString());
-
-    // Usuarios únicos autenticados
-    const { data: uniqueUsersData } = await supabase
-      .from('site_visits')
-      .select('user_id')
-      .not('user_id', 'is', null)
-      .gte('visited_at', startDate.toISOString());
-    
-    const uniqueUsers = new Set(uniqueUsersData?.map(v => v.user_id) || []).size;
-
-    // Sesiones únicas anónimas
-    const { data: anonymousSessionsData } = await supabase
-      .from('site_visits')
-      .select('session_id')
-      .is('user_id', null)
-      .gte('visited_at', startDate.toISOString());
-    
-    const uniqueSessions = new Set(anonymousSessionsData?.map(v => v.session_id) || []).size;
-
-    // Visitas autenticadas
-    const { count: authenticatedVisits } = await supabase
-      .from('site_visits')
-      .select('*', { count: 'exact', head: true })
-      .not('user_id', 'is', null)
-      .gte('visited_at', startDate.toISOString());
-
-    // Visitas anónimas
-    const { count: anonymousVisits } = await supabase
-      .from('site_visits')
-      .select('*', { count: 'exact', head: true })
-      .is('user_id', null)
-      .gte('visited_at', startDate.toISOString());
-
-    // Visitas por día (usando la vista directamente)
-    const { data: visitsByDay } = await supabase
-      .from('analytics_summary')
-      .select('visit_date, visits')
-      .gte('visit_date', startDate.toISOString().split('T')[0])
-      .order('visit_date', { ascending: false })
-      .limit(days);
-
-    return {
-      totalVisits: totalVisits || 0,
-      uniqueUsers,
-      authenticatedVisits: authenticatedVisits || 0,
-      anonymousVisits: anonymousVisits || 0,
-      uniqueSessions,
-      pageViews: totalVisits || 0,
-      visitsByDay: (visitsByDay || []).map(day => ({
-        date: day.visit_date,
-        visits: day.visits
-      }))
-    };
+    const { summary } = await adminFetch(`/api/admin?resource=analytics&detail=summary&days=${days}`);
+    return summary;
   } catch (error) {
     console.error('❌ [ANALYTICS] Error al obtener resumen:', error);
     return {
@@ -200,29 +141,8 @@ export async function getSectionInteractions(days: number = 30): Promise<{
   interinos: number;
 }> {
   try {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    const { data: interactions } = await supabase
-      .from('user_interactions')
-      .select('section')
-      .gte('created_at', startDate.toISOString());
-
-    const counts = {
-      announcements: 0,
-      voting: 0,
-      suggestions: 0,
-      admin: 0,
-      interinos: 0
-    };
-
-    interactions?.forEach(interaction => {
-      if (interaction.section in counts) {
-        counts[interaction.section as keyof typeof counts]++;
-      }
-    });
-
-    return counts;
+    const { sections } = await adminFetch(`/api/admin?resource=analytics&detail=sections&days=${days}`);
+    return sections;
   } catch (error) {
     console.error('❌ [ANALYTICS] Error al obtener interacciones por sección:', error);
     return {
@@ -246,28 +166,8 @@ export async function getTopActiveUsers(limit: number = 10): Promise<Array<{
   last_interaction: string;
 }>> {
   try {
-    const { data, error } = await supabase
-      .rpc('get_top_active_users', { limit_count: limit })
-      .returns<Array<{
-        user_id: string;
-        user_name: string;
-        user_email: string;
-        total_interactions: number;
-        last_interaction: string;
-      }>>();
-
-    if (error) {
-      console.error('❌ [ANALYTICS] Error al obtener usuarios activos:', error);
-      return [];
-    }
-
-    return (data as Array<{
-      user_id: string;
-      user_name: string;
-      user_email: string;
-      total_interactions: number;
-      last_interaction: string;
-    }>) || [];
+    const { users } = await adminFetch(`/api/admin?resource=analytics&detail=top_users&limit=${limit}`);
+    return users || [];
   } catch (error) {
     console.error('❌ [ANALYTICS] Error al obtener usuarios activos:', error);
     return [];
@@ -311,93 +211,8 @@ export async function getInterinosAnalytics(days: number = 30): Promise<{
   courseViews: number;
 }> {
   try {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    // Interacciones de Interinos
-    const { data: interactions } = await supabase
-      .from('user_interactions')
-      .select('*')
-      .eq('section', 'interinos')
-      .gte('created_at', startDate.toISOString());
-
-    const totalInteractions = interactions?.length || 0;
-
-    // Usuarios únicos
-    const uniqueUserIds = new Set(interactions?.filter(i => i.user_id).map(i => i.user_id) || []);
-    const uniqueUsers = uniqueUserIds.size;
-
-    // Interacciones por tipo
-    const interactionsByType: Record<string, number> = {};
-    interactions?.forEach(i => {
-      interactionsByType[i.interaction_type] = (interactionsByType[i.interaction_type] || 0) + 1;
-    });
-
-    // Tiempo promedio
-    const timesWithDuration = interactions?.filter(i => i.duration_seconds) || [];
-    const averageTimeSeconds = timesWithDuration.length > 0
-      ? Math.round(timesWithDuration.reduce((acc, i) => acc + (i.duration_seconds || 0), 0) / timesWithDuration.length)
-      : 0;
-
-    // Contadores específicos
-    const documentDownloads = interactionsByType['download_document'] || interactionsByType['view_bibliography'] || 0;
-    const linkClicks = interactionsByType['click_link'] || interactionsByType['view_link'] || 0;
-    const courseViews = interactionsByType['view_course'] || interactionsByType['click_course'] || 0;
-
-    // Top usuarios (por interacciones en Interinos)
-    const userInteractionCount: Record<string, number> = {};
-    interactions?.filter(i => i.user_id).forEach(i => {
-      userInteractionCount[i.user_id] = (userInteractionCount[i.user_id] || 0) + 1;
-    });
-
-    // Obtener nombres de usuarios
-    const userIds = Object.keys(userInteractionCount);
-    let topUsers: Array<{ user_id: string; user_name: string; interactions: number }> = [];
-    
-    if (userIds.length > 0) {
-      const allUsers = await getAllUsers();
-      const usersData = allUsers.filter((u) => userIds.includes(u.id));
-
-      topUsers = Object.entries(userInteractionCount)
-        .map(([userId, count]) => {
-          const user = usersData?.find(u => u.id === userId);
-          return {
-            user_id: userId,
-            user_name: user ? `${user.nombre} ${user.apellidos || ''}`.trim() : 'Usuario',
-            interactions: count
-          };
-        })
-        .sort((a, b) => b.interactions - a.interactions)
-        .slice(0, 10);
-    }
-
-    // Visitas por día a la sección
-    const visitsByDayMap: Record<string, number> = {};
-    interactions?.forEach(i => {
-      const date = new Date(i.created_at).toISOString().split('T')[0];
-      visitsByDayMap[date] = (visitsByDayMap[date] || 0) + 1;
-    });
-
-    const visitsByDay = Object.entries(visitsByDayMap)
-      .map(([date, visits]) => ({ date, visits }))
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, days);
-
-    // Total de visitas (interacciones de tipo view)
-    const totalVisits = interactionsByType['view_interinos'] || interactionsByType['enter_section'] || totalInteractions;
-
-    return {
-      totalVisits,
-      uniqueUsers,
-      totalInteractions,
-      interactionsByType,
-      averageTimeSeconds,
-      topUsers,
-      visitsByDay,
-      documentDownloads,
-      linkClicks,
-      courseViews
-    };
+    const { interinos } = await adminFetch(`/api/admin?resource=analytics&detail=interinos&days=${days}`);
+    return interinos;
   } catch (error) {
     console.error('❌ [ANALYTICS] Error al obtener métricas de Interinos:', error);
     return {
@@ -427,30 +242,8 @@ export async function getInterinosContentStats(): Promise<{
   documentsByCategory: Record<string, number>;
 }> {
   try {
-    const { data: content } = await supabase
-      .from('interinos_bibliografia')
-      .select('categoria, activo')
-      .eq('activo', true);
-
-    const totalDocuments = content?.filter(c => c.categoria === 'formacion_bibliografia').length || 0;
-    const totalCourses = content?.filter(c => c.categoria === 'formacion_curso').length || 0;
-    const totalLinks = content?.filter(c => c.categoria === 'formacion_enlace').length || 0;
-    const totalNews = content?.filter(c => c.categoria === 'noticias_destacadas').length || 0;
-    const totalOposiciones = content?.filter(c => c.categoria === 'oposiciones').length || 0;
-
-    const documentsByCategory: Record<string, number> = {};
-    content?.forEach(c => {
-      documentsByCategory[c.categoria] = (documentsByCategory[c.categoria] || 0) + 1;
-    });
-
-    return {
-      totalDocuments,
-      totalCourses,
-      totalLinks,
-      totalNews,
-      totalOposiciones,
-      documentsByCategory
-    };
+    const { stats } = await adminFetch('/api/admin?resource=analytics&detail=interinos_content');
+    return stats;
   } catch (error) {
     console.error('❌ [ANALYTICS] Error al obtener estadísticas de contenido:', error);
     return {
