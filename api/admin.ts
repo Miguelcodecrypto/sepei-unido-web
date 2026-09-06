@@ -420,10 +420,34 @@ function parseDays(value: any, fallback = 30): number {
 async function analyticsSummary(supabase: ReturnType<typeof getSupabaseAdmin>, days: number) {
   const startDate = startDateFromDays(days);
 
+  // Los totales se piden con count exacto y head: PostgREST devuelve como mucho
+  // 1000 filas por consulta, así que contar en JS sobre el resultado daría cifras
+  // mal en cuanto la tabla crece (ya hay más de 3000 visitas).
+  const totalQuery = supabase
+    .from('site_visits')
+    .select('*', { count: 'exact', head: true })
+    .gte('visited_at', startDate);
+  const authQuery = supabase
+    .from('site_visits')
+    .select('*', { count: 'exact', head: true })
+    .not('user_id', 'is', null)
+    .gte('visited_at', startDate);
+  const anonQuery = supabase
+    .from('site_visits')
+    .select('*', { count: 'exact', head: true })
+    .is('user_id', null)
+    .gte('visited_at', startDate);
+
+  const [totalRes, authRes, anonRes] = await Promise.all([totalQuery, authQuery, anonQuery]);
+  if (totalRes.error) throw totalRes.error;
+
+  // Para los distintos sí hacen falta las filas. Se sube el límite explícitamente
+  // por el mismo motivo de arriba.
   const { data: visits, error } = await supabase
     .from('site_visits')
     .select('user_id, session_id')
-    .gte('visited_at', startDate);
+    .gte('visited_at', startDate)
+    .limit(100000);
 
   if (error) throw error;
 
@@ -439,12 +463,12 @@ async function analyticsSummary(supabase: ReturnType<typeof getSupabaseAdmin>, d
     .limit(days);
 
   return {
-    totalVisits: rows.length,
+    totalVisits: totalRes.count || 0,
     uniqueUsers: new Set(authenticated.map((v: any) => v.user_id)).size,
-    authenticatedVisits: authenticated.length,
-    anonymousVisits: anonymous.length,
+    authenticatedVisits: authRes.count || 0,
+    anonymousVisits: anonRes.count || 0,
     uniqueSessions: new Set(anonymous.map((v: any) => v.session_id)).size,
-    pageViews: rows.length,
+    pageViews: totalRes.count || 0,
     visitsByDay: (byDay || []).map((d: any) => ({ date: d.visit_date, visits: d.visits })),
   };
 }
@@ -453,7 +477,8 @@ async function analyticsSections(supabase: ReturnType<typeof getSupabaseAdmin>, 
   const { data, error } = await supabase
     .from('user_interactions')
     .select('section')
-    .gte('created_at', startDateFromDays(days));
+    .gte('created_at', startDateFromDays(days))
+    .limit(100000);
 
   if (error) throw error;
 
@@ -477,7 +502,8 @@ async function analyticsInterinos(supabase: ReturnType<typeof getSupabaseAdmin>,
     .from('user_interactions')
     .select('user_id, interaction_type, duration_seconds, created_at')
     .eq('section', 'interinos')
-    .gte('created_at', startDateFromDays(days));
+    .gte('created_at', startDateFromDays(days))
+    .limit(100000);
 
   if (error) throw error;
   const interactions = (data || []) as any[];
