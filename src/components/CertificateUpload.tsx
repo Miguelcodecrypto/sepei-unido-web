@@ -171,7 +171,7 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
 
       // Enviar notificación a admin de nuevo usuario registrado con certificado
       sendNewUserNotificationToAdmin({
-        nombre: certificateData.nombre,
+        nombre: certificateData.nombre || '',
         apellidos: '',
         dni: certificateData.nif || '',
         email: certificateData.email || '',

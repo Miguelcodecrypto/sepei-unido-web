@@ -1,31 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Users, Award, Calendar } from 'lucide-react';
-import { getVotacionesPublicadas } from '../services/votingDatabase';
-
-interface Votacion {
-  id: string;
-  titulo: string;
-  descripcion?: string;
-  opciones: string[];
-  fecha_inicio: string;
-  fecha_fin: string;
-  resultados_publicos: boolean;
-  estado?: 'activa' | 'finalizada' | 'programada';
-  votos?: Array<{
-    opcion: string;
-    votos: number;
-  }>;
-  total_votos?: number;
-  usuario_voto?: boolean;
-  requiere_autorizacion?: boolean;
-}
+import { getVotacionesPublicadas, type VotacionCompleta } from '../services/votingDatabase';
 
 interface VotingResultsPanelProps {
   onClose?: () => void;
 }
 
 const VotingResultsPanel: React.FC<VotingResultsPanelProps> = ({ onClose }) => {
-  const [votaciones, setVotaciones] = useState<Votacion[]>([]);
+  const [votaciones, setVotaciones] = useState<VotacionCompleta[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'todas' | 'activa' | 'finalizada'>('todas');
 
@@ -49,14 +31,14 @@ const VotingResultsPanel: React.FC<VotingResultsPanelProps> = ({ onClose }) => {
     ? votaciones 
     : votaciones.filter(v => v.estado === filter);
 
-  const getWinningOption = (votacion: Votacion) => {
+  const getWinningOption = (votacion: VotacionCompleta) => {
     if (!votacion.votos || votacion.votos.length === 0) return null;
     return votacion.votos.reduce((max, current) => 
       current.votos > max.votos ? current : max
     );
   };
 
-  const getParticipationRate = (votacion: Votacion) => {
+  const getParticipationRate = (votacion: VotacionCompleta) => {
     // Esto es estimado, idealmente necesitarías el total de usuarios elegibles
     return votacion.total_votos || 0;
   };

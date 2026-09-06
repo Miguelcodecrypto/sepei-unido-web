@@ -323,7 +323,7 @@ export default function ConvocatoriasPage() {
               </span>
             )}
             <button
-              onClick={fetchData}
+              onClick={() => fetchData()}
               disabled={loading}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/40 text-orange-300 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
             >
@@ -491,7 +491,7 @@ export default function ConvocatoriasPage() {
               <p className="text-red-300 font-semibold">No se pudo conectar con el BOE</p>
               <p className="text-red-400/80 text-sm mt-1">{error}</p>
               <button
-                onClick={fetchData}
+                onClick={() => fetchData()}
                 className="mt-3 px-4 py-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 rounded-lg text-sm font-medium transition-all"
               >
                 Reintentar

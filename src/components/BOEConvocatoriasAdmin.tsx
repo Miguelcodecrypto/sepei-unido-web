@@ -245,6 +245,7 @@ export default function BOEConvocatoriasAdmin() {
       categoria: 'noticia',
       publicado: false,
       destacado: false,
+      es_html: false, // generarNoticiaContent produce Markdown, no HTML
       fecha_publicacion: now,
       autor: 'BOE Search — SEPEI UNIDO',
     });

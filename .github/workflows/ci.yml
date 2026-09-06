@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    name: Tipos y build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # npm ci instala exactamente lo del package-lock.json y falla si ambos
+      # se han desincronizado — eso también es una regresión que queremos cazar.
+      - name: Instalar dependencias
+        run: npm ci
+
+      # tsconfig.json solo incluye src/. api/ no está tipado todavía
+      # (ver "generar tipos Database de Supabase" en la Fase 3 de la auditoría).
+      - name: Comprobar tipos
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build

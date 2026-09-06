@@ -131,7 +131,9 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
   };
 
   // Manejar cambios en inputs
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
