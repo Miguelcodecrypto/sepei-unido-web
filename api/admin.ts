@@ -397,6 +397,197 @@ async function handleAnnouncements(req: any, res: any, supabase: ReturnType<type
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
+// ---- resource=analytics (protegido) ----
+// El tracking (INSERT en site_visits/user_interactions) se queda en el cliente
+// con la anon key: es de alto volumen y no vale la pena pasarlo por una función
+// serverless. Lo que pasa por aquí son las LECTURAS del dashboard, que antes
+// hacía el navegador directamente contra las tablas — sin RLS, así que
+// cualquiera con la anon key podía leer la IP y el user-agent de todas las
+// visitas, incluidas las de usuarios identificados (PII bajo RGPD).
+
+function startDateFromDays(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString();
+}
+
+function parseDays(value: any, fallback = 30): number {
+  const n = parseInt(value, 10);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(n, 365);
+}
+
+async function analyticsSummary(supabase: ReturnType<typeof getSupabaseAdmin>, days: number) {
+  const startDate = startDateFromDays(days);
+
+  const { data: visits, error } = await supabase
+    .from('site_visits')
+    .select('user_id, session_id')
+    .gte('visited_at', startDate);
+
+  if (error) throw error;
+
+  const rows = visits || [];
+  const authenticated = rows.filter((v: any) => v.user_id);
+  const anonymous = rows.filter((v: any) => !v.user_id);
+
+  const { data: byDay } = await supabase
+    .from('analytics_summary')
+    .select('visit_date, visits')
+    .gte('visit_date', startDate.split('T')[0])
+    .order('visit_date', { ascending: false })
+    .limit(days);
+
+  return {
+    totalVisits: rows.length,
+    uniqueUsers: new Set(authenticated.map((v: any) => v.user_id)).size,
+    authenticatedVisits: authenticated.length,
+    anonymousVisits: anonymous.length,
+    uniqueSessions: new Set(anonymous.map((v: any) => v.session_id)).size,
+    pageViews: rows.length,
+    visitsByDay: (byDay || []).map((d: any) => ({ date: d.visit_date, visits: d.visits })),
+  };
+}
+
+async function analyticsSections(supabase: ReturnType<typeof getSupabaseAdmin>, days: number) {
+  const { data, error } = await supabase
+    .from('user_interactions')
+    .select('section')
+    .gte('created_at', startDateFromDays(days));
+
+  if (error) throw error;
+
+  const counts: Record<string, number> = {
+    announcements: 0, voting: 0, suggestions: 0, admin: 0, interinos: 0,
+  };
+  for (const row of data || []) {
+    if ((row as any).section in counts) counts[(row as any).section]++;
+  }
+  return counts;
+}
+
+async function analyticsTopUsers(supabase: ReturnType<typeof getSupabaseAdmin>, limit: number) {
+  const { data, error } = await supabase.rpc('get_top_active_users', { limit_count: limit });
+  if (error) throw error;
+  return data || [];
+}
+
+async function analyticsInterinos(supabase: ReturnType<typeof getSupabaseAdmin>, days: number) {
+  const { data, error } = await supabase
+    .from('user_interactions')
+    .select('user_id, interaction_type, duration_seconds, created_at')
+    .eq('section', 'interinos')
+    .gte('created_at', startDateFromDays(days));
+
+  if (error) throw error;
+  const interactions = (data || []) as any[];
+
+  const interactionsByType: Record<string, number> = {};
+  const userInteractionCount: Record<string, number> = {};
+  const visitsByDayMap: Record<string, number> = {};
+  let durationSum = 0;
+  let durationCount = 0;
+
+  for (const i of interactions) {
+    interactionsByType[i.interaction_type] = (interactionsByType[i.interaction_type] || 0) + 1;
+    if (i.user_id) userInteractionCount[i.user_id] = (userInteractionCount[i.user_id] || 0) + 1;
+    if (i.duration_seconds) { durationSum += i.duration_seconds; durationCount++; }
+    const date = new Date(i.created_at).toISOString().split('T')[0];
+    visitsByDayMap[date] = (visitsByDayMap[date] || 0) + 1;
+  }
+
+  // Nombres de los usuarios más activos: aquí se resuelven con service_role, así
+  // el cliente ya no necesita descargarse la lista completa de usuarios.
+  const userIds = Object.keys(userInteractionCount);
+  let topUsers: Array<{ user_id: string; user_name: string; interactions: number }> = [];
+  if (userIds.length > 0) {
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, nombre, apellidos')
+      .in('id', userIds);
+
+    topUsers = Object.entries(userInteractionCount)
+      .map(([userId, count]) => {
+        const user = (users || []).find((u: any) => u.id === userId) as any;
+        return {
+          user_id: userId,
+          user_name: user ? `${user.nombre} ${user.apellidos || ''}`.trim() : 'Usuario',
+          interactions: count,
+        };
+      })
+      .sort((a, b) => b.interactions - a.interactions)
+      .slice(0, 10);
+  }
+
+  const totalInteractions = interactions.length;
+
+  return {
+    totalVisits: interactionsByType['view_interinos'] || interactionsByType['enter_section'] || totalInteractions,
+    uniqueUsers: new Set(interactions.filter((i) => i.user_id).map((i) => i.user_id)).size,
+    totalInteractions,
+    interactionsByType,
+    averageTimeSeconds: durationCount > 0 ? Math.round(durationSum / durationCount) : 0,
+    topUsers,
+    visitsByDay: Object.entries(visitsByDayMap)
+      .map(([date, visits]) => ({ date, visits }))
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, days),
+    documentDownloads: interactionsByType['download_document'] || interactionsByType['view_bibliography'] || 0,
+    linkClicks: interactionsByType['click_link'] || interactionsByType['view_link'] || 0,
+    courseViews: interactionsByType['view_course'] || interactionsByType['click_course'] || 0,
+  };
+}
+
+async function analyticsInterinosContent(supabase: ReturnType<typeof getSupabaseAdmin>) {
+  // OJO: la versión anterior filtraba por .eq('activo', true) y esa columna NO
+  // existe en interinos_bibliografia (error 42703). La consulta fallaba siempre
+  // y el panel mostraba 0 en todos los contadores, en silencio.
+  const { data, error } = await supabase.from('interinos_bibliografia').select('categoria');
+  if (error) throw error;
+
+  const rows = (data || []) as any[];
+  const documentsByCategory: Record<string, number> = {};
+  for (const row of rows) {
+    documentsByCategory[row.categoria] = (documentsByCategory[row.categoria] || 0) + 1;
+  }
+  const countOf = (categoria: string) => rows.filter((c) => c.categoria === categoria).length;
+
+  return {
+    totalDocuments: countOf('formacion_bibliografia'),
+    totalCourses: countOf('formacion_curso'),
+    totalLinks: countOf('formacion_enlace'),
+    totalNews: countOf('noticias_destacadas'),
+    totalOposiciones: countOf('oposiciones'),
+    documentsByCategory,
+  };
+}
+
+async function handleAnalytics(req: any, res: any, supabase: ReturnType<typeof getSupabaseAdmin>) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+  const detail = req.query.detail as string;
+  const days = parseDays(req.query.days);
+
+  if (detail === 'summary') {
+    return res.status(200).json({ summary: await analyticsSummary(supabase, days) });
+  }
+  if (detail === 'sections') {
+    return res.status(200).json({ sections: await analyticsSections(supabase, days) });
+  }
+  if (detail === 'top_users') {
+    const limit = parseDays(req.query.limit, 10);
+    return res.status(200).json({ users: await analyticsTopUsers(supabase, limit) });
+  }
+  if (detail === 'interinos') {
+    return res.status(200).json({ interinos: await analyticsInterinos(supabase, days) });
+  }
+  if (detail === 'interinos_content') {
+    return res.status(200).json({ stats: await analyticsInterinosContent(supabase) });
+  }
+
+  return res.status(400).json({ error: 'detail no reconocido' });
+}
+
 // ---- resource=interinos (protegido) ----
 // La lectura sigue siendo pública con la anon key (getInterinosContenido): la
 // bibliografía de Interinos está pensada para verse sin login. Lo que pasa por
@@ -521,6 +712,7 @@ export default async function handler(req: any, res: any) {
     if (resource === 'users') return await handleUsers(req, res, supabase);
     if (resource === 'external_emails') return await handleExternalEmails(req, res, supabase);
     if (resource === 'announcements') return await handleAnnouncements(req, res, supabase);
+    if (resource === 'analytics') return await handleAnalytics(req, res, supabase);
     if (resource === 'interinos') return await handleInterinos(req, res, supabase);
     if (resource === 'security') return await handleSecurity(req, res, supabase);
 
