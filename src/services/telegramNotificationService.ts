@@ -8,6 +8,8 @@
  * 3. Configurar el webhook en Vercel: /api/telegram-webhook
  */
 
+import { getSessionToken } from './sessionService';
+
 export interface TelegramRecipient {
   id: string;
   telegram_chat_id: string;
@@ -271,14 +273,19 @@ export function generateLinkCode(): string {
 }
 
 /**
- * Guardar código de vinculación temporal
+ * Guardar código de vinculación temporal.
+ * El usuario se identifica por el token de sesión (Authorization), nunca por un
+ * user_id que mande el cliente — ver api/_lib/session.ts.
  */
-export async function saveLinkCode(userId: string, code: string): Promise<boolean> {
+export async function saveLinkCode(code: string): Promise<boolean> {
   try {
     const response = await fetch('/api/telegram-link-code', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, code }),
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getSessionToken() ?? ''}`,
+      },
+      body: JSON.stringify({ code }),
     });
     return response.ok;
   } catch (error) {
@@ -288,14 +295,16 @@ export async function saveLinkCode(userId: string, code: string): Promise<boolea
 }
 
 /**
- * Verificar estado de vinculación de Telegram
+ * Verificar estado de vinculación de Telegram del usuario de la sesión activa.
  */
-export async function checkTelegramLink(userId: string): Promise<{
+export async function checkTelegramLink(): Promise<{
   linked: boolean;
   telegram_username?: string;
 }> {
   try {
-    const response = await fetch(`/api/telegram-status?user_id=${userId}`);
+    const response = await fetch('/api/telegram-status', {
+      headers: { Authorization: `Bearer ${getSessionToken() ?? ''}` },
+    });
     if (!response.ok) {
       return { linked: false };
     }
@@ -307,14 +316,13 @@ export async function checkTelegramLink(userId: string): Promise<{
 }
 
 /**
- * Desvincular cuenta de Telegram
+ * Desvincular cuenta de Telegram del usuario de la sesión activa.
  */
-export async function unlinkTelegram(userId: string): Promise<boolean> {
+export async function unlinkTelegram(): Promise<boolean> {
   try {
     const response = await fetch('/api/telegram-unlink', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId }),
+      headers: { Authorization: `Bearer ${getSessionToken() ?? ''}` },
     });
     return response.ok;
   } catch (error) {

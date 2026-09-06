@@ -2,7 +2,8 @@
  * API para verificar estado de vinculación de Telegram
  */
 
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
+import { getSessionUser } from './_lib/session.js';
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Content-Type', 'application/json');
@@ -11,26 +12,18 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    return res.status(500).json({ error: 'Server configuration error' });
+  const sessionUser = await getSessionUser(req);
+  if (!sessionUser) {
+    return res.status(401).json({ error: 'No autorizado' });
   }
 
   try {
-    const { user_id } = req.query;
-
-    if (!user_id) {
-      return res.status(400).json({ error: 'Missing user_id parameter' });
-    }
-
-    const supabase = createSupabaseClient(supabaseUrl, supabaseKey);
+    const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
       .from('users')
       .select('telegram_chat_id, telegram_username, telegram_linked_at')
-      .eq('id', user_id)
+      .eq('id', sessionUser.id)
       .single();
 
     if (error || !data) {

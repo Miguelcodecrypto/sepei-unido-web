@@ -33,7 +33,7 @@ export default function TelegramLink({ userId, onStatusChange }: TelegramLinkPro
     setLoading(true);
     setError(null);
     try {
-      const status = await checkTelegramLink(userId);
+      const status = await checkTelegramLink();
       setIsLinked(status.linked);
       setTelegramUsername(status.telegram_username || null);
       onStatusChange?.(status.linked);
@@ -50,7 +50,7 @@ export default function TelegramLink({ userId, onStatusChange }: TelegramLinkPro
     setError(null);
     try {
       const code = generateLinkCode();
-      const success = await saveLinkCode(userId, code);
+      const success = await saveLinkCode(code);
       
       if (success) {
         setLinkCode(code);
@@ -93,7 +93,7 @@ export default function TelegramLink({ userId, onStatusChange }: TelegramLinkPro
     setUnlinking(true);
     setError(null);
     try {
-      const success = await unlinkTelegram(userId);
+      const success = await unlinkTelegram();
       if (success) {
         setIsLinked(false);
         setTelegramUsername(null);
