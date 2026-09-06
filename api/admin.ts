@@ -397,6 +397,68 @@ async function handleAnnouncements(req: any, res: any, supabase: ReturnType<type
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
+// ---- resource=interinos (protegido) ----
+// La lectura sigue siendo pública con la anon key (getInterinosContenido): la
+// bibliografía de Interinos está pensada para verse sin login. Lo que pasa por
+// aquí es la escritura, que antes hacía el navegador directamente contra la
+// tabla — sin RLS ni políticas, así que cualquiera con la anon key del bundle
+// podía crear o borrar recursos de la sección.
+const INTERINOS_WRITABLE_COLUMNS = ['titulo', 'descripcion', 'url', 'nombre', 'tipo', 'categoria', 'created_by'];
+
+const INTERINOS_CATEGORIAS = [
+  'bibliografia',
+  'formacion_bibliografia',
+  'formacion_curso',
+  'formacion_enlace',
+  'noticias_destacadas',
+  'oposiciones',
+];
+
+async function handleInterinos(req: any, res: any, supabase: ReturnType<typeof getSupabaseAdmin>) {
+  if (req.method === 'POST') {
+    const { item } = req.body || {};
+    if (!item || typeof item.titulo !== 'string' || !item.titulo.trim()) {
+      return res.status(400).json({ error: 'El título es obligatorio' });
+    }
+    if (typeof item.url !== 'string' || !item.url.trim()) {
+      return res.status(400).json({ error: 'La url es obligatoria' });
+    }
+
+    const values = pickColumns(item, INTERINOS_WRITABLE_COLUMNS);
+    values.categoria = values.categoria || 'bibliografia';
+    if (!INTERINOS_CATEGORIAS.includes(values.categoria)) {
+      return res.status(400).json({ error: 'Categoría no reconocida' });
+    }
+    values.created_by = values.created_by || null;
+
+    const { data, error } = await supabase
+      .from('interinos_bibliografia')
+      .insert([values])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error al crear contenido de interinos:', error);
+      return res.status(500).json({ error: 'Error al crear contenido de interinos' });
+    }
+    return res.status(200).json({ item: data });
+  }
+
+  if (req.method === 'DELETE') {
+    const { id } = req.query;
+    if (typeof id !== 'string' || !id) return res.status(400).json({ error: 'Falta id' });
+
+    const { error } = await supabase.from('interinos_bibliografia').delete().eq('id', id);
+    if (error) {
+      console.error('Error al eliminar contenido de interinos:', error);
+      return res.status(500).json({ error: 'Error al eliminar contenido de interinos' });
+    }
+    return res.status(200).json({ success: true });
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
+}
+
 // ---- resource=security (protegido) ----
 async function handleSecurity(req: any, res: any, supabase: ReturnType<typeof getSupabaseAdmin>) {
   if (req.method === 'GET') {
@@ -459,6 +521,7 @@ export default async function handler(req: any, res: any) {
     if (resource === 'users') return await handleUsers(req, res, supabase);
     if (resource === 'external_emails') return await handleExternalEmails(req, res, supabase);
     if (resource === 'announcements') return await handleAnnouncements(req, res, supabase);
+    if (resource === 'interinos') return await handleInterinos(req, res, supabase);
     if (resource === 'security') return await handleSecurity(req, res, supabase);
 
     return res.status(400).json({ error: 'resource no reconocido' });
