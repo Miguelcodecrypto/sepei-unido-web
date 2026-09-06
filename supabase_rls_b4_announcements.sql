@@ -57,18 +57,19 @@ CREATE POLICY "Adjuntos de anuncios publicados visibles para todos"
 -- con los permisos de quien llama, así que al cerrar RLS dejaría de contar
 -- vistas EN SILENCIO. Se añade también search_path fijo (si no, es vulnerable a
 -- search_path hijacking, el mismo fallo señalado en get_top_active_users).
+-- NOTA DE SINTAXIS: los atributos van DESPUÉS del cuerpo ($$ ... $$ LANGUAGE ...).
+-- La forma "RETURNS void LANGUAGE plpgsql ... AS $$" es válida en PostgreSQL
+-- estándar pero el editor SQL de Supabase la rechaza con
+-- "42601: syntax error at or near void" (comprobado 2026-09-06). Esta es la
+-- misma forma del script original que sí funcionó al crear la función.
 CREATE OR REPLACE FUNCTION increment_announcement_views(announcement_id UUID)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
+RETURNS void AS $$
 BEGIN
   UPDATE announcements
   SET vistas = vistas + 1
   WHERE id = announcement_id;
 END;
-$$;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- ── 4. VERIFICACIÓN (obligatoria — no fiarse de que "se ejecutó") ───────────
 -- La Fase 1 se dio por cerrada sin comprobar esto y estuvo un mes abierta.
