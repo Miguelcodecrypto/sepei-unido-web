@@ -85,25 +85,25 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[85vh] flex flex-col">
+      <div className="bg-slate-800 rounded-lg p-6 w-full max-w-2xl max-h-[85vh] flex flex-col">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-white">Importar contactos desde archivo</h3>
-          <button onClick={handleClose} className="text-gray-400 hover:text-white transition">
+          <button onClick={handleClose} className="text-slate-400 hover:text-white transition">
             <X className="w-6 h-6" />
           </button>
         </div>
 
         {step === 'upload' && (
           <>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-slate-400 mb-4">
               Admite archivos <strong>.csv</strong>, <strong>.xlsx</strong>, <strong>.xls</strong> o{' '}
               <strong>.json</strong>. En el siguiente paso podrás indicar qué columna de tu archivo
               es el email y cuál el nombre, sea cual sea su cabecera.
             </p>
 
-            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-600 rounded-lg p-8 cursor-pointer hover:border-blue-500 transition mb-4">
-              <Upload className="w-8 h-8 text-gray-500" />
-              <span className="text-gray-300 text-sm">
+            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-600 rounded-lg p-8 cursor-pointer hover:border-blue-500 transition mb-4">
+              <Upload className="w-8 h-8 text-slate-500" />
+              <span className="text-slate-300 text-sm">
                 {fileName ? fileName : 'Haz clic para seleccionar un archivo'}
               </span>
               <input
@@ -133,7 +133,7 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
 
             <button
               onClick={handleClose}
-              className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition"
+              className="w-full px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
             >
               Cancelar
             </button>
@@ -142,18 +142,18 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
 
         {step === 'mapping' && (
           <>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-slate-400 mb-4">
               {fileName} — {records.length} filas encontradas. Indica qué columna corresponde a cada
               campo (marcadas automáticamente cuando la cabecera lo dejaba claro).
             </p>
 
             <div className="space-y-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Columna del email *</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Columna del email *</label>
                 <select
                   value={mapping.email || ''}
                   onChange={(e) => setMapping({ ...mapping, email: e.target.value || undefined })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
                 >
                   <option value="">-- Selecciona una columna --</option>
                   {headers.map((h) => (
@@ -163,11 +163,11 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Columna del nombre *</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Columna del nombre *</label>
                 <select
                   value={mapping.nombre || ''}
                   onChange={(e) => setMapping({ ...mapping, nombre: e.target.value || undefined })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
                 >
                   <option value="">-- Selecciona una columna --</option>
                   {headers.map((h) => (
@@ -177,11 +177,11 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Columna de descripción (opcional)</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Columna de descripción (opcional)</label>
                 <select
                   value={mapping.descripcion || ''}
                   onChange={(e) => setMapping({ ...mapping, descripcion: e.target.value || undefined })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
                 >
                   <option value="">-- Ninguna --</option>
                   {headers.map((h) => (
@@ -194,7 +194,7 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setStep('upload')}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition flex items-center gap-2"
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Atrás
@@ -215,29 +215,29 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
             <div className="flex-1 overflow-y-auto mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <FileSpreadsheet className="w-4 h-4 text-blue-400" />
-                <span className="text-sm text-gray-300 font-semibold">{rows.length} contactos a importar</span>
+                <span className="text-sm text-slate-300 font-semibold">{rows.length} contactos a importar</span>
               </div>
-              <div className="bg-gray-900 rounded-lg overflow-hidden">
+              <div className="bg-slate-900 rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-700">
+                  <thead className="bg-slate-700">
                     <tr>
-                      <th className="px-3 py-2 text-left text-gray-300">Email</th>
-                      <th className="px-3 py-2 text-left text-gray-300">Nombre</th>
-                      <th className="px-3 py-2 text-left text-gray-300">Descripción</th>
+                      <th className="px-3 py-2 text-left text-slate-300">Email</th>
+                      <th className="px-3 py-2 text-left text-slate-300">Nombre</th>
+                      <th className="px-3 py-2 text-left text-slate-300">Descripción</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-700">
+                  <tbody className="divide-y divide-slate-700">
                     {rows.slice(0, 50).map((row, i) => (
                       <tr key={i}>
                         <td className="px-3 py-2 text-white">{row.email || <span className="text-red-400">(vacío)</span>}</td>
                         <td className="px-3 py-2 text-white">{row.nombre || <span className="text-red-400">(vacío)</span>}</td>
-                        <td className="px-3 py-2 text-gray-400">{row.descripcion || '-'}</td>
+                        <td className="px-3 py-2 text-slate-400">{row.descripcion || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
                 {rows.length > 50 && (
-                  <p className="text-center text-gray-500 text-xs py-2">... y {rows.length - 50} más</p>
+                  <p className="text-center text-slate-500 text-xs py-2">... y {rows.length - 50} más</p>
                 )}
               </div>
             </div>
@@ -245,7 +245,7 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setStep('mapping')}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition flex items-center gap-2"
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Atrás
@@ -269,7 +269,7 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
             </div>
 
             {result.alreadyExists > 0 && (
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-slate-400">
                 {result.alreadyExists} email{result.alreadyExists !== 1 ? 's' : ''} ya existían en la base de datos y se omitieron.
               </p>
             )}

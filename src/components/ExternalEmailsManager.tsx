@@ -120,7 +120,7 @@ export function ExternalEmailsManager() {
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <div className="text-gray-400">Cargando...</div>
+        <div className="text-slate-400">Cargando...</div>
       </div>
     );
   }
@@ -131,14 +131,14 @@ export function ExternalEmailsManager() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-white">Emails Externos</h2>
-          <p className="text-gray-400 text-sm mt-1">
+          <p className="text-slate-400 text-sm mt-1">
             Gestiona contactos externos que recibirán notificaciones
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowImportModal(true)}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center gap-2 transition"
+            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 transition"
           >
             <Upload className="w-5 h-5" />
             Importar desde archivo
@@ -155,9 +155,9 @@ export function ExternalEmailsManager() {
 
       {/* Lista de emails */}
       {externalEmails.length === 0 ? (
-        <div className="bg-gray-800 rounded-lg p-8 text-center">
-          <Mail className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">No hay emails externos registrados</p>
+        <div className="bg-slate-800 rounded-lg p-8 text-center">
+          <Mail className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+          <p className="text-slate-400">No hay emails externos registrados</p>
           <button
             onClick={() => handleOpenModal()}
             className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
@@ -166,30 +166,30 @@ export function ExternalEmailsManager() {
           </button>
         </div>
       ) : (
-        <div className="bg-gray-800 rounded-lg overflow-hidden">
+        <div className="bg-slate-800 rounded-lg overflow-hidden">
           <table className="w-full">
-            <thead className="bg-gray-700">
+            <thead className="bg-slate-700">
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Email</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Nombre</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Descripción</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-300">Estado</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-300">Acciones</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-300">Email</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-300">Nombre</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-300">Descripción</th>
+                <th className="px-4 py-3 text-center text-sm font-semibold text-slate-300">Estado</th>
+                <th className="px-4 py-3 text-center text-sm font-semibold text-slate-300">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700">
+            <tbody className="divide-y divide-slate-700">
               {externalEmails.map((email) => (
-                <tr key={email.id} className="hover:bg-gray-750">
+                <tr key={email.id} className="hover:bg-slate-700/30">
                   <td className="px-4 py-3 text-sm text-white">{email.email}</td>
                   <td className="px-4 py-3 text-sm text-white">{email.nombre}</td>
-                  <td className="px-4 py-3 text-sm text-gray-400">{email.descripcion || '-'}</td>
+                  <td className="px-4 py-3 text-sm text-slate-400">{email.descripcion || '-'}</td>
                   <td className="px-4 py-3 text-center">
                     <button
                       onClick={() => handleToggleStatus(email.id, email.activo)}
                       className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
                         email.activo
                           ? 'bg-green-600 hover:bg-green-700 text-white'
-                          : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
+                          : 'bg-slate-600 hover:bg-slate-700 text-slate-300'
                       }`}
                     >
                       {email.activo ? 'Activo' : 'Inactivo'}
@@ -223,14 +223,14 @@ export function ExternalEmailsManager() {
       {/* Modal Agregar/Editar */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+          <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-white">
                 {editingId ? 'Editar Email Externo' : 'Agregar Email Externo'}
               </h3>
               <button
                 onClick={handleCloseModal}
-                className="text-gray-400 hover:text-white transition"
+                className="text-slate-400 hover:text-white transition"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -239,14 +239,14 @@ export function ExternalEmailsManager() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-slate-300 mb-1">
                   Email *
                 </label>
                 <input
                   type="email"
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="ejemplo@email.com"
                   required
                 />
@@ -254,14 +254,14 @@ export function ExternalEmailsManager() {
 
               {/* Nombre */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-slate-300 mb-1">
                   Nombre *
                 </label>
                 <input
                   type="text"
                   value={formNombre}
                   onChange={(e) => setFormNombre(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Nombre del contacto"
                   required
                 />
@@ -269,13 +269,13 @@ export function ExternalEmailsManager() {
 
               {/* Descripción */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-slate-300 mb-1">
                   Descripción (opcional)
                 </label>
                 <textarea
                   value={formDescripcion}
                   onChange={(e) => setFormDescripcion(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   placeholder="Ej: Presidente provincial, Contacto de prensa..."
                   rows={2}
                 />
@@ -294,7 +294,7 @@ export function ExternalEmailsManager() {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition"
+                  className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
                 >
                   Cancelar
                 </button>
