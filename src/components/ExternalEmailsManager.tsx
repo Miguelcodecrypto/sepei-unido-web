@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNotifications } from './ui/NotificationProvider';
 import { Mail, Plus, Trash2, Edit2, X, Check, AlertCircle, Upload } from 'lucide-react';
 import {
   ExternalEmail,
@@ -11,6 +12,7 @@ import {
 import { ImportExternalEmailsModal } from './ImportExternalEmailsModal';
 
 export function ExternalEmailsManager() {
+  const { notify, confirm } = useNotifications();
   const [externalEmails, setExternalEmails] = useState<ExternalEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -90,21 +92,27 @@ export function ExternalEmailsManager() {
     if (success) {
       await loadExternalEmails();
       handleCloseModal();
-      alert(editingId ? 'Email actualizado correctamente' : 'Email agregado correctamente');
+      notify.success(editingId ? 'Email actualizado correctamente' : 'Email agregado correctamente');
     } else {
       setFormError(editingId ? 'Error al actualizar el email' : 'Error al agregar el email. Puede que ya exista.');
     }
   };
 
   const handleDelete = async (id: string, nombre: string) => {
-    if (!confirm(`¿Eliminar el contacto "${nombre}"?`)) return;
+    const confirmado = await confirm({
+      title: 'Eliminar contacto',
+      message: `Se eliminará "${nombre}" de la lista de contactos externos. Dejará de recibir los envíos.`,
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+    });
+    if (!confirmado) return;
 
     const success = await deleteExternalEmail(id);
     if (success) {
       await loadExternalEmails();
-      alert('Contacto eliminado correctamente');
+      notify.success('Contacto eliminado correctamente');
     } else {
-      alert('Error al eliminar el contacto');
+      notify.error('Error al eliminar el contacto');
     }
   };
 
@@ -113,7 +121,7 @@ export function ExternalEmailsManager() {
     if (success) {
       await loadExternalEmails();
     } else {
-      alert('Error al cambiar el estado');
+      notify.error('Error al cambiar el estado');
     }
   };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useNotifications } from './ui/NotificationProvider';
 import { Users, Download, Trash2, Eye, EyeOff, LogOut, Clock, Lightbulb, Megaphone, BarChart3, CheckCircle, XCircle, Key, TrendingUp, Award, Mail, BookOpen, AlertTriangle, UserX, Shield, Flame, MessageCircle, MapPin } from 'lucide-react';
 import { getAllUsers, deleteUser, exportUsersToCSV, toggleVotingAuthorization, resetTempPassword } from '../services/adminUsersService';
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
@@ -64,6 +65,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onLogout }: AdminPanelProps) {
+  const { notify, confirm, alert } = useNotifications();
   const [activeTab, setActiveTab] = useState<'users' | 'suggestions' | 'announcements' | 'voting' | 'analytics' | 'results' | 'external-emails' | 'interinos' | 'security' | 'convocatorias'>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -189,17 +191,31 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
   };
 
   const handleDeleteUser = async (id: string, nombre: string) => {
-    if (confirm(`¿Eliminar a ${nombre}?`)) {
-      await deleteUser(id);
-      loadUsers();
-    }
+    const confirmado = await confirm({
+      title: 'Eliminar usuario',
+      message: `Se eliminará la cuenta de ${nombre} y perderá el acceso. Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+    });
+    if (!confirmado) return;
+
+    await deleteUser(id);
+    loadUsers();
+    notify.success(`${nombre} eliminado`);
   };
 
   const handleDeleteSuggestion = async (id: string, asunto: string) => {
-    if (confirm(`¿Eliminar la sugerencia "${asunto}"?`)) {
-      await deleteSuggestion(id);
-      loadSuggestions();
-    }
+    const confirmado = await confirm({
+      title: 'Eliminar sugerencia',
+      message: `Se eliminará "${asunto}". Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+    });
+    if (!confirmado) return;
+
+    await deleteSuggestion(id);
+    loadSuggestions();
+    notify.success('Sugerencia eliminada');
   };
 
   const handleLogout = () => {
@@ -208,7 +224,8 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
   };
 
   const handleExport = async () => {
-    await exportUsersToCSV();
+    const exportado = await exportUsersToCSV();
+    if (!exportado) notify.info('No hay usuarios para exportar');
   };
 
   const toggleDetails = (id: string) => {
@@ -219,47 +236,68 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
   };
 
   const handleClearSuggestions = async () => {
-    if (confirm('¿Estás seguro de eliminar TODAS las sugerencias? Esta acción no se puede deshacer.')) {
-      await clearAllSuggestions();
-      loadSuggestions();
-    }
+    const confirmado = await confirm({
+      title: 'Eliminar todas las sugerencias',
+      message: `Se eliminarán las ${totalSuggestions} sugerencias recibidas, sin excepción. Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar todas',
+      variant: 'danger',
+    });
+    if (!confirmado) return;
+
+    await clearAllSuggestions();
+    loadSuggestions();
+    notify.success('Sugerencias eliminadas');
   };
 
   const handleExportSuggestions = async () => {
-    await exportSuggestionsToCSV();
+    const exportado = await exportSuggestionsToCSV();
+    if (!exportado) notify.info('No hay sugerencias para exportar');
   };
 
   const handleToggleVotingAuth = async (userId: string, currentStatus: boolean, userName: string) => {
     const action = currentStatus ? 'desautorizar' : 'autorizar';
-    if (confirm(`¿${action.charAt(0).toUpperCase() + action.slice(1)} a ${userName} para votar?`)) {
-      console.log(`🔄 Cambiando autorización para ${userName} (ID: ${userId})`);
-      console.log(`Estado actual: ${currentStatus} -> Nuevo estado: ${!currentStatus}`);
-      
-      const success = await toggleVotingAuthorization(userId, !currentStatus);
-      
-      if (success) {
-        console.log('✅ Autorización actualizada, recargando usuarios...');
-        await loadUsers(); // Recargar lista de usuarios
-        alert(`✅ ${userName} ${!currentStatus ? 'autorizado' : 'desautorizado'} correctamente`);
-      } else {
-        console.error('❌ Error al actualizar autorización');
-        alert(`❌ Error al ${action} a ${userName}. Verifica la consola para más detalles.`);
-      }
+    const confirmado = await confirm({
+      title: currentStatus ? 'Retirar autorización de voto' : 'Autorizar para votar',
+      message: currentStatus
+        ? `${userName} dejará de poder votar en las votaciones en curso.`
+        : `${userName} podrá votar en las votaciones en curso.`,
+      confirmLabel: currentStatus ? 'Retirar' : 'Autorizar',
+    });
+    if (!confirmado) return;
+
+    const success = await toggleVotingAuthorization(userId, !currentStatus);
+
+    if (success) {
+      await loadUsers(); // Recargar lista de usuarios
+      notify.success(`${userName} ${!currentStatus ? 'autorizado' : 'desautorizado'} correctamente`);
+    } else {
+      console.error('Error al actualizar autorización de voto');
+      notify.error(`No se ha podido ${action} a ${userName}.`);
     }
   };
 
   const handleResetTempPassword = async (userId: string, userName: string, userEmail: string) => {
-    if (!confirm(`¿Resetear la contraseña de ${userName}? Se generará una nueva contraseña temporal.`)) {
-      return;
-    }
+    const confirmado = await confirm({
+      title: 'Resetear contraseña',
+      message: `Se generará una contraseña temporal para ${userName}. La actual dejará de funcionar.`,
+      confirmLabel: 'Resetear',
+    });
+    if (!confirmado) return;
 
     const { success, tempPassword } = await resetTempPassword(userId);
 
     if (success && tempPassword) {
       await loadUsers();
-      alert(`✅ Contraseña reseteada correctamente\n\nUsuario: ${userName}\nEmail: ${userEmail}\nContraseña temporal: ${tempPassword}\n\n⚠️ Anota esta contraseña, se la debes comunicar al usuario. El usuario DEBE cambiarla en su próximo login.`);
+      // Diálogo con campo copiable, nunca un toast: esta contraseña se muestra una
+      // sola vez y hay que comunicársela al usuario. Si se va sola, se pierde.
+      await alert({
+        title: 'Contraseña reseteada',
+        message: `Usuario: ${userName}\nEmail: ${userEmail}\n\n`
+          + 'Comunícasela al usuario. Deberá cambiarla en su próximo inicio de sesión.',
+        copyable: { label: 'Contraseña temporal', value: tempPassword },
+      });
     } else {
-      alert(`❌ Error al resetear contraseña. Verifica la consola.`);
+      notify.error('No se ha podido resetear la contraseña.');
     }
   };
 

@@ -73,12 +73,13 @@ export const resetTempPassword = async (userId: string): Promise<{ success: bool
   }
 };
 
-export const exportUsersToCSV = async (): Promise<void> => {
+// Devuelve false si no había nada que exportar: avisar es cosa de la UI, no de
+// la capa de servicio, que no debe abrir ventanas.
+export const exportUsersToCSV = async (): Promise<boolean> => {
   const users = await getAllUsers();
 
   if (users.length === 0) {
-    alert('No hay usuarios para exportar');
-    return;
+    return false;
   }
 
   const headers = ['ID', 'Nombre', 'Apellidos', 'DNI', 'Email', 'Teléfono', 'Fecha Registro', 'Términos Aceptados', 'Certificado NIF', 'Certificado Válido'];
@@ -105,4 +106,5 @@ export const exportUsersToCSV = async (): Promise<void> => {
   link.href = URL.createObjectURL(blob);
   link.download = `usuarios_sepei_${new Date().toISOString().split('T')[0]}.csv`;
   link.click();
+  return true;
 };
