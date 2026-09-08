@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNotifications } from './ui/NotificationProvider';
 import { BookOpen, Link as LinkIcon, AlertCircle, Award, FileText, Trash2, Plus, Loader2, Image as ImageIcon, Headphones } from 'lucide-react';
 import type { InterinosBibliografiaItem, InterinosCategoria } from '../services/interinosBibliografia';
 import {
@@ -57,6 +58,7 @@ function buildNombreForLink(titulo: string, url: string): string {
 }
 
 export default function InterinosManager() {
+  const { notify, confirm } = useNotifications();
   const [items, setItems] = useState<InterinosBibliografiaItem[]>([]);
   const [loadingGlobal, setLoadingGlobal] = useState(false);
   const [forms, setForms] = useState<Record<string, FormState>>({});
@@ -145,12 +147,20 @@ export default function InterinosManager() {
   };
 
   const handleDelete = async (item: InterinosBibliografiaItem) => {
-	if (!confirm(`¿Eliminar "${item.titulo}" de Interinos?`)) return;
+    const confirmado = await confirm({
+      title: 'Eliminar de Interinos',
+      message: `Se eliminará "${item.titulo}". Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+    });
+    if (!confirmado) return;
+
     const ok = await deleteInterinosContenido(item.id);
     if (ok) {
       setItems((prev) => prev.filter((i) => i.id !== item.id));
+      notify.success(`"${item.titulo}" eliminado`);
     } else {
-      alert('No se ha podido eliminar el elemento.');
+      notify.error('No se ha podido eliminar el elemento.');
     }
   };
 

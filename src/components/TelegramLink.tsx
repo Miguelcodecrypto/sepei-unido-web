@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNotifications } from './ui/NotificationProvider';
 import { MessageCircle, Check, X, RefreshCw, Copy, ExternalLink } from 'lucide-react';
 import { 
   generateLinkCode, 
@@ -15,6 +16,7 @@ interface TelegramLinkProps {
 const TELEGRAM_BOT_USERNAME = 'SepeiUnidoBot'; // Cambiar por el nombre real del bot
 
 export default function TelegramLink({ userId, onStatusChange }: TelegramLinkProps) {
+  const { confirm } = useNotifications();
   const [isLinked, setIsLinked] = useState(false);
   const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
   const [linkCode, setLinkCode] = useState<string | null>(null);
@@ -86,9 +88,13 @@ export default function TelegramLink({ userId, onStatusChange }: TelegramLinkPro
   };
 
   const handleUnlink = async () => {
-    if (!confirm('¿Estás seguro de que quieres desvincular tu cuenta de Telegram?')) {
-      return;
-    }
+    const confirmado = await confirm({
+      title: 'Desvincular Telegram',
+      message: 'Dejarás de recibir avisos por Telegram. Podrás volver a vincular la cuenta cuando quieras.',
+      confirmLabel: 'Desvincular',
+      variant: 'danger',
+    });
+    if (!confirmado) return;
     
     setUnlinking(true);
     setError(null);

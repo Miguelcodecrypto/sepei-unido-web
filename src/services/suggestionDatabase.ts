@@ -81,13 +81,14 @@ export const clearAllSuggestions = async (): Promise<boolean> => {
   }
 };
 
-// Exportar sugerencias a CSV (admin)
-export const exportSuggestionsToCSV = async (): Promise<void> => {
+// Exportar sugerencias a CSV (admin).
+// Devuelve false si no había nada que exportar: avisar es cosa de la UI, no de
+// la capa de servicio, que no debe abrir ventanas.
+export const exportSuggestionsToCSV = async (): Promise<boolean> => {
   const suggestions = await getAllSuggestions();
 
   if (suggestions.length === 0) {
-    alert('No hay sugerencias para exportar');
-    return;
+    return false;
   }
 
   const headers = ['ID', 'Nombre', 'Apellidos', 'Email', 'Teléfono', 'Categoría', 'Lugar de Trabajo', 'Asunto', 'Descripción', 'Fecha Registro'];
@@ -114,4 +115,5 @@ export const exportSuggestionsToCSV = async (): Promise<void> => {
   link.href = URL.createObjectURL(blob);
   link.download = `sugerencias_sepei_${new Date().toISOString().split('T')[0]}.csv`;
   link.click();
+  return true;
 };

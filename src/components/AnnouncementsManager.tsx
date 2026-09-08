@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNotifications } from './ui/NotificationProvider';
 import { Plus, Edit2, Trash2, Eye, EyeOff, Image, FileText, X, Upload, Star, Mail, Link2, Video, Music, FilePlus2, Trash, Code, Maximize2 } from 'lucide-react';
 import {
   getAllAnnouncements,
@@ -19,6 +20,7 @@ import NotificationModal from './NotificationModal';
 import DOMPurify from 'dompurify';
 
 export default function AnnouncementsManager() {
+  const { notify, confirm, alert } = useNotifications();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -90,7 +92,7 @@ export default function AnnouncementsManager() {
       setLinkInput('');
       setLinkTitleInput('');
     } catch {
-      alert('Link no válido');
+      notify.error('Link no válido');
     }
   };
 
@@ -170,11 +172,14 @@ export default function AnnouncementsManager() {
       }
 
       if (subidasFallidas.length > 0) {
-        alert(
-          `El anuncio se ha guardado, pero no se han podido subir estos archivos:\n\n` +
-          `${subidasFallidas.join('\n')}\n\n` +
-          `Revisa que el formato esté permitido y vuelve a añadirlos editando el anuncio.`
-        );
+        // Diálogo y no toast: hay que leer QUÉ archivos han fallado para poder
+        // volver a añadirlos.
+        await alert({
+          title: 'Algunos archivos no se han subido',
+          message: 'El anuncio se ha guardado, pero estos archivos no se han podido subir:\n\n'
+            + `${subidasFallidas.join('\n')}\n\n`
+            + 'Revisa que el formato esté permitido y vuelve a añadirlos editando el anuncio.',
+        });
       }
 
       // Si se marcó enviar notificación y está publicado, abrir modal DESPUÉS de subir adjuntos
@@ -182,10 +187,12 @@ export default function AnnouncementsManager() {
         const totalBytes = emailAttachments.reduce((sum, a) => sum + a.size, 0);
         const MAX_EMAIL_ATTACHMENTS_BYTES = 28 * 1024 * 1024; // margen bajo el límite real de Resend (40MB tras base64)
         if (totalBytes > MAX_EMAIL_ATTACHMENTS_BYTES) {
-          alert(
-            `Los adjuntos suman ${(totalBytes / 1024 / 1024).toFixed(1)}MB, por encima del límite que admite el email (unos 28MB). ` +
-            `El anuncio se ha guardado igualmente, pero el envío por email fallará para todos los destinatarios — quita algún adjunto antes de notificar.`
-          );
+          await alert({
+            title: 'Los adjuntos superan el límite del email',
+            message: `Suman ${(totalBytes / 1024 / 1024).toFixed(1)} MB, por encima de los ~28 MB que admite el email.\n\n`
+              + 'El anuncio se ha guardado igualmente, pero el envío por email fallará para todos los destinatarios. '
+              + 'Quita algún adjunto antes de notificar.',
+          });
         }
 
         setPendingAnnouncementData({
@@ -203,7 +210,7 @@ export default function AnnouncementsManager() {
       resetForm();
     } catch (error) {
       console.error('Error al guardar anuncio:', error);
-      alert('Error al guardar el anuncio');
+      notify.error('Error al guardar el anuncio');
     } finally {
       setIsLoading(false);
       setUploadProgress('');
@@ -225,10 +232,17 @@ export default function AnnouncementsManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('¿Estás seguro de que quieres eliminar este anuncio?')) {
-      await deleteAnnouncement(id);
-      await loadAnnouncements();
-    }
+    const confirmado = await confirm({
+      title: 'Eliminar anuncio',
+      message: 'Se eliminará el anuncio del tablón junto con sus adjuntos. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+    });
+    if (!confirmado) return;
+
+    await deleteAnnouncement(id);
+    await loadAnnouncements();
+    notify.success('Anuncio eliminado');
   };
 
   const togglePublished = async (announcement: Announcement) => {
@@ -265,7 +279,12 @@ export default function AnnouncementsManager() {
   const editingAnnouncement = editingId ? announcements.find(a => a.id === editingId) : null;
 
   const handleDeleteExistingAttachment = async (attachmentId: string) => {
-    const confirmed = confirm('¿Eliminar este adjunto?');
+    const confirmed = await confirm({
+      title: 'Eliminar adjunto',
+      message: 'El archivo dejará de estar disponible en el anuncio.',
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+    });
     if (!confirmed) return;
     await deleteAnnouncementAttachment(attachmentId);
     await loadAnnouncements();
@@ -328,14 +347,14 @@ export default function AnnouncementsManager() {
         }
       }
 
-      // Mostrar resumen de ambos canales
-      let message = `✅ Notificaciones enviadas:\n\n`;
-      message += `📧 Email: ${emailSuccess} exitosas, ${emailFailed} fallidas\n`;
+      // Resumen de ambos canales. Diálogo y no toast: es un recuento que el admin
+      // necesita leer entero, y algunas pueden haber fallado.
+      let message = `Email: ${emailSuccess} enviadas, ${emailFailed} fallidas`;
       if (telegramSuccess > 0 || telegramFailed > 0) {
-        message += `📱 Telegram: ${telegramSuccess} exitosas, ${telegramFailed} fallidas`;
+        message += `\nTelegram: ${telegramSuccess} enviadas, ${telegramFailed} fallidas`;
       }
-      
-      alert(message);
+
+      await alert({ title: 'Notificaciones enviadas', message });
       setShowNotificationModal(false);
       setPendingAnnouncementData(null);
       setNotifyingAnnouncementId(null);
@@ -347,7 +366,7 @@ export default function AnnouncementsManager() {
       }
     } catch (error) {
       console.error('Error enviando notificaciones:', error);
-      alert('❌ Error al enviar notificaciones');
+      notify.error('Error al enviar notificaciones');
     } finally {
       setUploadProgress('');
     }

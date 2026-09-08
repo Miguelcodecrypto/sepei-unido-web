@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNotifications } from './ui/NotificationProvider';
 import { Shield, RefreshCw, Ban, Unlock, Eye, EyeOff, AlertTriangle, CheckCircle, Globe, Clock, Key, Filter, Download } from 'lucide-react';
 import { 
   getRecentLoginAttempts, 
@@ -10,6 +11,7 @@ import {
 } from '../services/adminSecurityService';
 
 export default function SecurityPanel() {
+  const { notify, confirm } = useNotifications();
   const [attempts, setAttempts] = useState<LoginAttemptRecord[]>([]);
   const [blockedIPs, setBlockedIPs] = useState<Array<{
     id: string;
@@ -52,11 +54,19 @@ export default function SecurityPanel() {
   };
 
   const handleUnblock = async (ip: string) => {
-    if (confirm(`¿Desbloquear la IP ${ip}?`)) {
-      const success = await unblockIP(ip);
-      if (success) {
-        await loadData();
-      }
+    const confirmado = await confirm({
+      title: 'Desbloquear IP',
+      message: `La IP ${ip} volverá a poder intentar el acceso al panel de administración.`,
+      confirmLabel: 'Desbloquear',
+    });
+    if (!confirmado) return;
+
+    const success = await unblockIP(ip);
+    if (success) {
+      await loadData();
+      notify.success(`IP ${ip} desbloqueada`);
+    } else {
+      notify.error(`No se ha podido desbloquear la IP ${ip}`);
     }
   };
 

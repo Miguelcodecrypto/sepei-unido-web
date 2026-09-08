@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNotifications } from './ui/NotificationProvider';
 import { BarChart3, Plus, Edit2, Trash2, Eye, EyeOff, CheckCircle, XCircle, Calendar, Users, Mail } from 'lucide-react';
 import {
   getAllVotaciones,
@@ -17,6 +18,7 @@ import { getAllUsers } from '../services/adminUsersService';
 import NotificationModal from './NotificationModal';
 
 const VotingManager: React.FC = () => {
+  const { notify, confirm, alert } = useNotifications();
   const [votaciones, setVotaciones] = useState<VotacionCompleta[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -60,7 +62,7 @@ const VotingManager: React.FC = () => {
 
     const opcionesFiltradas = opciones.filter(o => o.trim() !== '');
     if (opcionesFiltradas.length < 2) {
-      alert('Debe haber al menos 2 opciones');
+      notify.info('Debe haber al menos 2 opciones');
       return;
     }
 
@@ -77,11 +79,11 @@ const VotingManager: React.FC = () => {
       );
 
       if (success) {
-        alert('Votación actualizada correctamente');
+        notify.success('Votación actualizada correctamente');
         resetForm();
         loadVotaciones();
       } else {
-        alert('Error al actualizar la votación');
+        notify.error('Error al actualizar la votación');
       }
     } else {
       const id = await createVotacion(formData, opcionesFiltradas);
@@ -98,12 +100,12 @@ const VotingManager: React.FC = () => {
           });
           setShowNotificationModal(true);
         } else {
-          alert('Votación creada correctamente');
+          notify.success('Votación creada correctamente');
           resetForm();
           loadVotaciones();
         }
       } else {
-        alert('Error al crear la votación');
+        notify.error('Error al crear la votación');
       }
     }
   };
@@ -126,14 +128,20 @@ const VotingManager: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta votación?')) return;
+    const confirmado = await confirm({
+      title: 'Eliminar votación',
+      message: 'Se eliminará la votación junto con sus opciones y los votos emitidos. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      variant: 'danger',
+    });
+    if (!confirmado) return;
 
     const success = await deleteVotacion(id);
     if (success) {
-      alert('Votación eliminada correctamente');
+      notify.success('Votación eliminada correctamente');
       loadVotaciones();
     } else {
-      alert('Error al eliminar la votación');
+      notify.error('Error al eliminar la votación');
     }
   };
 
@@ -244,13 +252,14 @@ const VotingManager: React.FC = () => {
 
       // Mostrar resumen de ambos canales
       const { success: emailSuccess, failed: emailFailed } = emailResult;
-      let message = `✅ Notificaciones enviadas:\n\n`;
-      message += `📧 Email: ${emailSuccess} exitosas, ${emailFailed} fallidas\n`;
+      let message = `Email: ${emailSuccess} enviadas, ${emailFailed} fallidas`;
       if (telegramSuccess > 0 || telegramFailed > 0) {
-        message += `📱 Telegram: ${telegramSuccess} exitosas, ${telegramFailed} fallidas`;
+        message += `\nTelegram: ${telegramSuccess} enviadas, ${telegramFailed} fallidas`;
       }
-      
-      alert(message);
+
+      // Diálogo y no toast: es un recuento de envíos que el admin necesita leer
+      // entero, y algunas pueden haber fallado.
+      await alert({ title: 'Notificaciones enviadas', message });
       
       setShowNotificationModal(false);
       setPendingVotingData(null);
@@ -264,7 +273,7 @@ const VotingManager: React.FC = () => {
       }
     } catch (error) {
       console.error('Error enviando notificaciones:', error);
-      alert('❌ Error al enviar notificaciones');
+      notify.error('Error al enviar notificaciones');
     }
   };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNotifications } from './ui/NotificationProvider';
 import { BarChart3, CheckCircle, Calendar, Users, AlertCircle } from 'lucide-react';
 import {
   getVotacionesActivas,
@@ -15,6 +16,7 @@ interface VotingBoardProps {
 }
 
 const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
+  const { notify, alert } = useNotifications();
   const [votaciones, setVotaciones] = useState<VotacionCompleta[]>([]);
   const [loading, setLoading] = useState(true);
   const [votando, setVotando] = useState<string | null>(null);
@@ -81,14 +83,14 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
       if (onLoginRequired) {
         onLoginRequired();
       } else {
-        alert('Debes iniciar sesión para votar');
+        notify.info('Debes iniciar sesión para votar');
       }
       return;
     }
 
     const opciones = selectedOptions[votacionId];
     if (!opciones || opciones.length === 0) {
-      alert('Debes seleccionar al menos una opción');
+      notify.info('Debes seleccionar al menos una opción');
       return;
     }
 
@@ -96,7 +98,7 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
     const success = await emitirVoto(votacionId, opciones);
     
     if (success) {
-      alert('¡Voto registrado correctamente!');
+      notify.success('¡Voto registrado correctamente!');
       
       // Rastrear voto exitoso
       await trackInteraction('voting', 'cast_vote', votacionId, { 
@@ -118,8 +120,16 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
         setShowResults({ ...showResults, [votacionId]: true });
       }
     } else {
-      // Mensajes de error más específicos
-      alert('❌ Error al registrar el voto.\n\nPosibles causas:\n• Ya has votado en esta votación\n• No estás autorizado por el administrador\n• La votación ha finalizado\n\nContacta con el administrador si el problema persiste.');
+      // Un diálogo, no un toast: son varias causas posibles y el votante tiene que
+      // leerlas para saber qué hacer. Un aviso que se va solo no vale aquí.
+      await alert({
+        title: 'No se ha podido registrar el voto',
+        message: 'Puede deberse a alguna de estas causas:\n\n'
+          + '• Ya has votado en esta votación\n'
+          + '• No estás autorizado por el administrador\n'
+          + '• La votación ha finalizado\n\n'
+          + 'Contacta con el administrador si el problema persiste.',
+      });
     }
     
     setVotando(null);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNotifications } from './components/ui/NotificationProvider';
 import { Link } from 'react-router-dom';
 import { Flame, Users, Shield, Target, Mail, Phone, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, LogIn, FileSearch, HardHat, Lightbulb } from 'lucide-react';
 import { getCertificateFromSession, clearCertificateSession, type BrowserCertificate } from './services/browserCertificateService';
@@ -19,6 +20,7 @@ import UserProfilePanel from './components/UserProfilePanel';
 import HeroBackground from './components/HeroBackground';
 
 export default function SepeiUnido() {
+  const { notify } = useNotifications();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -196,7 +198,7 @@ export default function SepeiUnido() {
         setShowUserLogin(true);
       } else {
         // Certificado digital solo para registro, no login
-        alert('El certificado digital solo está disponible para registro. Para iniciar sesión con una cuenta existente, usa email y contraseña.');
+        notify.info('El certificado digital solo está disponible para registro. Para iniciar sesión con una cuenta existente, usa email y contraseña.');
         setShowAuthMethodSelector(true);
       }
     } else {
