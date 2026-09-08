@@ -7,7 +7,7 @@
 -- $2b$10$ejemplo...
 
 -- PASO 2: Actualizar el usuario con el nuevo hash
--- Reemplaza '48380883S' con el DNI del usuario
+-- Reemplaza '00000000T' con el DNI del usuario
 -- Reemplaza 'HASH_AQUI' con el hash bcrypt generado
 
 UPDATE users 
@@ -15,13 +15,13 @@ SET
   password = '$2b$10$HASH_BCRYPT_AQUI',
   requires_password_change = true,
   verified = true
-WHERE dni = '48380883S';
+WHERE dni = '00000000T';
 
 -- PASO 3: Verificar que se actualizó
 SELECT dni, nombre, email, verified, requires_password_change,
        SUBSTRING(password, 1, 20) as password_preview
 FROM users 
-WHERE dni = '48380883S';
+WHERE dni = '00000000T';
 
 -- INSTRUCCIONES:
 -- 1. Ve a https://bcrypt-generator.com/

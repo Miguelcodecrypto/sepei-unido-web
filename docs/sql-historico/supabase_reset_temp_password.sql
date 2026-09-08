@@ -14,7 +14,7 @@ SET
   password = '$2b$10$N9qo8uLOickgQ2ZPiEP6jOq', -- REEMPLAZAR con tu hash
   requires_password_change = true,
   password_changed_at = NULL
-WHERE dni = '48380884Q'; -- REEMPLAZAR con el DNI del usuario
+WHERE dni = '00000000T'; -- REEMPLAZAR con el DNI del usuario
 
 -- PASO 3: Verificar el cambio
 SELECT 
@@ -25,7 +25,7 @@ SELECT
   requires_password_change,
   password_changed_at
 FROM users 
-WHERE dni = '48380884Q'; -- REEMPLAZAR con el DNI del usuario
+WHERE dni = '00000000T'; -- REEMPLAZAR con el DNI del usuario
 
 -- INSTRUCCIONES:
 -- 1. Genera un hash bcrypt de la nueva contraseña temporal en: https://bcrypt-generator.com/
