@@ -676,6 +676,77 @@ async function handleInterinos(req: any, res: any, supabase: ReturnType<typeof g
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
+// ---- resource=storage_upload (protegido) ----
+// El panel admin ya no sube a Storage con la anon key: pide aquí una signed upload
+// URL, que se genera con service_role, y sube el archivo directo a Supabase con
+// ese token. Así se puede cerrar el INSERT público del bucket sin romper las
+// subidas, y el archivo NO pasa por esta función serverless, con lo que sigue sin
+// chocar con el límite de ~4,5 MB de body del plan Hobby de Vercel.
+
+const STORAGE_BUCKET = 'public-files';
+
+// El cliente elige destino, no ruta: así un fileName manipulado no puede escribir
+// fuera de estas carpetas.
+const STORAGE_FOLDERS = new Set([
+  'announcements/images',
+  'announcements/files',
+  'interinos/bibliografia',
+]);
+
+// Mismos tipos que allowed_mime_types del bucket (supabase_create_storage_bucket.sql).
+const STORAGE_ALLOWED_MIME = new Set([
+  'text/html', 'text/plain', 'text/csv',
+  'application/pdf', 'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml',
+  'video/mp4', 'video/webm',
+  'audio/mpeg', 'audio/wav', 'audio/ogg',
+  'application/json', 'application/xml', 'application/octet-stream',
+]);
+
+const MAX_STORAGE_FILE_NAME_LENGTH = 100;
+
+function buildStoragePath(folder: string, originalName: string): string {
+  // Solo el último segmento: descarta cualquier ruta que venga en el nombre.
+  const baseName = originalName.split(/[/\\]/).pop() || '';
+  const safeName = baseName.replace(/[^a-zA-Z0-9.\-_]/g, '_').replace(/^\.+/, '');
+  // Se recorta por delante para conservar la extensión.
+  const trimmedName = (safeName || 'archivo').slice(-MAX_STORAGE_FILE_NAME_LENGTH);
+  return `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}-${trimmedName}`;
+}
+
+async function handleStorageUpload(req: any, res: any, supabase: ReturnType<typeof getSupabaseAdmin>) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const { folder, fileName, contentType } = req.body || {};
+
+  if (typeof folder !== 'string' || !STORAGE_FOLDERS.has(folder)) {
+    return res.status(400).json({ error: 'Carpeta de destino no permitida' });
+  }
+  if (!fileName || typeof fileName !== 'string') {
+    return res.status(400).json({ error: 'Falta fileName' });
+  }
+  if (contentType !== undefined && contentType !== null) {
+    if (typeof contentType !== 'string' || !STORAGE_ALLOWED_MIME.has(contentType)) {
+      return res.status(400).json({ error: 'Tipo de archivo no permitido' });
+    }
+  }
+
+  const path = buildStoragePath(folder, fileName);
+
+  const { data, error } = await supabase.storage.from(STORAGE_BUCKET).createSignedUploadUrl(path);
+  if (error || !data) {
+    console.error('Error al crear signed upload URL:', error);
+    return res.status(500).json({ error: 'Error al preparar la subida' });
+  }
+
+  const { data: { publicUrl } } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+
+  return res.status(200).json({ path: data.path, token: data.token, publicUrl });
+}
+
 // ---- resource=security (protegido) ----
 async function handleSecurity(req: any, res: any, supabase: ReturnType<typeof getSupabaseAdmin>) {
   if (req.method === 'GET') {
@@ -741,6 +812,7 @@ export default async function handler(req: any, res: any) {
     if (resource === 'analytics') return await handleAnalytics(req, res, supabase);
     if (resource === 'interinos') return await handleInterinos(req, res, supabase);
     if (resource === 'security') return await handleSecurity(req, res, supabase);
+    if (resource === 'storage_upload') return await handleStorageUpload(req, res, supabase);
 
     return res.status(400).json({ error: 'resource no reconocido' });
   } catch (error: any) {

@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { adminFetch } from './adminFetch';
+import { uploadPublicFile } from './storageUpload';
 
 /**
  * Convierte una URL de Supabase Storage a una URL del proxy que permite
@@ -150,102 +151,44 @@ export const incrementViews = async (id: string): Promise<boolean> => {
   }
 };
 
-// Subir imagen a Supabase Storage
+// Subir imagen a Supabase Storage (vía signed upload URL del backend admin: el
+// bucket ya no acepta INSERT con la anon key).
 export const uploadAnnouncementImage = async (file: File): Promise<string | null> => {
-  try {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `announcements/images/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('public-files')
-      .upload(filePath, file);
-
-    if (uploadError) {
-      console.error('Error al subir imagen:', uploadError);
-      return null;
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('public-files')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
-  } catch (error) {
-    console.error('Error en uploadAnnouncementImage:', error);
-    return null;
-  }
+  return uploadPublicFile(file, 'announcements/images');
 };
 
-// Subir archivo a Supabase Storage
+// Subir archivo a Supabase Storage (vía signed upload URL del backend admin).
+// Se sigue forzando el Content-Type por extensión: el que declara el navegador es
+// poco fiable para .html y ofimática, y de él depende que el adjunto se abra bien.
+const CONTENT_TYPE_POR_EXTENSION: Record<string, string> = {
+  'html': 'text/html',
+  'htm': 'text/html',
+  'pdf': 'application/pdf',
+  'doc': 'application/msword',
+  'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'xls': 'application/vnd.ms-excel',
+  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'txt': 'text/plain',
+  'csv': 'text/csv',
+  'json': 'application/json',
+  'xml': 'application/xml',
+  'mp4': 'video/mp4',
+  'mp3': 'audio/mpeg',
+  'wav': 'audio/wav',
+  'webm': 'video/webm',
+  'ogg': 'audio/ogg',
+  'png': 'image/png',
+  'jpg': 'image/jpeg',
+  'jpeg': 'image/jpeg',
+  'gif': 'image/gif',
+  'webp': 'image/webp',
+  'svg': 'image/svg+xml',
+};
+
 export const uploadAnnouncementFile = async (file: File): Promise<string | null> => {
-  try {
-    const fileExt = file.name.split('.').pop()?.toLowerCase();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `announcements/files/${fileName}`;
-
-    console.log('📁 [UPLOAD] Iniciando subida de archivo:', {
-      originalName: file.name,
-      newName: fileName,
-      path: filePath,
-      size: file.size,
-      type: file.type
-    });
-
-    // Determinar el Content-Type correcto
-    const contentTypeMap: Record<string, string> = {
-      'html': 'text/html',
-      'htm': 'text/html',
-      'pdf': 'application/pdf',
-      'doc': 'application/msword',
-      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'xls': 'application/vnd.ms-excel',
-      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'txt': 'text/plain',
-      'csv': 'text/csv',
-      'json': 'application/json',
-      'xml': 'application/xml',
-      'mp4': 'video/mp4',
-      'mp3': 'audio/mpeg',
-      'wav': 'audio/wav',
-      'webm': 'video/webm',
-      'ogg': 'audio/ogg',
-      'png': 'image/png',
-      'jpg': 'image/jpeg',
-      'jpeg': 'image/jpeg',
-      'gif': 'image/gif',
-      'webp': 'image/webp',
-      'svg': 'image/svg+xml',
-    };
-
-    const contentType = contentTypeMap[fileExt || ''] || file.type || 'application/octet-stream';
-    console.log('📁 [UPLOAD] Content-Type:', contentType);
-
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('public-files')
-      .upload(filePath, file, {
-        contentType,
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (uploadError) {
-      console.error('❌ [UPLOAD] Error al subir archivo:', uploadError);
-      alert(`Error al subir archivo: ${uploadError.message}`);
-      return null;
-    }
-
-    console.log('✅ [UPLOAD] Archivo subido:', uploadData);
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('public-files')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
-  } catch (error) {
-    console.error('Error en uploadAnnouncementFile:', error);
-    return null;
-  }
+  const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+  const contentType = CONTENT_TYPE_POR_EXTENSION[fileExt] || file.type || 'application/octet-stream';
+  return uploadPublicFile(file, 'announcements/files', contentType);
 };
 
 // Adjuntos múltiples (solo admin, vía backend)
