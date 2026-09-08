@@ -37,7 +37,7 @@ export default function LoginPanel({ onLoginSuccess }: LoginProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 to-slate-900 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <div className="bg-slate-800/90 p-10 rounded-3xl border-2 border-orange-500/30 shadow-2xl">
+        <div className="bg-slate-800/90 p-6 sm:p-10 rounded-3xl border-2 border-orange-500/30 shadow-2xl">
           {/* Logo/Header */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500/20 rounded-2xl mb-4">

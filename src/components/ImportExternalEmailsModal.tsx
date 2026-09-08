@@ -85,7 +85,7 @@ export function ImportExternalEmailsModal({ isOpen, onClose, onImported }: Impor
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-lg p-6 w-full max-w-2xl max-h-[85vh] flex flex-col">
+      <div className="bg-slate-800 rounded-lg p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] sm:max-h-[85vh] flex flex-col">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-white">Importar contactos desde archivo</h3>
           <button onClick={handleClose} className="text-slate-400 hover:text-white transition">

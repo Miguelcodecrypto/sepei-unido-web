@@ -112,10 +112,10 @@ export default function SecurityPanel() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Shield className="w-8 h-8 text-orange-500" />
-          <h2 className="text-2xl font-bold text-white">Panel de Seguridad</h2>
+          <Shield className="w-7 h-7 sm:w-8 sm:h-8 text-orange-500 shrink-0" />
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Panel de Seguridad</h2>
         </div>
         <button
           onClick={handleRefresh}
@@ -216,9 +216,9 @@ export default function SecurityPanel() {
             <Key className="w-5 h-5 text-orange-500" />
             Historial de Intentos de Acceso
           </h3>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-400" />
+              <Filter className="w-4 h-4 text-gray-400 shrink-0" />
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value as 'all' | 'failed' | 'success')}
@@ -240,7 +240,7 @@ export default function SecurityPanel() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[640px]">
             <thead className="bg-slate-900/50">
               <tr>
                 <th className="text-left p-3 text-gray-400 font-semibold text-sm">Fecha/Hora</th>
