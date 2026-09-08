@@ -102,11 +102,19 @@ export default function AnnouncementsManager() {
     try {
       let imagen_url = editingId ? announcements.find(a => a.id === editingId)?.imagen_url : undefined;
 
+      // Archivos que no se han podido subir: se avisa junto al final, en vez de
+      // dejar que el anuncio se guarde sin ellos en silencio.
+      const subidasFallidas: string[] = [];
+
       // Subir imagen si hay una nueva
       if (imageFile) {
         setUploadProgress('Subiendo imagen...');
         const uploadedImageUrl = await uploadAnnouncementImage(imageFile);
-        if (uploadedImageUrl) imagen_url = uploadedImageUrl;
+        if (uploadedImageUrl) {
+          imagen_url = uploadedImageUrl;
+        } else {
+          subidasFallidas.push(imageFile.name);
+        }
       }
 
       const announcementData = {
@@ -143,6 +151,8 @@ export default function AnnouncementsManager() {
               categoria: categorizeAttachment(file),
             });
             emailAttachments.push({ url: uploadedFileUrl, filename: file.name, size: file.size });
+          } else {
+            subidasFallidas.push(file.name);
           }
         }
 
@@ -157,6 +167,14 @@ export default function AnnouncementsManager() {
           // Los enlaces externos no son archivos: no se pueden adjuntar de verdad
           // al email, se quedan como enlace en la propia web del anuncio.
         }
+      }
+
+      if (subidasFallidas.length > 0) {
+        alert(
+          `El anuncio se ha guardado, pero no se han podido subir estos archivos:\n\n` +
+          `${subidasFallidas.join('\n')}\n\n` +
+          `Revisa que el formato esté permitido y vuelve a añadirlos editando el anuncio.`
+        );
       }
 
       // Si se marcó enviar notificación y está publicado, abrir modal DESPUÉS de subir adjuntos

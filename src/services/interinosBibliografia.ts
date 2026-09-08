@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { adminFetch } from './adminFetch';
+import { uploadPublicFile } from './storageUpload';
 
 export type InterinosCategoria =
   | 'bibliografia'
@@ -53,31 +54,10 @@ export const getInterinosBibliografia = async (): Promise<InterinosBibliografiaI
   return getInterinosContenido(['bibliografia', 'formacion_bibliografia']);
 };
 
+// La subida pasa por una signed upload URL pedida al backend admin: el bucket ya
+// no acepta INSERT con la anon key.
 export const uploadInterinosBibliografiaFile = async (file: File): Promise<string | null> => {
-  try {
-    const fileExt = file.name.split('.').pop() || 'bin';
-    const safeName = file.name.replace(/[^a-zA-Z0-9\.\-_]/g, '_');
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${safeName}`;
-    const filePath = `interinos/bibliografia/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('public-files')
-      .upload(filePath, file);
-
-    if (uploadError) {
-      console.error('Error al subir archivo de bibliografía:', uploadError);
-      return null;
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('public-files')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
-  } catch (err) {
-    console.error('Error en uploadInterinosBibliografiaFile:', err);
-    return null;
-  }
+  return uploadPublicFile(file, 'interinos/bibliografia');
 };
 
 // La creación pasa por /api/admin?resource=interinos (service_role tras el token
