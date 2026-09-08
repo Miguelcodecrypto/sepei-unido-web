@@ -71,7 +71,7 @@ const VotingResultsPanel: React.FC<VotingResultsPanelProps> = ({ onClose }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="text-white text-xl">Cargando resultados...</div>
@@ -82,12 +82,12 @@ const VotingResultsPanel: React.FC<VotingResultsPanelProps> = ({ onClose }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
               🗳️ Resultados de Votaciones
             </h1>
             <p className="text-gray-400">
@@ -95,7 +95,7 @@ const VotingResultsPanel: React.FC<VotingResultsPanelProps> = ({ onClose }) => {
             </p>
           </div>
           
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-3 sm:gap-4">
             {/* Filtros */}
             <select
               value={filter}
@@ -171,13 +171,13 @@ const VotingResultsPanel: React.FC<VotingResultsPanelProps> = ({ onClose }) => {
               return (
                 <div
                   key={votacion.id}
-                  className="bg-slate-800/90 rounded-2xl border-2 border-slate-700/50 p-6 hover:border-blue-500/50 transition"
+                  className="bg-slate-800/90 rounded-2xl border-2 border-slate-700/50 p-4 sm:p-6 hover:border-blue-500/50 transition"
                 >
                   {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-bold text-white">
+                  <div className="flex flex-col md:flex-row items-start md:justify-between gap-4 mb-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                        <h3 className="text-lg sm:text-xl font-bold text-white">
                           {votacion.titulo}
                         </h3>
                         <span className={`px-3 py-1 rounded-full text-white text-sm font-medium ${getStatusColor(votacion.estado || 'programada')}`}>
@@ -185,7 +185,7 @@ const VotingResultsPanel: React.FC<VotingResultsPanelProps> = ({ onClose }) => {
                         </span>
                       </div>
                       <p className="text-gray-400 mb-3">{votacion.descripcion}</p>
-                      <div className="flex items-center gap-4 text-sm text-gray-400">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-400">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
                           Inicio: {new Date(votacion.fecha_inicio).toLocaleDateString()}
@@ -202,7 +202,7 @@ const VotingResultsPanel: React.FC<VotingResultsPanelProps> = ({ onClose }) => {
                     </div>
 
                     {winningOption && (
-                      <div className="bg-yellow-600/20 border-2 border-yellow-600 rounded-lg p-4 ml-4">
+                      <div className="bg-yellow-600/20 border-2 border-yellow-600 rounded-lg p-4 md:ml-4 shrink-0">
                         <div className="flex items-center gap-2 mb-1">
                           <Award className="w-5 h-5 text-yellow-500" />
                           <span className="text-yellow-500 font-bold text-sm">GANADORA</span>
@@ -224,7 +224,7 @@ const VotingResultsPanel: React.FC<VotingResultsPanelProps> = ({ onClose }) => {
 
                         return (
                           <div key={index} className="space-y-2">
-                            <div className="flex justify-between items-center">
+                            <div className="flex flex-wrap justify-between items-center gap-x-3 gap-y-1">
                               <span className={`font-medium ${isWinning ? 'text-yellow-400' : 'text-gray-300'}`}>
                                 {opcion.opcion}
                               </span>
@@ -251,7 +251,7 @@ const VotingResultsPanel: React.FC<VotingResultsPanelProps> = ({ onClose }) => {
                   </div>
 
                   {/* Footer Info */}
-                  <div className="mt-4 pt-4 border-t border-slate-700 flex justify-between items-center">
+                  <div className="mt-4 pt-4 border-t border-slate-700 flex flex-wrap justify-between items-center gap-2">
                     <span className="text-gray-400 text-sm">
                       Resultados {votacion.resultados_publicos ? '🔓 Públicos' : '🔒 Privados'}
                     </span>

@@ -136,26 +136,26 @@ export function ExternalEmailsManager() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white">Emails Externos</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Emails Externos</h2>
           <p className="text-slate-400 text-sm mt-1">
             Gestiona contactos externos que recibirán notificaciones
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowImportModal(true)}
             className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 transition"
           >
-            <Upload className="w-5 h-5" />
+            <Upload className="w-5 h-5 shrink-0" />
             Importar desde archivo
           </button>
           <button
             onClick={() => handleOpenModal()}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-5 h-5 shrink-0" />
             Agregar Email
           </button>
         </div>
@@ -175,7 +175,50 @@ export function ExternalEmailsManager() {
         </div>
       ) : (
         <div className="bg-slate-800 rounded-lg overflow-hidden">
-          <table className="w-full">
+          {/* Vista móvil: tarjetas (la tabla recortaba Estado y Acciones) */}
+          <div className="md:hidden divide-y divide-slate-700">
+            {externalEmails.map((email) => (
+              <div key={email.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-white font-semibold break-all">{email.email}</p>
+                    <p className="text-slate-300 text-sm mt-0.5">{email.nombre}</p>
+                    {email.descripcion && (
+                      <p className="text-slate-400 text-sm mt-1">{email.descripcion}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleToggleStatus(email.id, email.activo)}
+                    className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition ${
+                      email.activo
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : 'bg-slate-600 hover:bg-slate-700 text-slate-300'
+                    }`}
+                  >
+                    {email.activo ? 'Activo' : 'Inactivo'}
+                  </button>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => handleOpenModal(email)}
+                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(email.id, email.nombre)}
+                    className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <table className="w-full hidden md:table">
             <thead className="bg-slate-700">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-300">Email</th>

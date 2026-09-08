@@ -154,16 +154,16 @@ export default function NotificationModal({ isOpen, onClose, onConfirm, title }:
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border-2 border-orange-500/30 shadow-2xl max-w-3xl w-full max-h-[80vh] flex flex-col">
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border-2 border-orange-500/30 shadow-2xl max-w-3xl w-full max-h-[90vh] sm:max-h-[80vh] flex flex-col">
         
         {/* Header */}
-        <div className="p-6 border-b border-slate-700">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-500/20 rounded-lg">
+        <div className="p-4 sm:p-6 border-b border-slate-700">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-2 bg-orange-500/20 rounded-lg shrink-0">
                 <Mail className="w-6 h-6 text-orange-500" />
               </div>
-              <h2 className="text-2xl font-bold text-white">{title}</h2>
+              <h2 className="text-lg sm:text-2xl font-bold text-white">{title}</h2>
             </div>
             <button
               onClick={handleClose}
@@ -174,8 +174,8 @@ export default function NotificationModal({ isOpen, onClose, onConfirm, title }:
           </div>
           
           {/* Stats */}
-          <div className="flex gap-4 mt-4">
-            <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+          <div className="flex flex-wrap gap-2 sm:gap-4 mt-4">
+            <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-500/20 border border-blue-500/30 rounded-lg">
               <Users className="w-5 h-5 text-blue-400" />
               <span className="text-white font-medium">{filteredUsers.length} usuarios</span>
             </div>
@@ -321,8 +321,8 @@ export default function NotificationModal({ isOpen, onClose, onConfirm, title }:
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-slate-700 bg-slate-900/50">
-          <div className="flex gap-4">
+        <div className="p-4 sm:p-6 border-t border-slate-700 bg-slate-900/50">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <button
               onClick={handleClose}
               className="flex-1 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold transition"

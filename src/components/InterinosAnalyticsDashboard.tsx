@@ -80,16 +80,16 @@ export default function InterinosAnalyticsDashboard() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <BookOpen className="w-8 h-8 text-orange-500" />
+          <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 text-orange-500 shrink-0" />
           <div>
-            <h2 className="text-2xl font-bold text-white">Métricas de Interinos</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Métricas de Interinos</h2>
             <p className="text-gray-400 text-sm">Estadísticas de uso y contenido de la sección</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           {/* Selector de período */}
           <div className="flex items-center gap-2 bg-slate-800 rounded-lg p-1">
             {[7, 30, 90].map((days) => (

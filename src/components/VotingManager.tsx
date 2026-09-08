@@ -369,17 +369,17 @@ const VotingManager: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-white flex items-center gap-3">
-            <BarChart3 className="w-8 h-8 text-orange-500" />
+          <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
+            <BarChart3 className="w-7 h-7 sm:w-8 sm:h-8 text-orange-500 shrink-0" />
             Gestión de Votaciones
           </h2>
-          <p className="text-gray-400 mt-2">Crea y gestiona votaciones, encuestas y referendums</p>
+          <p className="text-gray-400 mt-2 text-sm sm:text-base">Crea y gestiona votaciones, encuestas y referendums</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-xl hover:shadow-lg transform hover:scale-105 transition-all flex items-center gap-2"
+          className="shrink-0 px-4 sm:px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-xl hover:shadow-lg transform hover:scale-105 transition-all flex items-center justify-center gap-2"
         >
           <Plus className="w-5 h-5" />
           Nueva Votación
@@ -542,7 +542,7 @@ const VotingManager: React.FC = () => {
               </div>
 
               {/* Botones */}
-              <div className="flex gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
                 <button
                   type="submit"
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-xl hover:shadow-lg transform hover:scale-105 transition-all"
@@ -565,7 +565,7 @@ const VotingManager: React.FC = () => {
       {/* Modal de Resultados */}
       {showResults && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full">
+          <div className="bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-slate-700">
               <h3 className="text-2xl font-bold text-white">Resultados de Votación</h3>
             </div>
@@ -612,12 +612,12 @@ const VotingManager: React.FC = () => {
             return (
               <div
                 key={votacion.id}
-                className="bg-slate-800/50 rounded-xl p-6 border border-slate-700 hover:border-orange-500/50 transition-all"
+                className="bg-slate-800/50 rounded-xl p-4 sm:p-6 border border-slate-700 hover:border-orange-500/50 transition-all"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold text-white">{votacion.titulo}</h3>
+                <div className="flex flex-col lg:flex-row lg:justify-between items-start gap-4 mb-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                      <h3 className="text-lg sm:text-xl font-bold text-white">{votacion.titulo}</h3>
                       <span className={`text-sm font-semibold ${estado.color}`}>
                         {estado.texto}
                       </span>
@@ -643,7 +643,7 @@ const VotingManager: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 shrink-0">
                     <button
                       onClick={() => handleNotifyExistingVoting(votacion, 'new')}
                       className="p-2 bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors"
@@ -713,7 +713,7 @@ const VotingManager: React.FC = () => {
                 </div>
 
                 {/* Opciones */}
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {votacion.opciones.map((opcion) => (
                     <div key={opcion.id} className="px-3 py-2 bg-slate-700/50 rounded-lg text-sm text-gray-300">
                       {opcion.texto}

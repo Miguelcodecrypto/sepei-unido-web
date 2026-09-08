@@ -5,7 +5,7 @@ import { getAllUsers, deleteUser, exportUsersToCSV, toggleVotingAuthorization, r
 import { getAllSuggestions, deleteSuggestion, clearAllSuggestions, exportSuggestionsToCSV } from '../services/suggestionDatabase';
 import { logout, getSessionTimeRemaining } from '../services/authService';
 import { trackInteraction, createSectionTimeTracker } from '../services/analyticsService';
-import { getEstadoPlantilla, EstadoPlantilla, COLORES_ESTADO_PLANTILLA } from '../data/plantillaOficialSEPEI';
+import { getEstadoPlantilla, EstadoPlantilla, TrabajadorOficial, COLORES_ESTADO_PLANTILLA } from '../data/plantillaOficialSEPEI';
 
 // Lazy load componentes pesados del admin
 const AnnouncementsManager = lazy(() => import('./AnnouncementsManager'));
@@ -64,9 +64,226 @@ interface AdminPanelProps {
   onLogout: () => void;
 }
 
+type AdminTab = 'users' | 'suggestions' | 'announcements' | 'voting' | 'analytics' | 'results' | 'external-emails' | 'interinos' | 'security' | 'convocatorias';
+
+type UserConEstado = User & {
+  estadoPlantilla: EstadoPlantilla;
+  detallesPlantilla?: TrabajadorOficial;
+  diferenciasPlantilla?: { campo: string; valor: string; valorOficial: string }[];
+};
+
+function UserDetailsPanel({ user }: { user: UserConEstado }) {
+  return (
+    <div className="space-y-4">
+      {/* Información de Plantilla Oficial */}
+      <div className={`border rounded-lg p-4 mb-4 ${
+        user.estadoPlantilla === 'en_plantilla' 
+          ? 'border-green-500/30 bg-green-500/10'
+          : user.estadoPlantilla === 'cambios_detectados'
+          ? 'border-amber-500/30 bg-amber-500/10'
+          : 'border-red-500/30 bg-red-500/10'
+      }`}>
+        <h4 className={`font-bold mb-3 flex items-center gap-2 ${
+          user.estadoPlantilla === 'en_plantilla' 
+            ? 'text-green-300'
+            : user.estadoPlantilla === 'cambios_detectados'
+            ? 'text-amber-300'
+            : 'text-red-300'
+        }`}>
+          {user.estadoPlantilla === 'en_plantilla' && <CheckCircle className="w-5 h-5" />}
+          {user.estadoPlantilla === 'cambios_detectados' && <AlertTriangle className="w-5 h-5" />}
+          {user.estadoPlantilla === 'no_en_plantilla' && <UserX className="w-5 h-5" />}
+          Estado en Plantilla Oficial SEPEI
+        </h4>
+        <div className="space-y-2 text-sm">
+          {user.estadoPlantilla === 'en_plantilla' && user.detallesPlantilla && (
+            <>
+              <div>
+                <span className="text-gray-400">Estado: </span>
+                <span className="text-green-300 font-semibold">✓ En plantilla oficial</span>
+              </div>
+              <div>
+                <span className="text-gray-400">Destino oficial: </span>
+                <span className="text-white">{user.detallesPlantilla.destino}</span>
+              </div>
+              <div>
+                <span className="text-gray-400">Categoría oficial: </span>
+                <span className="text-white">{user.detallesPlantilla.categoria}</span>
+              </div>
+            </>
+          )}
+          {user.estadoPlantilla === 'cambios_detectados' && user.detallesPlantilla && (
+            <>
+              <div>
+                <span className="text-gray-400">Estado: </span>
+                <span className="text-amber-300 font-semibold">⚠️ Cambios detectados</span>
+              </div>
+              <div>
+                <span className="text-gray-400">Destino oficial: </span>
+                <span className="text-white">{user.detallesPlantilla.destino}</span>
+              </div>
+              <div>
+                <span className="text-gray-400">Categoría oficial: </span>
+                <span className="text-white">{user.detallesPlantilla.categoria}</span>
+              </div>
+              {user.diferenciasPlantilla && user.diferenciasPlantilla.length > 0 && (
+                <div className="mt-2 p-2 bg-amber-500/20 rounded">
+                  <span className="text-amber-300 font-semibold">Diferencias:</span>
+                  {user.diferenciasPlantilla.map((dif: { campo: string; valor: string; valorOficial: string }, idx: number) => (
+                    <div key={idx} className="text-amber-200 ml-2">
+                      • {dif.campo}: <span className="line-through text-red-300">{dif.valor}</span> → <span className="text-green-300">{dif.valorOficial}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+          {user.estadoPlantilla === 'no_en_plantilla' && (
+            <div>
+              <span className="text-gray-400">Estado: </span>
+              <span className="text-red-300 font-semibold">❌ No aparece en la plantilla oficial del SEPEI</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Información FNMT */}
+      {user.certificado_nif && (
+        <div className="border border-green-500/30 bg-green-500/10 rounded-lg p-4 mb-4">
+          <h4 className="text-green-300 font-bold mb-3 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5" />
+            Verificación FNMT
+          </h4>
+          <div className="space-y-2 text-sm">
+            <div>
+              <span className="text-gray-400">NIF Verificado: </span>
+              <span className="text-green-300 font-semibold">{user.certificado_nif}</span>
+            </div>
+            <div>
+              <span className="text-gray-400">Fecha Verificación: </span>
+              <span className="text-white">
+                {user.certificado_fecha_validacion ? new Date(user.certificado_fecha_validacion).toLocaleDateString('es-ES') : 'N/A'}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-400">Estado: </span>
+              <span className={user.certificado_valido ? 'text-green-300 font-semibold' : 'text-red-300 font-semibold'}>
+                {user.certificado_valido ? '✓ Válido' : '✗ Inválido'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Información de Telegram */}
+      <div className={`border rounded-lg p-4 mb-4 ${
+        user.telegram_chat_id 
+          ? 'border-[#0088cc]/30 bg-[#0088cc]/10'
+          : 'border-gray-500/30 bg-gray-500/10'
+      }`}>
+        <h4 className={`font-bold mb-3 flex items-center gap-2 ${
+          user.telegram_chat_id ? 'text-[#0088cc]' : 'text-gray-400'
+        }`}>
+          <MessageCircle className="w-5 h-5" />
+          Notificaciones Telegram
+        </h4>
+        <div className="space-y-2 text-sm">
+          {user.telegram_chat_id ? (
+            <>
+              <div>
+                <span className="text-gray-400">Estado: </span>
+                <span className="text-[#0088cc] font-semibold">✓ Vinculado</span>
+              </div>
+              {user.telegram_username && (
+                <div>
+                  <span className="text-gray-400">Usuario: </span>
+                  <span className="text-white">@{user.telegram_username}</span>
+                </div>
+              )}
+              <div>
+                <span className="text-gray-400">Vinculado desde: </span>
+                <span className="text-white">
+                  {user.telegram_linked_at 
+                    ? new Date(user.telegram_linked_at).toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                    : 'N/A'}
+                </span>
+              </div>
+            </>
+          ) : (
+            <div>
+              <span className="text-gray-400">Estado: </span>
+              <span className="text-gray-500 font-semibold">No vinculado</span>
+            </div>
+          )}
+        </div>
+      </div>
+    
+      {/* Información de Consentimiento RGPD */}
+      <div className="border-t border-slate-700 pt-4 mt-4">
+        <h4 className="text-white font-semibold mb-3 text-sm">Consentimiento RGPD</h4>
+        <div className="space-y-2 text-sm">
+          <div>
+            <span className="text-gray-400">Términos Aceptados: </span>
+            <span className={user.terminos_aceptados ? 'text-green-400 font-semibold' : 'text-red-400 font-semibold'}>
+              {user.terminos_aceptados ? '✓ Sí' : '✗ No'}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-400">Versión Términos: </span>
+            <span className="text-white">{user.version_terminos}</span>
+          </div>
+          <div>
+            <span className="text-gray-400">Fecha Aceptación: </span>
+            <span className="text-white">
+              {new Date(user.fecha_aceptacion_terminos).toLocaleDateString('es-ES')} {new Date(user.fecha_aceptacion_terminos).toLocaleTimeString('es-ES')}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SuggestionDetailsPanel({ suggestion }: { suggestion: Suggestion }) {
+  return (
+    <div className="space-y-4">
+      <div className="border-t border-slate-700 pt-4">
+        <h4 className="text-white font-semibold mb-2">Descripción Completa</h4>
+        <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">{suggestion.descripcion}</p>
+      </div>
+      <div className="grid md:grid-cols-2 gap-4 text-sm">
+        <div>
+          <span className="text-gray-400">Email: </span>
+          <span className="text-white">{suggestion.email}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Teléfono: </span>
+          <span className="text-white">{suggestion.telefono}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Fecha Registro: </span>
+          <span className="text-white">
+            {new Date(suggestion.fechaRegistro).toLocaleDateString('es-ES')} {new Date(suggestion.fechaRegistro).toLocaleTimeString('es-ES')}
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-400">Lugar de Trabajo: </span>
+          <span className="text-white">{suggestion.lugarTrabajo}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPanel({ onLogout }: AdminPanelProps) {
   const { notify, confirm, alert } = useNotifications();
-  const [activeTab, setActiveTab] = useState<'users' | 'suggestions' | 'announcements' | 'voting' | 'analytics' | 'results' | 'external-emails' | 'interinos' | 'security' | 'convocatorias'>('users');
+  const [activeTab, setActiveTab] = useState<AdminTab>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
@@ -301,156 +518,73 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
     }
   };
 
+  const tabs: { id: AdminTab; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: 'users', label: `Usuarios (${totalUsers})`, Icon: Users },
+    { id: 'suggestions', label: `Sugerencias (${totalSuggestions})`, Icon: Lightbulb },
+    { id: 'announcements', label: 'Anuncios', Icon: Megaphone },
+    { id: 'voting', label: 'Votaciones', Icon: BarChart3 },
+    { id: 'analytics', label: 'Analytics', Icon: TrendingUp },
+    { id: 'interinos', label: 'Interinos', Icon: BookOpen },
+    { id: 'results', label: 'Resultados', Icon: Award },
+    { id: 'external-emails', label: 'Emails Externos', Icon: Mail },
+    { id: 'security', label: 'Seguridad', Icon: Shield },
+    { id: 'convocatorias', label: 'Convocatorias BOE', Icon: Flame },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-950 py-12 px-4">
+    <div className="min-h-screen bg-slate-950 py-6 sm:py-12 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header con info de sesión */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <Users className="w-8 h-8 text-orange-500" />
-              <h1 className="text-4xl font-black text-white">Panel de Administración</h1>
+              <Users className="w-7 h-7 sm:w-8 sm:h-8 text-orange-500 shrink-0" />
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">Panel de Administración</h1>
             </div>
-            <p className="text-gray-400">Gestión de usuarios, sugerencias y propuestas</p>
+            <p className="text-gray-400 text-sm sm:text-base">Gestión de usuarios, sugerencias y propuestas</p>
           </div>
-          
+
           {/* Sesión info */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-              <Clock className="w-4 h-4 text-blue-400" />
+          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+            <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <Clock className="w-4 h-4 text-blue-400 shrink-0" />
               <span className="text-blue-300 text-sm font-semibold">{sessionTime}m</span>
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600/80 hover:bg-red-700 text-white rounded-lg font-semibold transition"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-600/80 hover:bg-red-700 text-white rounded-lg font-semibold transition"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-5 h-5 shrink-0" />
               Cerrar Sesión
             </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-slate-700">
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
-              activeTab === 'users'
-                ? 'text-orange-500 border-b-2 border-orange-500'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Users className="w-5 h-5" />
-            Usuarios ({totalUsers})
-          </button>
-          <button
-            onClick={() => setActiveTab('suggestions')}
-            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
-              activeTab === 'suggestions'
-                ? 'text-orange-500 border-b-2 border-orange-500'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Lightbulb className="w-5 h-5" />
-            Sugerencias ({totalSuggestions})
-          </button>
-          <button
-            onClick={() => setActiveTab('announcements')}
-            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
-              activeTab === 'announcements'
-                ? 'text-orange-500 border-b-2 border-orange-500'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Megaphone className="w-5 h-5" />
-            Anuncios
-          </button>
-          <button
-            onClick={() => setActiveTab('voting')}
-            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
-              activeTab === 'voting'
-                ? 'text-orange-500 border-b-2 border-orange-500'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <BarChart3 className="w-5 h-5" />
-            Votaciones
-          </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
-              activeTab === 'analytics'
-                ? 'text-orange-500 border-b-2 border-orange-500'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <TrendingUp className="w-5 h-5" />
-            Analytics
-          </button>
-          <button
-            onClick={() => setActiveTab('interinos')}
-            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
-              activeTab === 'interinos'
-                ? 'text-orange-500 border-b-2 border-orange-500'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <BookOpen className="w-5 h-5" />
-            Interinos
-          </button>
-          <button
-            onClick={() => setActiveTab('results')}
-            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
-              activeTab === 'results'
-                ? 'text-orange-500 border-b-2 border-orange-500'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Award className="w-5 h-5" />
-            Resultados
-          </button>
-          <button
-            onClick={() => setActiveTab('external-emails')}
-            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
-              activeTab === 'external-emails'
-                ? 'text-orange-500 border-b-2 border-orange-500'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Mail className="w-5 h-5" />
-            Emails Externos
-          </button>
-          <button
-            onClick={() => setActiveTab('security')}
-            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
-              activeTab === 'security'
-                ? 'text-orange-500 border-b-2 border-orange-500'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Shield className="w-5 h-5" />
-            Seguridad
-          </button>
-          <button
-            onClick={() => setActiveTab('convocatorias')}
-            className={`pb-4 px-6 font-bold flex items-center gap-2 transition ${
-              activeTab === 'convocatorias'
-                ? 'text-orange-500 border-b-2 border-orange-500'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Flame className="w-5 h-5" />
-            Convocatorias BOE
-          </button>
+        {/* Tabs — scroll horizontal en móvil, wrap en pantallas grandes */}
+        <div className="mb-6 sm:mb-8 flex gap-1 sm:gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible border-b border-slate-700 -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar">
+          {tabs.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`shrink-0 whitespace-nowrap pb-3 sm:pb-4 px-3 sm:px-5 text-sm sm:text-base font-bold flex items-center gap-2 transition ${
+                activeTab === id
+                  ? 'text-orange-500 border-b-2 border-orange-500'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Icon className="w-5 h-5 shrink-0" />
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Stats */}
         {activeTab !== 'announcements' && activeTab !== 'voting' && activeTab !== 'analytics' && activeTab !== 'results' && activeTab !== 'external-emails' && activeTab !== 'interinos' && activeTab !== 'security' && activeTab !== 'convocatorias' && (
-          <div className="bg-slate-800/50 p-6 rounded-2xl border border-orange-500/20 mb-8">
+          <div className="bg-slate-800/50 p-4 sm:p-6 rounded-2xl border border-orange-500/20 mb-6 sm:mb-8">
             {activeTab === 'users' ? (
-              <div className="flex flex-wrap items-center justify-center gap-8">
+              <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8">
                 <div className="text-center">
-                  <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
+                  <div className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
                     {totalUsers}
                   </div>
                   <div className="text-gray-400 font-semibold">
@@ -458,7 +592,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-5xl font-black text-[#0088cc] mb-2">
+                  <div className="text-4xl sm:text-5xl font-black text-[#0088cc] mb-2">
                     {usuariosConTelegram}
                   </div>
                   <div className="text-gray-400 font-semibold flex items-center gap-2 justify-center">
@@ -477,7 +611,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
               </div>
             ) : (
               <div className="text-center">
-                <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
+                <div className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-2">
                   {totalSuggestions}
                 </div>
                 <div className="text-gray-400 font-semibold">
@@ -562,21 +696,21 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
 
         {/* Actions */}
         {(activeTab === 'users' || activeTab === 'suggestions') && (
-          <div className="flex gap-4 mb-8">
+          <div className="flex flex-wrap gap-3 sm:gap-4 mb-6 sm:mb-8">
             <button
               onClick={activeTab === 'users' ? handleExport : handleExportSuggestions}
-              className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
+              className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
             >
-              <Download className="w-5 h-5" />
+              <Download className="w-5 h-5 shrink-0" />
               Exportar CSV
             </button>
-            
+
             {activeTab === 'suggestions' && (
               <button
                 onClick={handleClearSuggestions}
-                className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition"
+                className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition"
               >
-                <Trash2 className="w-5 h-5" />
+                <Trash2 className="w-5 h-5 shrink-0" />
                 Limpiar Sugerencias
               </button>
             )}
@@ -595,7 +729,112 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Vista móvil: tarjetas (la tabla de 11 columnas no cabe en un teléfono) */}
+            <div className="lg:hidden divide-y divide-slate-700/50">
+              {usuariosFiltrados.map((user) => {
+                const colorEstado = user.estadoPlantilla === 'en_plantilla'
+                  ? 'border-l-4 border-l-green-500 bg-green-500/5'
+                  : user.estadoPlantilla === 'cambios_detectados'
+                  ? 'border-l-4 border-l-amber-500 bg-amber-500/10'
+                  : 'border-l-4 border-l-red-500 bg-red-500/10';
+
+                return (
+                  <div key={user.id} className={`p-4 ${colorEstado}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-start gap-2">
+                          {user.estadoPlantilla === 'en_plantilla' && (
+                            <CheckCircle className="w-4 h-4 mt-1 text-green-400 shrink-0" aria-label="En plantilla oficial" />
+                          )}
+                          {user.estadoPlantilla === 'cambios_detectados' && (
+                            <AlertTriangle className="w-4 h-4 mt-1 text-amber-400 shrink-0" aria-label="Cambios detectados" />
+                          )}
+                          {user.estadoPlantilla === 'no_en_plantilla' && (
+                            <UserX className="w-4 h-4 mt-1 text-red-400 shrink-0" aria-label="No aparece en plantilla oficial" />
+                          )}
+                          <p className="text-white font-semibold">
+                            {user.nombre} {user.apellidos || ''}
+                          </p>
+                        </div>
+                        <p className="text-gray-400 text-sm break-all mt-0.5">{user.email}</p>
+                      </div>
+                      {user.parque_sepei && (
+                        <span className="shrink-0 px-2 py-1 bg-orange-500/20 text-orange-300 rounded text-xs font-medium">
+                          {user.parque_sepei}
+                        </span>
+                      )}
+                    </div>
+
+                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <div>
+                        <dt className="text-gray-500 text-xs">DNI</dt>
+                        <dd className="text-gray-300">{user.dni || '-'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-gray-500 text-xs">Teléfono</dt>
+                        <dd className="text-gray-300">{user.telefono || '-'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-gray-500 text-xs">Registro</dt>
+                        <dd className="text-gray-300">{new Date(user.fecha_registro).toLocaleDateString('es-ES')}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-gray-500 text-xs">Telegram</dt>
+                        <dd className={user.telegram_chat_id ? 'text-[#0088cc]' : 'text-gray-500'}>
+                          {user.telegram_chat_id
+                            ? (user.telegram_username ? `@${user.telegram_username}` : 'Vinculado')
+                            : 'No vinculado'}
+                        </dd>
+                      </div>
+                    </dl>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        onClick={() => handleToggleVotingAuth(user.id, user.autorizado_votar || false, user.nombre)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                          user.autorizado_votar
+                            ? 'bg-green-600/20 text-green-400'
+                            : 'bg-red-600/20 text-red-400'
+                        }`}
+                      >
+                        {user.autorizado_votar ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                        {user.autorizado_votar ? 'Puede votar' : 'Sin voto'}
+                      </button>
+                      <button
+                        onClick={() => handleResetTempPassword(user.id, user.nombre, user.email)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-600/20 text-yellow-400 text-sm font-semibold transition"
+                      >
+                        <Key className="w-4 h-4" />
+                        Contraseña
+                      </button>
+                      <button
+                        onClick={() => toggleDetails(user.id)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600/20 text-blue-400 text-sm font-semibold transition"
+                      >
+                        {showDetails[user.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showDetails[user.id] ? 'Ocultar' : 'Detalles'}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(user.id, user.nombre)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-600/20 text-red-400 text-sm font-semibold transition"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Eliminar
+                      </button>
+                    </div>
+
+                    {showDetails[user.id] && (
+                      <div className="mt-4 border-t border-slate-700 pt-4">
+                        <UserDetailsPanel user={user} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="hidden lg:block overflow-x-auto">
               <table className="w-full min-w-[1400px]">
                 <thead className="bg-slate-900/80 border-b border-slate-700">
                   <tr>
@@ -717,179 +956,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                       {showDetails[user.id] && (
                         <tr className="bg-slate-900/50 border-b border-slate-700/50">
                           <td colSpan={11} className="px-6 py-4">
-                            <div className="space-y-4">
-                              {/* Información de Plantilla Oficial */}
-                              <div className={`border rounded-lg p-4 mb-4 ${
-                                user.estadoPlantilla === 'en_plantilla' 
-                                  ? 'border-green-500/30 bg-green-500/10'
-                                  : user.estadoPlantilla === 'cambios_detectados'
-                                  ? 'border-amber-500/30 bg-amber-500/10'
-                                  : 'border-red-500/30 bg-red-500/10'
-                              }`}>
-                                <h4 className={`font-bold mb-3 flex items-center gap-2 ${
-                                  user.estadoPlantilla === 'en_plantilla' 
-                                    ? 'text-green-300'
-                                    : user.estadoPlantilla === 'cambios_detectados'
-                                    ? 'text-amber-300'
-                                    : 'text-red-300'
-                                }`}>
-                                  {user.estadoPlantilla === 'en_plantilla' && <CheckCircle className="w-5 h-5" />}
-                                  {user.estadoPlantilla === 'cambios_detectados' && <AlertTriangle className="w-5 h-5" />}
-                                  {user.estadoPlantilla === 'no_en_plantilla' && <UserX className="w-5 h-5" />}
-                                  Estado en Plantilla Oficial SEPEI
-                                </h4>
-                                <div className="space-y-2 text-sm">
-                                  {user.estadoPlantilla === 'en_plantilla' && user.detallesPlantilla && (
-                                    <>
-                                      <div>
-                                        <span className="text-gray-400">Estado: </span>
-                                        <span className="text-green-300 font-semibold">✓ En plantilla oficial</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-400">Destino oficial: </span>
-                                        <span className="text-white">{user.detallesPlantilla.destino}</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-400">Categoría oficial: </span>
-                                        <span className="text-white">{user.detallesPlantilla.categoria}</span>
-                                      </div>
-                                    </>
-                                  )}
-                                  {user.estadoPlantilla === 'cambios_detectados' && user.detallesPlantilla && (
-                                    <>
-                                      <div>
-                                        <span className="text-gray-400">Estado: </span>
-                                        <span className="text-amber-300 font-semibold">⚠️ Cambios detectados</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-400">Destino oficial: </span>
-                                        <span className="text-white">{user.detallesPlantilla.destino}</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-400">Categoría oficial: </span>
-                                        <span className="text-white">{user.detallesPlantilla.categoria}</span>
-                                      </div>
-                                      {user.diferenciasPlantilla && user.diferenciasPlantilla.length > 0 && (
-                                        <div className="mt-2 p-2 bg-amber-500/20 rounded">
-                                          <span className="text-amber-300 font-semibold">Diferencias:</span>
-                                          {user.diferenciasPlantilla.map((dif: { campo: string; valor: string; valorOficial: string }, idx: number) => (
-                                            <div key={idx} className="text-amber-200 ml-2">
-                                              • {dif.campo}: <span className="line-through text-red-300">{dif.valor}</span> → <span className="text-green-300">{dif.valorOficial}</span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </>
-                                  )}
-                                  {user.estadoPlantilla === 'no_en_plantilla' && (
-                                    <div>
-                                      <span className="text-gray-400">Estado: </span>
-                                      <span className="text-red-300 font-semibold">❌ No aparece en la plantilla oficial del SEPEI</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Información FNMT */}
-                              {user.certificado_nif && (
-                                <div className="border border-green-500/30 bg-green-500/10 rounded-lg p-4 mb-4">
-                                  <h4 className="text-green-300 font-bold mb-3 flex items-center gap-2">
-                                    <CheckCircle className="w-5 h-5" />
-                                    Verificación FNMT
-                                  </h4>
-                                  <div className="space-y-2 text-sm">
-                                    <div>
-                                      <span className="text-gray-400">NIF Verificado: </span>
-                                      <span className="text-green-300 font-semibold">{user.certificado_nif}</span>
-                                    </div>
-                                    <div>
-                                      <span className="text-gray-400">Fecha Verificación: </span>
-                                      <span className="text-white">
-                                        {user.certificado_fecha_validacion ? new Date(user.certificado_fecha_validacion).toLocaleDateString('es-ES') : 'N/A'}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <span className="text-gray-400">Estado: </span>
-                                      <span className={user.certificado_valido ? 'text-green-300 font-semibold' : 'text-red-300 font-semibold'}>
-                                        {user.certificado_valido ? '✓ Válido' : '✗ Inválido'}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Información de Telegram */}
-                              <div className={`border rounded-lg p-4 mb-4 ${
-                                user.telegram_chat_id 
-                                  ? 'border-[#0088cc]/30 bg-[#0088cc]/10'
-                                  : 'border-gray-500/30 bg-gray-500/10'
-                              }`}>
-                                <h4 className={`font-bold mb-3 flex items-center gap-2 ${
-                                  user.telegram_chat_id ? 'text-[#0088cc]' : 'text-gray-400'
-                                }`}>
-                                  <MessageCircle className="w-5 h-5" />
-                                  Notificaciones Telegram
-                                </h4>
-                                <div className="space-y-2 text-sm">
-                                  {user.telegram_chat_id ? (
-                                    <>
-                                      <div>
-                                        <span className="text-gray-400">Estado: </span>
-                                        <span className="text-[#0088cc] font-semibold">✓ Vinculado</span>
-                                      </div>
-                                      {user.telegram_username && (
-                                        <div>
-                                          <span className="text-gray-400">Usuario: </span>
-                                          <span className="text-white">@{user.telegram_username}</span>
-                                        </div>
-                                      )}
-                                      <div>
-                                        <span className="text-gray-400">Vinculado desde: </span>
-                                        <span className="text-white">
-                                          {user.telegram_linked_at 
-                                            ? new Date(user.telegram_linked_at).toLocaleDateString('es-ES', {
-                                                day: '2-digit',
-                                                month: 'long',
-                                                year: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                              })
-                                            : 'N/A'}
-                                        </span>
-                                      </div>
-                                    </>
-                                  ) : (
-                                    <div>
-                                      <span className="text-gray-400">Estado: </span>
-                                      <span className="text-gray-500 font-semibold">No vinculado</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              {/* Información de Consentimiento RGPD */}
-                              <div className="border-t border-slate-700 pt-4 mt-4">
-                                <h4 className="text-white font-semibold mb-3 text-sm">Consentimiento RGPD</h4>
-                                <div className="space-y-2 text-sm">
-                                  <div>
-                                    <span className="text-gray-400">Términos Aceptados: </span>
-                                    <span className={user.terminos_aceptados ? 'text-green-400 font-semibold' : 'text-red-400 font-semibold'}>
-                                      {user.terminos_aceptados ? '✓ Sí' : '✗ No'}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-400">Versión Términos: </span>
-                                    <span className="text-white">{user.version_terminos}</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-400">Fecha Aceptación: </span>
-                                    <span className="text-white">
-                                      {new Date(user.fecha_aceptacion_terminos).toLocaleDateString('es-ES')} {new Date(user.fecha_aceptacion_terminos).toLocaleTimeString('es-ES')}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
+                              <UserDetailsPanel user={user} />
                           </td>
                         </tr>
                       )}
@@ -899,6 +966,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
         )}
@@ -913,7 +981,55 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
               <p className="text-gray-500 text-sm mt-2">Las propuestas de bomberos aparecerán aquí</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Vista móvil: tarjetas */}
+            <div className="md:hidden divide-y divide-slate-700/50">
+              {suggestions.map((suggestion) => (
+                <div key={suggestion.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-white font-semibold">{suggestion.nombre} {suggestion.apellidos}</p>
+                      <p className="text-gray-400 text-sm break-all mt-0.5">{suggestion.email}</p>
+                    </div>
+                    <span className="shrink-0 px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-semibold">
+                      {suggestion.categoria.charAt(0).toUpperCase() + suggestion.categoria.slice(1)}
+                    </span>
+                  </div>
+
+                  <p className="mt-3 text-gray-200 font-medium">{suggestion.asunto}</p>
+
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-400">
+                    <span>{suggestion.lugarTrabajo}</span>
+                    <span>{new Date(suggestion.fechaRegistro).toLocaleDateString('es-ES')}</span>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => toggleDetails(suggestion.id)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600/20 text-blue-400 text-sm font-semibold transition"
+                    >
+                      {showDetails[suggestion.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showDetails[suggestion.id] ? 'Ocultar' : 'Ver propuesta'}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteSuggestion(suggestion.id, suggestion.asunto)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-600/20 text-red-400 text-sm font-semibold transition"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Eliminar
+                    </button>
+                  </div>
+
+                  {showDetails[suggestion.id] && (
+                    <div className="mt-4 border-t border-slate-700 pt-4">
+                      <SuggestionDetailsPanel suggestion={suggestion} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-slate-900/80 border-b border-slate-700">
                   <tr>
@@ -964,32 +1080,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                       {showDetails[suggestion.id] && (
                         <tr className="bg-slate-900/50 border-b border-slate-700/50">
                           <td colSpan={7} className="px-6 py-4">
-                            <div className="space-y-4">
-                              <div className="border-t border-slate-700 pt-4">
-                                <h4 className="text-white font-semibold mb-2">Descripción Completa</h4>
-                                <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">{suggestion.descripcion}</p>
-                              </div>
-                              <div className="grid md:grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <span className="text-gray-400">Email: </span>
-                                  <span className="text-white">{suggestion.email}</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-400">Teléfono: </span>
-                                  <span className="text-white">{suggestion.telefono}</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-400">Fecha Registro: </span>
-                                  <span className="text-white">
-                                    {new Date(suggestion.fechaRegistro).toLocaleDateString('es-ES')} {new Date(suggestion.fechaRegistro).toLocaleTimeString('es-ES')}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-400">Lugar de Trabajo: </span>
-                                  <span className="text-white">{suggestion.lugarTrabajo}</span>
-                                </div>
-                              </div>
-                            </div>
+                              <SuggestionDetailsPanel suggestion={suggestion} />
                           </td>
                         </tr>
                       )}
@@ -998,6 +1089,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
         )}

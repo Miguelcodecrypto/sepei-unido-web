@@ -402,11 +402,11 @@ export default function AnnouncementsManager() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-white">Gestión de Anuncios</h2>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-xl sm:text-2xl font-bold text-white">Gestión de Anuncios</h2>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
+          className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
         >
           {showForm ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
           {showForm ? 'Cancelar' : 'Nuevo Anuncio'}
@@ -496,7 +496,7 @@ export default function AnnouncementsManager() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-gray-300 mb-2">Categoría *</label>
                 <select
@@ -555,7 +555,7 @@ export default function AnnouncementsManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-gray-300 mb-2">Imagen</label>
                 <div className="flex items-center gap-2">
@@ -608,7 +608,7 @@ export default function AnnouncementsManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-gray-300 mb-2">Enlaces</label>
                 <div className="flex gap-2">
@@ -671,7 +671,7 @@ export default function AnnouncementsManager() {
               <div className="text-blue-400 text-sm">{uploadProgress}</div>
             )}
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <button
                 type="submit"
                 disabled={isLoading}
@@ -701,11 +701,11 @@ export default function AnnouncementsManager() {
           announcements.map((announcement) => (
             <div
               key={announcement.id}
-              className="bg-slate-800/90 rounded-2xl border-2 border-slate-700/50 p-6 hover:border-slate-600 transition"
+              className="bg-slate-800/90 rounded-2xl border-2 border-slate-700/50 p-4 sm:p-6 hover:border-slate-600 transition"
             >
-              <div className="flex justify-between items-start gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
+              <div className="flex flex-col sm:flex-row sm:justify-between items-start gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                     <span className={`${getCategoryColor(announcement.categoria)} px-3 py-1 rounded-full text-white text-xs font-semibold`}>
                       {announcement.categoria.toUpperCase()}
                     </span>
@@ -722,9 +722,9 @@ export default function AnnouncementsManager() {
                       </span>
                     )}
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">{announcement.titulo}</h3>
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2">{announcement.titulo}</h3>
                   <p className="text-gray-400 mb-3">{announcement.contenido.substring(0, 200)}...</p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
                     <span>Por: {announcement.autor}</span>
                     <span>Vistas: {announcement.vistas}</span>
                     <span>{new Date(announcement.fecha_publicacion).toLocaleDateString()}</span>
@@ -743,14 +743,14 @@ export default function AnnouncementsManager() {
                           className="flex items-center gap-1 px-2 py-1 bg-slate-700 rounded-lg text-blue-300 hover:text-white hover:bg-slate-600"
                         >
                           {att.categoria === 'video' ? <Video className="w-4 h-4" /> : att.categoria === 'audio' ? <Music className="w-4 h-4" /> : att.categoria === 'link' ? <Link2 className="w-4 h-4" /> : <FileText className="w-4 h-4" />} 
-                          <span className="truncate max-w-[200px]">{att.nombre}</span>
+                          <span className="truncate max-w-[140px] sm:max-w-[200px]">{att.nombre}</span>
                         </a>
                       ))}
                     </div>
                   )}
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-row flex-wrap sm:flex-col gap-2 shrink-0">
                   <button
                     onClick={() => handleNotifyExistingAnnouncement(announcement)}
                     className="p-2 bg-orange-600 hover:bg-orange-700 rounded-lg transition"

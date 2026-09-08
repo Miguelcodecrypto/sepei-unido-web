@@ -139,3 +139,13 @@ body {
 .animate-smoke {
   animation: smoke-drift 8s ease-in-out infinite;
 }
+
+/* Barra de pestañas deslizable en móvil sin scrollbar visible */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
