@@ -25,5 +25,5 @@ SELECT
 FROM information_schema.columns 
 WHERE table_name = 'votos' AND column_name = 'user_id';
 
--- Ahora la columna user_id puede almacenar DNIs como "48380884Q"
+-- Ahora la columna user_id puede almacenar DNIs como "00000000T"
 -- NOTA: RLS ya está deshabilitado en esta tabla, no es necesario recrear políticas
