@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Eye, FileText, Download, X, Star, ChevronRight, Shield, LogIn, Lock } from 'lucide-react';
+import { Calendar, Eye, FileText, Download, X, Star, ChevronRight, Shield, LogIn, Lock, Newspaper, Megaphone, CalendarDays, AlertTriangle, Pin } from 'lucide-react';
 import { getPublishedAnnouncements, incrementViews, getViewableFileUrl, type Announcement } from '../services/announcementDatabase';
 import { trackInteraction, createSectionTimeTracker } from '../services/analyticsService';
 import DOMPurify from 'dompurify';
@@ -101,6 +101,20 @@ export default function AnnouncementsBoard({ loggedUser, onLoginRequired }: Anno
     return icons[categoria as keyof typeof icons] || '📌';
   };
 
+  // Cabecera de la tarjeta cuando el anuncio no trae imagen. Antes no se pintaba
+  // nada, así que las tarjetas sin imagen perdían la franja superior — y con ella
+  // la estrella de destacado, que vivía dentro del bloque de la imagen.
+  const getCategoryHeader = (categoria: string) => {
+    const headers = {
+      noticia: { fondo: 'from-blue-600/30 to-blue-900/10', icono: <Newspaper className="w-10 h-10 text-blue-300/70" aria-hidden="true" /> },
+      comunicado: { fondo: 'from-green-600/30 to-green-900/10', icono: <Megaphone className="w-10 h-10 text-green-300/70" aria-hidden="true" /> },
+      evento: { fondo: 'from-purple-600/30 to-purple-900/10', icono: <CalendarDays className="w-10 h-10 text-purple-300/70" aria-hidden="true" /> },
+      urgente: { fondo: 'from-red-600/30 to-red-900/10', icono: <AlertTriangle className="w-10 h-10 text-red-300/70" aria-hidden="true" /> },
+    };
+    return headers[categoria as keyof typeof headers]
+      || { fondo: 'from-slate-600/30 to-slate-900/10', icono: <Pin className="w-10 h-10 text-slate-300/70" aria-hidden="true" /> };
+  };
+
   if (isLoading) {
     return (
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl md:rounded-3xl p-4 md:p-8 border-2 border-slate-700/50">
@@ -130,21 +144,27 @@ export default function AnnouncementsBoard({ loggedUser, onLoginRequired }: Anno
                 onClick={() => handleOpenAnnouncement(announcement)}
                 className="bg-slate-800/60 rounded-xl border-2 border-slate-700/50 overflow-hidden hover:border-blue-500/50 transition-all cursor-pointer group"
               >
-                {/* Imagen */}
-                {announcement.imagen_url && (
-                  <div className="relative h-48 overflow-hidden">
+                {/* Cabecera: la imagen del anuncio si la tiene, y si no una banda
+                    con el icono de su categoría — así todas las tarjetas tienen la
+                    misma silueta y la estrella de destacado siempre cabe. */}
+                <div className="relative h-48 overflow-hidden">
+                  {announcement.imagen_url ? (
                     <img
                       src={announcement.imagen_url}
                       alt={announcement.titulo}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     />
-                    {announcement.destacado && (
-                      <div className="absolute top-3 right-3 bg-yellow-500 p-2 rounded-full">
-                        <Star className="w-5 h-5 text-white fill-white" />
-                      </div>
-                    )}
-                  </div>
-                )}
+                  ) : (
+                    <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${getCategoryHeader(announcement.categoria).fondo}`}>
+                      {getCategoryHeader(announcement.categoria).icono}
+                    </div>
+                  )}
+                  {announcement.destacado && (
+                    <div className="absolute top-3 right-3 bg-yellow-500 p-2 rounded-full" title="Anuncio destacado">
+                      <Star className="w-5 h-5 text-white fill-white" aria-label="Anuncio destacado" />
+                    </div>
+                  )}
+                </div>
 
                 <div className="p-4 md:p-6">
                   {/* Categoría y badge destacado */}
@@ -168,7 +188,9 @@ export default function AnnouncementsBoard({ loggedUser, onLoginRequired }: Anno
                   {announcement.attachments && announcement.attachments.length > 0 && (
                     <div className="flex flex-wrap gap-2 text-sm mb-4">
                       {announcement.attachments.map((att) => (
-                        <span key={att.id} className="flex items-center gap-1 px-2 py-1 bg-slate-700 rounded-lg text-blue-300">
+                        // title: el nombre se corta a mitad de palabra y sin esto no
+                        // había forma de leerlo entero.
+                        <span key={att.id} title={att.nombre} className="flex items-center gap-1 px-2 py-1 bg-slate-700 rounded-lg text-blue-300">
                           {att.categoria === 'video' ? '🎬' : att.categoria === 'audio' ? '🎧' : att.categoria === 'link' ? '🔗' : '📄'}
                           <span className="truncate max-w-[160px]">{att.nombre}</span>
                         </span>
