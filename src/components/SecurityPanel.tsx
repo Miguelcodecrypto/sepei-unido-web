@@ -113,10 +113,7 @@ export default function SecurityPanel() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Shield className="w-7 h-7 sm:w-8 sm:h-8 text-orange-500 shrink-0" />
-          <h2 className="text-xl sm:text-2xl font-bold text-white">Panel de Seguridad</h2>
-        </div>
+        <p className="text-slate-400 text-sm">Intentos de acceso al panel y bloqueos de IP</p>
         <button
           onClick={handleRefresh}
           disabled={refreshing}

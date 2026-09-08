@@ -403,7 +403,7 @@ export default function AnnouncementsManager() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-white">Gestión de Anuncios</h2>
+        <p className="text-slate-400 text-sm">Crea, publica y notifica los anuncios del tablón</p>
         <button
           onClick={() => setShowForm(!showForm)}
           className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
