@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { CheckCircle, Mail, User, CreditCard, AlertCircle, MapPin } from 'lucide-react';
-import { sendNewUserNotificationToAdmin } from '../services/emailService';
 
 interface TraditionalRegistrationProps {
   onSuccess: (userData: UserData) => void;
@@ -205,18 +204,9 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
       // El email de verificación (con la contraseña temporal) lo envía el propio servidor
       // dentro de /api/auth?action=register; nunca viaja en esta respuesta.
 
-      // Enviar notificación a admin de nuevo usuario registrado
-      sendNewUserNotificationToAdmin({
-        nombre: userData.nombre,
-        apellidos: userData.apellidos,
-        dni: userData.dni,
-        email: userData.email,
-        telefono: formData.telefono.trim(),
-        parque_sepei: formData.parque.trim(),
-      }).catch(error => {
-        // No bloquear el flujo si falla la notificación
-        console.error('Error al enviar notificación a admin:', error);
-      });
+      // El aviso de alta al buzón del movimiento lo envía `/api/auth?action=register`
+      // al crear el usuario: desde el navegador ya no se puede pedir un envío de correo
+      // (ver api/send-email.ts).
 
       setVerificationSent(true);
       setStep('verification');

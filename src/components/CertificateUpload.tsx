@@ -5,7 +5,6 @@ import { selectClientCertificate, saveCertificateToSession, checkBrowserSupport,
 import { parseCertificateFile, isValidCertificateFile, getCertificateFileTypeMessage } from '../services/certificateFileParser';
 import { isCertificateRegistered } from '../services/fnmtService';
 import { initializeTestCertificates } from '../data/testCertificates';
-import { sendNewUserNotificationToAdmin } from '../services/emailService';
 
 interface CertificateUploadProps {
   onCertificateLoaded: (data: BrowserCertificate) => void;
@@ -169,17 +168,9 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
         }),
       }).catch(error => console.error('Error al registrar usuario con certificado:', error));
 
-      // Enviar notificación a admin de nuevo usuario registrado con certificado
-      sendNewUserNotificationToAdmin({
-        nombre: certificateData.nombre || '',
-        apellidos: '',
-        dni: certificateData.nif || '',
-        email: certificateData.email || '',
-        telefono: '',
-        parque_sepei: '',
-      }).catch(error => {
-        console.error('Error al enviar notificación a admin:', error);
-      });
+      // El aviso de alta al buzón del movimiento lo envía `/api/auth?action=register`
+      // al crear el usuario: desde el navegador ya no se puede pedir un envío de correo
+      // (ver api/send-email.ts).
       
       onCertificateLoaded(certificateData);
     }

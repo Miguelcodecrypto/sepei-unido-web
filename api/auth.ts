@@ -8,6 +8,11 @@ import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
 import { getBearerToken } from './_lib/adminAuth.js';
 import { generateTempPassword } from './_lib/password.js';
 import { sendEmailViaResend } from './_lib/resend.js';
+import {
+  EMAIL_ADMIN,
+  generateNewUserNotificationHTML,
+  generateNewUserNotificationText,
+} from './_lib/plantillasEmail.js';
 import { getClientIP } from './_lib/clientIp.js';
 import { checkLoginAllowed, recordLoginAttempt } from './_lib/adminSecurity.js';
 
@@ -204,6 +209,33 @@ async function handleRegister(req: any, res: any, supabase: ReturnType<typeof ge
   });
   if (!emailSent) {
     console.error('No se pudo enviar el email de verificación a', normalizedEmail);
+  }
+
+  // Aviso interno de alta. Antes lo disparaba el navegador contra `/api/send-email`,
+  // que por eso tenía que aceptar envíos sin autenticar; ahora sale de aquí, con los
+  // datos ya normalizados y guardados.
+  const avisoAdmin = await sendEmailViaResend({
+    to: EMAIL_ADMIN,
+    subject: 'Nuevo usuario registrado - SEPEI UNIDO',
+    html: generateNewUserNotificationHTML({
+      nombre: insertData.nombre,
+      apellidos: insertData.apellidos || '',
+      dni: insertData.dni || certificado_nif || '',
+      email: normalizedEmail,
+      telefono: insertData.telefono || '',
+      parque_sepei: insertData.parque_sepei || '',
+    }),
+    text: generateNewUserNotificationText({
+      nombre: insertData.nombre,
+      apellidos: insertData.apellidos || '',
+      dni: insertData.dni || certificado_nif || '',
+      email: normalizedEmail,
+      telefono: insertData.telefono || '',
+      parque_sepei: insertData.parque_sepei || '',
+    }),
+  });
+  if (!avisoAdmin) {
+    console.error('No se pudo avisar al admin del alta de', normalizedEmail);
   }
 
   return res.status(200).json({ user });
