@@ -5,6 +5,19 @@
 import DOMPurify from 'dompurify';
 import { getAdminToken } from './authService';
 
+/**
+ * Cabeceras de los envíos del panel. `/api/send-email` exige token de admin en todas
+ * las peticiones (antes solo lo pedía cuando había adjuntos), así que sin sesión de
+ * admin estas llamadas devuelven 401 en vez de enviarse.
+ */
+function cabecerasEnvio(): Record<string, string> {
+  const token = getAdminToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 export interface EmailRecipient {
   id: string;
   email: string;
@@ -98,10 +111,7 @@ export async function sendAnnouncementNotification(
 
       const response = await fetch('/api/send-email', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(getAdminToken() ? { Authorization: `Bearer ${getAdminToken()}` } : {}),
-        },
+        headers: cabecerasEnvio(),
         body: JSON.stringify({
           to: recipient.email,
           subject: `📢 Nuevo anuncio: ${announcement.titulo}`,
@@ -163,7 +173,7 @@ export async function sendVotingNotification(
 
       const response = await fetch('/api/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: cabecerasEnvio(),
         body: JSON.stringify({
           to: recipient.email,
           subject: `🗳️ Nueva votación: ${voting.titulo}`,
@@ -493,7 +503,7 @@ export async function sendVotingResultsNotification(
 
       const response = await fetch('/api/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: cabecerasEnvio(),
         body: JSON.stringify({
           to: recipient.email,
           subject: `📊 Resultados: ${results.titulo}`,

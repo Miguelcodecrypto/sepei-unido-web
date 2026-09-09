@@ -3,7 +3,6 @@ import { useNotifications } from './components/ui/NotificationProvider';
 import { Link } from 'react-router-dom';
 import { Flame, Users, Shield, Target, Mail, Phone, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, LogIn, FileSearch, HardHat, Lightbulb } from 'lucide-react';
 import { getCertificateFromSession, clearCertificateSession, type BrowserCertificate } from './services/browserCertificateService';
-import { sendNewUserNotificationToAdmin } from './services/emailService';
 import TermsModal from './components/TermsModal';
 import SuggestionsForm from './components/SuggestionsForm';
 import CertificateUpload from './components/CertificateUpload';
@@ -231,17 +230,9 @@ export default function SepeiUnido() {
         }),
       });
 
-      // Enviar notificación a admin de nuevo usuario registrado con certificado
-      sendNewUserNotificationToAdmin({
-        nombre: pendingUserData.nombre,
-        apellidos: '',
-        dni: certificateData.nif || '',
-        email: pendingUserData.email,
-        telefono: pendingUserData.telefono || '',
-        parque_sepei: '',
-      }).catch(error => {
-        console.error('Error al enviar notificación a admin:', error);
-      });
+      // El aviso de alta al buzón del movimiento lo envía `/api/auth?action=register`
+      // al crear el usuario: desde el navegador ya no se puede pedir un envío de correo
+      // (ver api/send-email.ts).
 
       console.log('Usuario registrado con certificado FNMT validado:', certificateData.nif);
       

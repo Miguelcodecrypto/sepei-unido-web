@@ -9,9 +9,35 @@
  */
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
 import { getBearerToken, verifyAdminToken } from './_lib/adminAuth.js';
+import { sendEmailViaResend } from './_lib/resend.js';
+import {
+  EMAIL_ADMIN,
+  generateSuggestionConfirmationHTML,
+  generateSuggestionConfirmationText,
+  generateSuggestionNotificationHTML,
+  generateSuggestionNotificationText,
+  type SuggestionEmailData,
+} from './_lib/plantillasEmail.js';
 
 const CATEGORIAS = ['bombero', 'cabo', 'sargento', 'suboficial', 'oficial'];
 const LUGARES = ['Villarrobledo', 'Hellín', 'Almansa', 'La Roda', 'Alcaraz', 'Molinicos', 'Casas Ibáñez'];
+
+/**
+ * Forma de la fila recién insertada. Se declara aquí porque el cliente de Supabase de
+ * `api/` no lleva los tipos `Database` generados y devuelve `never` (deuda conocida),
+ * así que sin esto no se pueden leer los campos para componer los correos.
+ */
+interface SugerenciaFila {
+  id: string;
+  nombre: string;
+  apellidos: string;
+  email: string;
+  telefono: string;
+  categoria: string;
+  lugar_trabajo: string;
+  asunto: string;
+  descripcion: string;
+}
 
 function isNonEmptyString(v: any): v is string {
   return typeof v === 'string' && v.trim().length > 0;
@@ -42,10 +68,44 @@ async function handleCreate(req: any, res: any, supabase: ReturnType<typeof getS
     .select()
     .single();
 
-  if (error) {
+  if (error || !data) {
     console.error('[suggestions] Error al crear sugerencia:', error);
     return res.status(500).json({ error: 'Error al enviar la sugerencia' });
   }
+
+  // Los dos correos los manda el servidor, no el navegador: así el remitente y el
+  // destinatario salen de la sugerencia recién guardada y no de lo que diga el cliente.
+  const fila = data as unknown as SugerenciaFila;
+  const datosEmail: SuggestionEmailData = {
+    nombre: fila.nombre,
+    apellidos: fila.apellidos,
+    email: fila.email,
+    telefono: fila.telefono,
+    categoria: fila.categoria,
+    lugarTrabajo: fila.lugar_trabajo,
+    asunto: fila.asunto,
+    descripcion: fila.descripcion,
+  };
+
+  // Un fallo de correo no invalida la sugerencia, que ya está guardada: se registra y
+  // se sigue. Se esperan los dos envíos porque en serverless el proceso puede morir en
+  // cuanto se responde.
+  const [confirmacion, aviso] = await Promise.all([
+    sendEmailViaResend({
+      to: fila.email,
+      subject: 'Propuesta recibida - SEPEI UNIDO',
+      html: generateSuggestionConfirmationHTML(datosEmail),
+      text: generateSuggestionConfirmationText(datosEmail),
+    }),
+    sendEmailViaResend({
+      to: EMAIL_ADMIN,
+      subject: `Nueva propuesta: ${fila.asunto}`,
+      html: generateSuggestionNotificationHTML(datosEmail),
+      text: generateSuggestionNotificationText(datosEmail),
+    }),
+  ]);
+  if (!confirmacion) console.error('[suggestions] No se pudo enviar la confirmación a', fila.email);
+  if (!aviso) console.error('[suggestions] No se pudo avisar al admin de la propuesta', fila.id);
 
   return res.status(200).json({ suggestion: data });
 }
