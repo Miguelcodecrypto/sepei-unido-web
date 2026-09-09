@@ -8,6 +8,8 @@ import SuggestionsForm from './components/SuggestionsForm';
 import CertificateUpload from './components/CertificateUpload';
 import { TraditionalRegistration, type UserData } from './components/TraditionalRegistration';
 import { UserLogin, type LoggedUserData } from './components/UserLogin';
+import { CompleteProfileModal } from './components/CompleteProfileModal';
+import type { DatosComplementarios } from './components/CertificateUpload';
 import { EmailVerification } from './components/EmailVerification';
 import { getCurrentUser, invalidateSession } from './services/sessionService';
 import { trackPageVisit, trackInteraction } from './services/analyticsService';
@@ -32,11 +34,17 @@ export default function SepeiUnido() {
   const [showEmailVerification, setShowEmailVerification] = useState(false);
   const [verificationToken, setVerificationToken] = useState<string | null>(null);
   const [loggedUser, setLoggedUser] = useState<LoggedUserData | null>(null);
+  // Quien ya tenía la sesión abierta no vuelve a pasar por el login, así que el aviso
+  // de ficha incompleta también tiene que dispararse al recuperar la sesión.
+  const [camposPendientesSesion, setCamposPendientesSesion] = useState<string[]>([]);
   const [registrationMethod, setRegistrationMethod] = useState<'certificate' | 'traditional' | null>(null);
   const [pendingAction, setPendingAction] = useState<'suggestions' | 'register' | null>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('register');
   const [certificateData, setCertificateData] = useState<BrowserCertificate | null>(null);
   const [pendingUserData, setPendingUserData] = useState(null as any);
+  // Apellidos, teléfono y parque recogidos en el paso de verificación del certificado:
+  // el alta se hace con ellos al aceptar los términos.
+  const [datosCertificado, setDatosCertificado] = useState<DatosComplementarios | null>(null);
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -89,6 +97,7 @@ export default function SepeiUnido() {
       const user = await getCurrentUser();
       if (user) {
         console.log('👤 [SESIÓN] Usuario recuperado desde Supabase:', user);
+        setCamposPendientesSesion(user.campos_pendientes || []);
         setLoggedUser({
           dni: user.dni,
           nombre: user.nombre,
@@ -216,19 +225,35 @@ export default function SepeiUnido() {
     try {
       // El servidor no valida la cadena del certificado, así que el usuario queda sin
       // verificar hasta que confirme por email (email que envía el propio servidor).
-      await fetch('/api/auth?action=register', {
+      const respuesta = await fetch('/api/auth?action=register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nombre: pendingUserData.nombre,
+          apellidos: datosCertificado?.apellidos || undefined,
           email: pendingUserData.email,
-          telefono: pendingUserData.telefono || undefined,
+          telefono: datosCertificado?.telefono || pendingUserData.telefono || undefined,
+          parque_sepei: datosCertificado?.parque_sepei || undefined,
           terminos_aceptados: true,
           certificado_nif: certificateData.nif,
           certificado_thumbprint: certificateData.thumbprint,
           certificado_fecha_validacion: new Date(certificateData.notAfter).toISOString().split('T')[0],
         }),
       });
+
+      // Antes esta respuesta se ignoraba: un email ya registrado devolvía 409 y aun así
+      // se anunciaba "¡Registro recibido!".
+      if (!respuesta.ok) {
+        const datos = await respuesta.json().catch(() => ({}));
+        const mensaje = datos.error === 'email_duplicado'
+          ? 'Ese email ya está registrado. Si eres tú, entra con tu DNI y contraseña.'
+          : datos.error === 'dni_duplicado'
+            ? 'Ese DNI ya está registrado.'
+            : 'Hubo un error al registrarte. Intenta nuevamente.';
+        setFormStatus({ type: 'error', message: mensaje });
+        setTimeout(() => setFormStatus(null), 5000);
+        return;
+      }
 
       // El aviso de alta al buzón del movimiento lo envía `/api/auth?action=register`
       // al crear el usuario: desde el navegador ya no se puede pedir un envío de correo
@@ -247,6 +272,7 @@ export default function SepeiUnido() {
       
       setShowTermsModal(false);
       setPendingUserData(null);
+      setDatosCertificado(null);
       // Limpiar certificado después del registro exitoso
       clearCertificateSession();
       setCertificateData(null);
@@ -263,8 +289,9 @@ export default function SepeiUnido() {
     setPendingUserData(null);
   };
 
-  const handleCertificateLoaded = (data: BrowserCertificate) => {
+  const handleCertificateLoaded = (data: BrowserCertificate, datos: DatosComplementarios) => {
     setCertificateData(data);
+    setDatosCertificado(datos);
     setShowCertificateUpload(false);
     // Mostrar modal de términos después de cargar certificado
     setShowTermsModal(true);
@@ -1584,6 +1611,19 @@ export default function SepeiUnido() {
         <UserLogin
           onLoginSuccess={handleLoginSuccess}
           onCancel={() => setShowUserLogin(false)}
+        />
+      )}
+
+      {/* Ficha a medias en una sesión ya abierta: se pide aquí, porque esta gente no
+          vuelve a pasar por el login. No se muestra a la vez que el propio login. */}
+      {!showUserLogin && loggedUser && camposPendientesSesion.length > 0 && (
+        <CompleteProfileModal
+          nombre={loggedUser.nombre}
+          camposPendientes={camposPendientesSesion}
+          onSuccess={(user) => {
+            setCamposPendientesSesion([]);
+            setLoggedUser({ ...loggedUser, apellidos: user.apellidos || loggedUser.apellidos });
+          }}
         />
       )}
 

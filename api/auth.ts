@@ -8,6 +8,7 @@ import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
 import { getBearerToken } from './_lib/adminAuth.js';
 import { generateTempPassword } from './_lib/password.js';
 import { sendEmailViaResend } from './_lib/resend.js';
+import { getSessionUser } from './_lib/session.js';
 import {
   EMAIL_ADMIN,
   generateNewUserNotificationHTML,
@@ -21,9 +22,33 @@ const VERIFICATION_TOKEN_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 const GENERIC_RESET_MESSAGE = 'Si el email está registrado, recibirás un correo con una nueva contraseña temporal.';
 const APP_URL = process.env.VITE_APP_URL || process.env.APP_URL || 'https://www.sepeiunido.org';
 
+/** Parques del SEPEI. Mismos valores que el desplegable del registro tradicional. */
+export const PARQUES_SEPEI = [
+  'Hellín', 'Villarrobledo', 'Almansa', 'La Roda',
+  'Casas Ibáñez', 'Molinicos', 'Alcaraz', 'Central del Sepei',
+];
+
+/** Campos sin los que una ficha no sirve: no se puede cruzar con la plantilla oficial ni localizar a la persona. */
+const CAMPOS_OBLIGATORIOS = ['apellidos', 'telefono', 'parque_sepei'] as const;
+
+/**
+ * Qué le falta por rellenar a este usuario. Se devuelven solo los NOMBRES de los
+ * campos, nunca sus valores: la sesión no necesita llevar más datos personales de los
+ * que ya lleva para saber que hay huecos que tapar.
+ */
+function camposPendientes(user: any): string[] {
+  return CAMPOS_OBLIGATORIOS.filter((campo) => {
+    const valor = user?.[campo];
+    return typeof valor !== 'string' || valor.trim() === '';
+  });
+}
+
 function toPublicUser(user: any) {
   const { id, dni, nombre, apellidos, email, verified, autorizado_votar, requires_password_change } = user;
-  return { id, dni, nombre, apellidos, email, verified, autorizado_votar, requires_password_change };
+  return {
+    id, dni, nombre, apellidos, email, verified, autorizado_votar, requires_password_change,
+    campos_pendientes: camposPendientes(user),
+  };
 }
 
 // ---- action=login ----
@@ -104,7 +129,7 @@ async function handleSession(req: any, res: any, supabase: ReturnType<typeof get
 
   const { data: user, error: userError } = await supabase
     .from('users')
-    .select('id, dni, nombre, apellidos, email, verified, autorizado_votar, requires_password_change')
+    .select('id, dni, nombre, apellidos, email, telefono, parque_sepei, verified, autorizado_votar, requires_password_change')
     .eq('id', (session as any).user_id)
     .single();
 
@@ -112,7 +137,57 @@ async function handleSession(req: any, res: any, supabase: ReturnType<typeof get
 
   await supabase.from('user_sessions').update({ last_activity: new Date().toISOString() }).eq('session_token', token);
 
-  return res.status(200).json({ user });
+  return res.status(200).json({ user: toPublicUser(user) });
+}
+
+// ---- action=complete-profile ----
+/**
+ * Deja al propio usuario rellenar los huecos de su ficha (apellidos, teléfono y parque).
+ * La identidad sale SIEMPRE de la sesión validada en el servidor, nunca de un id o un DNI
+ * que venga en el cuerpo: si no, cualquiera podría reescribir la ficha de otro.
+ */
+async function handleCompleteProfile(req: any, res: any, supabase: ReturnType<typeof getSupabaseAdmin>) {
+  const sessionUser = await getSessionUser(req);
+  if (!sessionUser) return res.status(401).json({ error: 'No autenticado' });
+
+  const { apellidos, telefono, parque_sepei } = req.body || {};
+  const cambios: Record<string, string> = {};
+
+  if (apellidos !== undefined) {
+    const valor = String(apellidos).trim();
+    if (valor.length < 2) return res.status(400).json({ error: 'Los apellidos no son válidos' });
+    cambios.apellidos = valor;
+  }
+
+  if (telefono !== undefined) {
+    const valor = String(telefono).replace(/[\s-]/g, '');
+    if (!/^[6789]\d{8}$/.test(valor)) return res.status(400).json({ error: 'El teléfono debe tener 9 dígitos' });
+    cambios.telefono = valor;
+  }
+
+  if (parque_sepei !== undefined) {
+    const valor = String(parque_sepei).trim();
+    if (!PARQUES_SEPEI.includes(valor)) return res.status(400).json({ error: 'Parque no válido' });
+    cambios.parque_sepei = valor;
+  }
+
+  if (Object.keys(cambios).length === 0) {
+    return res.status(400).json({ error: 'No hay nada que actualizar' });
+  }
+
+  const { data: user, error } = await supabase
+    .from('users')
+    .update(cambios as any)
+    .eq('id', sessionUser.id)
+    .select('id, dni, nombre, apellidos, email, telefono, parque_sepei, verified, autorizado_votar, requires_password_change')
+    .single();
+
+  if (error || !user) {
+    console.error('[auth] Error al completar el perfil de', sessionUser.id, error);
+    return res.status(500).json({ error: 'No se pudieron guardar los datos' });
+  }
+
+  return res.status(200).json({ user: toPublicUser(user) });
 }
 
 // ---- action=logout ----
@@ -396,6 +471,7 @@ export default async function handler(req: any, res: any) {
       case 'verify-email': return await handleVerifyEmail(req, res, supabase);
       case 'change-password': return await handleChangePassword(req, res, supabase);
       case 'forgot-password': return await handleForgotPassword(req, res, supabase);
+      case 'complete-profile': return await handleCompleteProfile(req, res, supabase);
       default: return res.status(400).json({ error: 'Acción no reconocida' });
     }
   } catch (error: any) {

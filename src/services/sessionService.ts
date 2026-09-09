@@ -14,7 +14,19 @@ export interface SessionUser {
   verified: boolean;
   autorizado_votar?: boolean;
   requires_password_change?: boolean;
+  /**
+   * Campos obligatorios que este usuario tiene sin rellenar (`apellidos`, `telefono`,
+   * `parque_sepei`). Vienen solo como nombres, no como valores. Si trae alguno, hay que
+   * pedírselos antes de dejarle seguir — ver CompleteProfileModal.
+   */
+  campos_pendientes?: string[];
 }
+
+/** Parques del SEPEI, en el mismo orden que el registro tradicional. */
+export const PARQUES_SEPEI = [
+  'Hellín', 'Villarrobledo', 'Almansa', 'La Roda',
+  'Casas Ibáñez', 'Molinicos', 'Alcaraz', 'Central del Sepei',
+];
 
 /**
  * Iniciar sesión con DNI y contraseña. La verificación ocurre en el servidor.
@@ -101,4 +113,34 @@ export function hasSessionToken(): boolean {
  */
 export function getSessionToken(): string | null {
   return localStorage.getItem(SESSION_KEY);
+}
+
+/**
+ * Guardar los datos que le faltaban al usuario. El servidor solo deja tocar la ficha
+ * de quien tiene la sesión: no se manda ningún identificador desde aquí.
+ */
+export async function completeProfile(
+  datos: { apellidos?: string; telefono?: string; parque_sepei?: string }
+): Promise<{ ok: true; user: SessionUser } | { ok: false; error: string }> {
+  const sessionToken = localStorage.getItem(SESSION_KEY);
+  if (!sessionToken) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
+
+  try {
+    const response = await fetch('/api/auth?action=complete-profile', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionToken}`,
+      },
+      body: JSON.stringify(datos),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { ok: false, error: data.error || 'No se pudieron guardar los datos' };
+
+    return { ok: true, user: data.user };
+  } catch (error) {
+    console.error('❌ [SESIÓN] Error al completar el perfil:', error);
+    return { ok: false, error: 'Error de conexión' };
+  }
 }

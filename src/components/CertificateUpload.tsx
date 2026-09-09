@@ -1,13 +1,21 @@
 // filepath: src/components/CertificateUpload.tsx
 import React, { useState, useEffect } from 'react';
+import { PARQUES_SEPEI } from '../services/sessionService';
 import { Lock, CheckCircle, AlertCircle, X, Loader, Fingerprint, Upload, FileCheck, Shield } from 'lucide-react';
 import { selectClientCertificate, saveCertificateToSession, checkBrowserSupport, type BrowserCertificate } from '../services/browserCertificateService';
 import { parseCertificateFile, isValidCertificateFile, getCertificateFileTypeMessage } from '../services/certificateFileParser';
 import { isCertificateRegistered } from '../services/fnmtService';
 import { initializeTestCertificates } from '../data/testCertificates';
 
+/** Datos que el certificado no puede aportar y que se recogen en el paso de verificación. */
+export interface DatosComplementarios {
+  apellidos: string;
+  telefono: string;
+  parque_sepei: string;
+}
+
 interface CertificateUploadProps {
-  onCertificateLoaded: (data: BrowserCertificate) => void;
+  onCertificateLoaded: (data: BrowserCertificate, datos: DatosComplementarios) => void;
   onClose?: () => void;
 }
 
@@ -21,6 +29,11 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
   // Estados para carga de archivo
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [password, setPassword] = useState<string>('');
+  // El certificado da NIF, nombre y a veces apellidos y email, pero nunca el teléfono ni
+  // el parque. Se piden aquí: si no, el alta nace incompleta y esta gente no puede
+  // iniciar sesión (el certificado solo vale para registrarse), así que no hay ninguna
+  // otra ocasión de pedírselos.
+  const [datosExtra, setDatosExtra] = useState({ apellidos: '', telefono: '', parque: PARQUES_SEPEI[0] });
 
   // Verificar compatibilidad del navegador
   useEffect(() => {
@@ -150,29 +163,29 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
 
   const handleConfirm = async () => {
     if (certificateData) {
+      // Sin estos datos la ficha nace coja y no hay segunda oportunidad de pedirlos:
+      // con certificado solo se puede registrar, no iniciar sesión.
+      if (!certificateData.apellidos && datosExtra.apellidos.trim().length < 2) {
+        setError('Escribe tus apellidos.');
+        return;
+      }
+      if (!/^[6789]\d{8}$/.test(datosExtra.telefono.replace(/[\s-]/g, ''))) {
+        setError('El teléfono debe tener 9 dígitos.');
+        return;
+      }
+      setError(null);
+
       saveCertificateToSession(certificateData);
 
-      // Guardar en la base de datos del panel admin. El servidor no valida la cadena del
-      // certificado, así que el usuario queda sin verificar hasta que confirme por email
-      // (email que envía el propio servidor, no este componente).
-      fetch('/api/auth?action=register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: certificateData.nombre,
-          email: certificateData.email || '',
-          terminos_aceptados: true,
-          certificado_nif: certificateData.nif,
-          certificado_thumbprint: certificateData.thumbprint,
-          certificado_fecha_validacion: new Date().toISOString(),
-        }),
-      }).catch(error => console.error('Error al registrar usuario con certificado:', error));
-
-      // El aviso de alta al buzón del movimiento lo envía `/api/auth?action=register`
-      // al crear el usuario: desde el navegador ya no se puede pedir un envío de correo
-      // (ver api/send-email.ts).
-      
-      onCertificateLoaded(certificateData);
+      // Aquí NO se registra. Antes se llamaba a `/api/auth?action=register` desde este
+      // punto y otra vez al aceptar los términos: el alta ocurría antes de que el usuario
+      // aceptara nada, y la segunda llamada moría con un 409 `email_duplicado` que nadie
+      // miraba. Ahora los datos suben al contenedor y el alta se hace una sola vez.
+      onCertificateLoaded(certificateData, {
+        apellidos: certificateData.apellidos || datosExtra.apellidos.trim(),
+        telefono: datosExtra.telefono.replace(/[\s-]/g, ''),
+        parque_sepei: datosExtra.parque,
+      });
     }
   };
 
@@ -509,6 +522,60 @@ export default function CertificateUpload({ onCertificateLoaded, onClose }: Cert
                     <p className="text-white text-xs font-mono break-all">{certificateData.serialNumber}</p>
                   </div>
                 )}
+              </div>
+
+              {/* Lo que el certificado no puede darnos y necesitamos igualmente. */}
+              <div className="bg-slate-900/50 rounded-xl p-6 space-y-4">
+                <p className="text-white font-semibold">Para completar tu ficha</p>
+
+                {!certificateData.apellidos && (
+                  <div>
+                    <label htmlFor="cert-apellidos" className="block text-gray-400 text-sm mb-1">
+                      Apellidos *
+                    </label>
+                    <input
+                      id="cert-apellidos"
+                      type="text"
+                      value={datosExtra.apellidos}
+                      onChange={(e) => setDatosExtra((d) => ({ ...d, apellidos: e.target.value }))}
+                      autoComplete="family-name"
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      placeholder="Tus dos apellidos"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label htmlFor="cert-telefono" className="block text-gray-400 text-sm mb-1">
+                    Teléfono de contacto *
+                  </label>
+                  <input
+                    id="cert-telefono"
+                    type="tel"
+                    inputMode="numeric"
+                    value={datosExtra.telefono}
+                    onChange={(e) => setDatosExtra((d) => ({ ...d, telefono: e.target.value }))}
+                    autoComplete="tel"
+                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="600000000"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="cert-parque" className="block text-gray-400 text-sm mb-1">
+                    Parque del SEPEI donde trabajas *
+                  </label>
+                  <select
+                    id="cert-parque"
+                    value={datosExtra.parque}
+                    onChange={(e) => setDatosExtra((d) => ({ ...d, parque: e.target.value }))}
+                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  >
+                    {PARQUES_SEPEI.map((parque) => (
+                      <option key={parque} value={parque}>{parque}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
