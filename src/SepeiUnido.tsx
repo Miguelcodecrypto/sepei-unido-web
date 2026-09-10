@@ -34,8 +34,8 @@ export default function SepeiUnido() {
   const [showEmailVerification, setShowEmailVerification] = useState(false);
   const [verificationToken, setVerificationToken] = useState<string | null>(null);
   const [loggedUser, setLoggedUser] = useState<LoggedUserData | null>(null);
-  // Quien ya tenía la sesión abierta no vuelve a pasar por el login, así que el aviso
-  // de ficha incompleta también tiene que dispararse al recuperar la sesión.
+  // Campos sin rellenar del usuario que está dentro, venga de iniciar sesión o de una
+  // sesión recuperada. Mientras tenga algo, no se le deja seguir.
   const [camposPendientesSesion, setCamposPendientesSesion] = useState<string[]>([]);
   const [registrationMethod, setRegistrationMethod] = useState<'certificate' | 'traditional' | null>(null);
   const [pendingAction, setPendingAction] = useState<'suggestions' | 'register' | null>(null);
@@ -319,8 +319,12 @@ export default function SepeiUnido() {
     setTimeout(() => setFormStatus(null), 5000);
   };
 
-  const handleLoginSuccess = (userData: LoggedUserData) => {
+  const handleLoginSuccess = (userData: LoggedUserData, camposPendientes: string[] = []) => {
     setLoggedUser(userData);
+    // Único sitio donde se decide si hay que pedir los datos que faltan, venga el usuario
+    // de iniciar sesión o de una sesión ya abierta. Antes lo decidían los dos por su
+    // cuenta y el aviso salía dos veces seguidas.
+    setCamposPendientesSesion(camposPendientes);
     setShowUserLogin(false);
     setFormStatus({ 
       type: 'success', 
@@ -1614,8 +1618,7 @@ export default function SepeiUnido() {
         />
       )}
 
-      {/* Ficha a medias en una sesión ya abierta: se pide aquí, porque esta gente no
-          vuelve a pasar por el login. No se muestra a la vez que el propio login. */}
+      {/* Único aviso de ficha a medias de toda la web. */}
       {!showUserLogin && loggedUser && camposPendientesSesion.length > 0 && (
         <CompleteProfileModal
           nombre={loggedUser.nombre}
