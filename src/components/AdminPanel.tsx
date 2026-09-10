@@ -79,7 +79,11 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
   // Calcular estados de plantilla para cada usuario
   const usuariosConEstado = useMemo(() => {
     return users.map(user => {
-      const estadoInfo = getEstadoPlantilla(user.nombre, user.apellidos);
+      // El parque va como tercer argumento: sin él nunca se comparaba el destino, así que
+      // `cambios_detectados` no podía darse y el filtro "Con cambios" marcaba siempre 0.
+      // Si el usuario no ha declarado parque, se pasa undefined y no se compara: no tener
+      // el dato no es una discrepancia con la plantilla.
+      const estadoInfo = getEstadoPlantilla(user.nombre, user.apellidos, user.parque_sepei || undefined);
       return {
         ...user,
         estadoPlantilla: estadoInfo.estado,
