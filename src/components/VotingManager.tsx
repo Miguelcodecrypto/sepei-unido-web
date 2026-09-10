@@ -8,7 +8,7 @@ import {
   deleteVotacion,
   togglePublicado,
   toggleResultadosPublicos,
-  getResultadosVotacion,
+  getResultadosVotacionAdmin,
   VotacionCompleta,
   ResultadoVotacion
 } from '../services/votingDatabase';
@@ -160,9 +160,14 @@ const VotingManager: React.FC = () => {
   };
 
   const handleViewResults = async (id: string) => {
-    const data = await getResultadosVotacion(id);
-    setResultados(data);
-    setShowResults(id);
+    try {
+      const data = await getResultadosVotacionAdmin(id);
+      setResultados(data);
+      setShowResults(id);
+    } catch (error) {
+      console.error('Error al obtener resultados:', error);
+      notify.error('No se han podido cargar los resultados');
+    }
   };
 
   const handleSendNotifications = async (selectedUsers: EmailRecipient[]) => {
@@ -282,8 +287,10 @@ const VotingManager: React.FC = () => {
     setNotifyingVotingId(votacion.id);
     
     if (type === 'results') {
-      // Para resultados, necesitamos cargar los datos completos
-      getResultadosVotacion(votacion.id).then(resultados => {
+      // Para resultados, necesitamos cargar los datos completos. Con la acción
+      // pública esto devolvía [] en una votación de resultados no públicos, y se
+      // acababa enviando a la gente un correo de resultados con cero votos.
+      getResultadosVotacionAdmin(votacion.id).then(resultados => {
         const totalVotos = resultados.reduce((sum, r) => sum + r.total_votos, 0);
         const resultadosFormateados = resultados.map(r => ({
           opcion: r.texto,
@@ -300,6 +307,10 @@ const VotingManager: React.FC = () => {
           resultados: resultadosFormateados
         });
         setShowNotificationModal(true);
+      }).catch(error => {
+        console.error('Error al obtener resultados:', error);
+        notify.error('No se han podido cargar los resultados: no se envía nada');
+        setNotifyingVotingId(null);
       });
     } else {
       setPendingVotingData({
@@ -565,6 +576,11 @@ const VotingManager: React.FC = () => {
             </div>
 
             <div className="p-6 space-y-4">
+              {resultados.length === 0 && (
+                <p className="text-slate-400 text-center py-4">
+                  Todavía no se ha registrado ningún voto.
+                </p>
+              )}
               {resultados.map((resultado) => (
                 <div key={resultado.opcion_id} className="space-y-2">
                   <div className="flex justify-between text-white">

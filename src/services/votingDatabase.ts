@@ -220,6 +220,21 @@ export async function getResultadosVotacion(
   }
 }
 
+/**
+ * Resultados para el panel admin. Es una acción aparte a propósito: la pública
+ * (`results`) devuelve 403 mientras `resultados_publicos` sea false, así que el
+ * admin no podía ver el recuento de una votación secreta sin publicarlo antes
+ * para todo el mundo. A diferencia del resto de funciones de este archivo, esta
+ * NO se traga el error: quien la llama tiene que poder avisar en pantalla en vez
+ * de pintar un panel vacío sin explicación.
+ */
+export async function getResultadosVotacionAdmin(
+  votacion_id: string
+): Promise<ResultadoVotacion[]> {
+  const data = await votingFetch('admin-results', { auth: 'admin', params: { votacion_id } });
+  return data.resultados || [];
+}
+
 // Verificar si el usuario ya votó en una votación específica
 export async function usuarioYaVoto(votacion_id: string): Promise<boolean> {
   try {
