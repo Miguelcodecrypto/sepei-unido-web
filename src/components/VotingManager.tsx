@@ -17,6 +17,34 @@ import { sendVotingTelegram, sendVotingResultsTelegram, type TelegramRecipient }
 import { getAllUsers } from '../services/adminUsersService';
 import NotificationModal from './NotificationModal';
 
+/**
+ * Las fechas de votación se editan con <input type="datetime-local">, que no
+ * lleva zona horaria: su valor es "2026-09-10T10:17" a secas. Ese texto se
+ * guardaba tal cual en una columna `timestamptz`, y Postgres lo interpretaba en
+ * UTC — así que una votación programada para las 10:17 de la península quedaba
+ * registrada a las 12:17 reales (+2 h en verano, +1 h en invierno).
+ *
+ * No se notaba porque al editar se hacía `fecha.slice(0, 16)` sobre el ISO, o
+ * sea se metía la hora UTC en un campo que se lee como local: los dos errores
+ * se cancelaban dentro del formulario. Lo que sí salía torcido era todo lo que
+ * usa la fecha de verdad: si la votación está activa o finalizada, el tiempo
+ * restante y las fechas de los correos.
+ *
+ * Por eso las dos conversiones van juntas: arreglar solo una rompe la simetría.
+ */
+function inputLocalAIso(valor: string): string {
+  if (!valor) return valor;
+  const d = new Date(valor); // sin zona → el navegador lo toma como hora local
+  return isNaN(d.getTime()) ? valor : d.toISOString();
+}
+
+function isoAInputLocal(iso: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
 const VotingManager: React.FC = () => {
   const { notify, confirm, alert } = useNotifications();
   const [votaciones, setVotaciones] = useState<VotacionCompleta[]>([]);
@@ -66,6 +94,13 @@ const VotingManager: React.FC = () => {
       return;
     }
 
+    // Lo que se escribe en el formulario es hora local; a la base va siempre en UTC.
+    const datos = {
+      ...formData,
+      fecha_inicio: inputLocalAIso(formData.fecha_inicio),
+      fecha_fin: inputLocalAIso(formData.fecha_fin),
+    };
+
     if (editingVotacion) {
       const opcionesData = opcionesFiltradas.map((texto, index) => ({
         texto,
@@ -74,7 +109,7 @@ const VotingManager: React.FC = () => {
 
       const success = await updateVotacion(
         editingVotacion.id,
-        formData,
+        datos,
         opcionesData
       );
 
@@ -86,7 +121,7 @@ const VotingManager: React.FC = () => {
         notify.error('Error al actualizar la votación');
       }
     } else {
-      const id = await createVotacion(formData, opcionesFiltradas);
+      const id = await createVotacion(datos, opcionesFiltradas);
       if (id) {
         // Si se marcó notificación y está publicado, abrir modal
         if (sendNotification && formData.publicado) {
@@ -95,8 +130,8 @@ const VotingManager: React.FC = () => {
             titulo: formData.titulo,
             descripcion: formData.descripcion,
             tipo: formData.tipo,
-            fecha_inicio: formData.fecha_inicio,
-            fecha_fin: formData.fecha_fin
+            fecha_inicio: datos.fecha_inicio,
+            fecha_fin: datos.fecha_fin
           });
           setShowNotificationModal(true);
         } else {
@@ -116,8 +151,8 @@ const VotingManager: React.FC = () => {
       titulo: votacion.titulo,
       descripcion: votacion.descripcion || '',
       tipo: votacion.tipo,
-      fecha_inicio: votacion.fecha_inicio.slice(0, 16),
-      fecha_fin: votacion.fecha_fin.slice(0, 16),
+      fecha_inicio: isoAInputLocal(votacion.fecha_inicio),
+      fecha_fin: isoAInputLocal(votacion.fecha_fin),
       publicado: votacion.publicado,
       resultados_publicos: votacion.resultados_publicos,
       multiple_respuestas: votacion.multiple_respuestas,
