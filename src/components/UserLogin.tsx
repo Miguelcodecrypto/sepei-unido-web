@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { LogIn, User, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { ChangePasswordModal } from './ChangePasswordModal';
+import { CompleteProfileModal } from './CompleteProfileModal';
 import { loginWithPassword } from '../services/sessionService';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 
@@ -35,6 +36,8 @@ export const UserLogin: React.FC<UserLoginProps> = ({
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [tempUserData, setTempUserData] = useState<LoggedUserData | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  // Campos que el usuario tiene sin rellenar: si hay alguno, no se entra sin taparlos.
+  const [camposPendientes, setCamposPendientes] = useState<string[]>([]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -76,9 +79,18 @@ export const UserLogin: React.FC<UserLoginProps> = ({
         lastLogin: new Date().toISOString(),
       };
 
+      const pendientes = userData.campos_pendientes || [];
+      setCamposPendientes(pendientes);
+
       if (userData.requires_password_change === true) {
         setTempUserData(loggedUser);
         setShowChangePassword(true);
+        setIsLoading(false);
+        return;
+      }
+
+      if (pendientes.length > 0) {
+        setTempUserData(loggedUser);
         setIsLoading(false);
         return;
       }
@@ -104,11 +116,31 @@ export const UserLogin: React.FC<UserLoginProps> = ({
         }}
         onSuccess={() => {
           setShowChangePassword(false);
-          if (tempUserData) {
+          // Si además tiene la ficha a medias, el siguiente bloqueo se encadena solo:
+          // `tempUserData` sigue puesto y `camposPendientes` no está vacío.
+          if (tempUserData && camposPendientes.length === 0) {
             onLoginSuccess(tempUserData);
           }
         }}
         canCancel={false}
+      />
+    );
+  }
+
+  // Ficha incompleta: se pide antes de dejar entrar. Va después del cambio de
+  // contraseña para no encadenar dos bloqueos en la misma pantalla.
+  if (!showChangePassword && tempUserData && camposPendientes.length > 0) {
+    return (
+      <CompleteProfileModal
+        nombre={tempUserData.nombre}
+        camposPendientes={camposPendientes}
+        onSuccess={(user) => {
+          setCamposPendientes([]);
+          onLoginSuccess({
+            ...tempUserData,
+            apellidos: user.apellidos || tempUserData.apellidos,
+          });
+        }}
       />
     );
   }
