@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { LogIn, User, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { ChangePasswordModal } from './ChangePasswordModal';
-import { CompleteProfileModal } from './CompleteProfileModal';
 import { loginWithPassword } from '../services/sessionService';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 
 interface UserLoginProps {
-  onLoginSuccess: (userData: LoggedUserData) => void;
+  /**
+   * `camposPendientes` son los campos que el usuario tiene sin rellenar. El aviso para
+   * taparlos NO se pinta aquí: lo pinta el contenedor, que es el único que sabe si ya lo
+   * está mostrando por haber recuperado una sesión abierta. Cuando cada pantalla llevaba
+   * su propio aviso, al entrar salía dos veces seguidas.
+   */
+  onLoginSuccess: (userData: LoggedUserData, camposPendientes: string[]) => void;
   onCancel: () => void;
   onForgotPassword?: () => void;
 }
@@ -89,13 +94,7 @@ export const UserLogin: React.FC<UserLoginProps> = ({
         return;
       }
 
-      if (pendientes.length > 0) {
-        setTempUserData(loggedUser);
-        setIsLoading(false);
-        return;
-      }
-
-      onLoginSuccess(loggedUser);
+      onLoginSuccess(loggedUser, pendientes);
 
     } catch (error) {
       console.error('Error en login:', error);
@@ -116,31 +115,12 @@ export const UserLogin: React.FC<UserLoginProps> = ({
         }}
         onSuccess={() => {
           setShowChangePassword(false);
-          // Si además tiene la ficha a medias, el siguiente bloqueo se encadena solo:
-          // `tempUserData` sigue puesto y `camposPendientes` no está vacío.
-          if (tempUserData && camposPendientes.length === 0) {
-            onLoginSuccess(tempUserData);
+          if (tempUserData) {
+            // Si además tiene la ficha a medias, el contenedor encadena su aviso.
+            onLoginSuccess(tempUserData, camposPendientes);
           }
         }}
         canCancel={false}
-      />
-    );
-  }
-
-  // Ficha incompleta: se pide antes de dejar entrar. Va después del cambio de
-  // contraseña para no encadenar dos bloqueos en la misma pantalla.
-  if (!showChangePassword && tempUserData && camposPendientes.length > 0) {
-    return (
-      <CompleteProfileModal
-        nombre={tempUserData.nombre}
-        camposPendientes={camposPendientes}
-        onSuccess={(user) => {
-          setCamposPendientes([]);
-          onLoginSuccess({
-            ...tempUserData,
-            apellidos: user.apellidos || tempUserData.apellidos,
-          });
-        }}
       />
     );
   }
