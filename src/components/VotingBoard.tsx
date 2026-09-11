@@ -95,9 +95,9 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
     }
 
     setVotando(votacionId);
-    const success = await emitirVoto(votacionId, opciones);
-    
-    if (success) {
+    const resultado = await emitirVoto(votacionId, opciones);
+
+    if (resultado.ok) {
       notify.success('¡Voto registrado correctamente!');
       
       // Rastrear voto exitoso
@@ -119,17 +119,21 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
         setResultados({ ...resultados, [votacionId]: results });
         setShowResults({ ...showResults, [votacionId]: true });
       }
+    } else if (resultado.status === 401) {
+      // La sesión caducó entre abrir la página y votar: no es un rechazo del voto,
+      // se arregla volviendo a entrar. El voto no se ha registrado.
+      notify.info('Tu sesión ha caducado. Vuelve a iniciar sesión para votar.');
+      if (onLoginRequired) onLoginRequired();
     } else {
-      // Un diálogo, no un toast: son varias causas posibles y el votante tiene que
-      // leerlas para saber qué hacer. Un aviso que se va solo no vale aquí.
+      // Un diálogo, no un toast: el votante tiene que leer el motivo para saber qué
+      // hacer. Un aviso que se va solo no vale aquí.
       await alert({
         title: 'No se ha podido registrar el voto',
-        message: 'Puede deberse a alguna de estas causas:\n\n'
-          + '• Ya has votado en esta votación\n'
-          + '• No estás autorizado por el administrador\n'
-          + '• La votación ha finalizado\n\n'
-          + 'Contacta con el administrador si el problema persiste.',
+        message: `${resultado.motivo}\n\nSi crees que es un error, contacta con el administrador.`,
       });
+      // El servidor sabe algo que esta pantalla no: que ya había un voto suyo. Se
+      // recarga para que deje de ofrecer votar y muestre "Ya votaste".
+      if (resultado.status === 409) await loadVotaciones();
     }
     
     setVotando(null);
