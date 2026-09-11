@@ -68,8 +68,7 @@ const VotingManager: React.FC = () => {
     fecha_fin: '',
     publicado: false,
     resultados_publicos: false,
-    multiple_respuestas: false,
-    creado_por: ''
+    multiple_respuestas: false
   });
 
   const [opciones, setOpciones] = useState<string[]>(['', '']);
@@ -156,7 +155,6 @@ const VotingManager: React.FC = () => {
       publicado: votacion.publicado,
       resultados_publicos: votacion.resultados_publicos,
       multiple_respuestas: votacion.multiple_respuestas,
-      creado_por: votacion.creado_por || ''
     });
     setOpciones(votacion.opciones.map(o => o.texto));
     setShowForm(true);
@@ -369,7 +367,6 @@ const VotingManager: React.FC = () => {
       publicado: false,
       resultados_publicos: false,
       multiple_respuestas: false,
-      creado_por: ''
     });
     setOpciones(['', '']);
     setEditingVotacion(null);

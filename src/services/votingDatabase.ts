@@ -125,17 +125,21 @@ export async function getVotacionesActivas(): Promise<VotacionCompleta[]> {
   }
 }
 
-// Verificar si hay votaciones activas y obtener días restantes
+/**
+ * Qué votación activa cierra antes, para el botón flotante. Devuelve la fecha,
+ * no un contador: el "cuánto queda" se calcula en un único sitio
+ * (`utils/tiempoRestante`), porque tenerlo también aquí es lo que hacía que la
+ * tarjeta dijera "4 horas restantes" y el botón "1d" a la vez.
+ */
 export async function checkActiveVotings(): Promise<{
   hasActiveVotings: boolean;
-  daysRemaining: number;
   closestVoting: { titulo: string; fecha_fin: string } | null;
 }> {
   try {
     return await votingFetch('summary');
   } catch (error) {
     console.error('Error al comprobar votaciones activas:', error);
-    return { hasActiveVotings: false, daysRemaining: 0, closestVoting: null };
+    return { hasActiveVotings: false, closestVoting: null };
   }
 }
 
