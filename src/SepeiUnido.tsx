@@ -797,7 +797,7 @@ export default function SepeiUnido() {
       </section>
 
       {/* Tablón de Anuncios */}
-      <section id="anuncios-section" className="py-12 md:py-24 px-3 md:px-4 bg-slate-900">
+      <section id="anuncios-section" className="scroll-mt-24 py-12 md:py-24 px-3 md:px-4 bg-slate-900">
         <div className="max-w-7xl mx-auto">
           <AnnouncementsBoard 
             loggedUser={loggedUser} 
@@ -844,14 +844,14 @@ export default function SepeiUnido() {
       </section>
 
       {/* Votaciones Activas */}
-      <section id="votaciones-section" className="py-12 md:py-24 px-3 md:px-4 bg-slate-950">
+      <section id="votaciones-section" className="scroll-mt-24 py-12 md:py-24 px-3 md:px-4 bg-slate-950">
         <div className="max-w-7xl mx-auto">
           <VotingBoard onLoginRequired={() => setShowUserLogin(true)} />
         </div>
       </section>
 
       {/* Sección Interinos */}
-      <section id="interinos-section" className="py-12 md:py-24 px-3 md:px-4 bg-slate-900">
+      <section id="interinos-section" className="scroll-mt-24 py-12 md:py-24 px-3 md:px-4 bg-slate-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8 md:mb-16">
             <div className="inline-flex items-center gap-2 md:gap-4 mb-3 flex-wrap justify-center">
@@ -1216,7 +1216,7 @@ export default function SepeiUnido() {
         </div>
       </section>
 
-      <section id="manifiesto-section" className="py-12 md:py-24 px-3 md:px-4 bg-slate-900">
+      <section id="manifiesto-section" className="scroll-mt-24 py-12 md:py-24 px-3 md:px-4 bg-slate-900">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8 md:mb-16">
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-white mb-4 md:mb-6">Nuestro Manifiesto</h2>
@@ -1268,7 +1268,7 @@ export default function SepeiUnido() {
         </div>
       </section>
 
-      <section id="hoja-ruta-section" className="py-12 md:py-24 px-3 md:px-4 bg-slate-900">
+      <section id="hoja-ruta-section" className="scroll-mt-24 py-12 md:py-24 px-3 md:px-4 bg-slate-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8 md:mb-16">
             <h2 className="text-3xl md:text-5xl font-black text-white mb-4 md:mb-6">Hoja de Ruta</h2>
@@ -1313,7 +1313,7 @@ export default function SepeiUnido() {
         </div>
       </section>
 
-      <section id="ideas-section" className="py-12 md:py-24 px-3 md:px-4 bg-gradient-to-b from-slate-900 to-slate-950">
+      <section id="ideas-section" className="scroll-mt-24 py-12 md:py-24 px-3 md:px-4 bg-gradient-to-b from-slate-900 to-slate-950">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8 md:mb-12">
             <div className="flex items-center justify-center gap-2 md:gap-3 mb-4 md:mb-6">
@@ -1374,7 +1374,7 @@ export default function SepeiUnido() {
         </div>
       </section>
 
-      <section id="contacto-section" className="py-12 md:py-24 px-3 md:px-4 bg-slate-950">
+      <section id="contacto-section" className="scroll-mt-24 py-12 md:py-24 px-3 md:px-4 bg-slate-950">
         <div className="max-w-4xl mx-auto">
           <div className="text-center">
             <p className="text-base md:text-xl text-gray-400">Tu voz cuenta, tu participación es fundamental</p>

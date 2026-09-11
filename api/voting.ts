@@ -135,6 +135,10 @@ async function handlePublished(req: any, res: any, supabase: Supa) {
 }
 
 // ---- action=summary ----
+// Devuelve QUÉ votación cierra antes, no cuánto le queda: el contador se calcula
+// en el cliente (`src/utils/tiempoRestante.ts`) a partir de esta `fecha_fin`.
+// Cuando se calculaba también aquí (redondeando a días hacia arriba), la tarjeta
+// de la votación y el badge del botón flotante se contradecían en pantalla.
 async function handleSummary(req: any, res: any, supabase: Supa) {
   const { data: votaciones, error } = await supabase
     .from('votaciones')
@@ -143,20 +147,18 @@ async function handleSummary(req: any, res: any, supabase: Supa) {
     .order('fecha_fin', { ascending: true });
 
   if (error || !votaciones || votaciones.length === 0) {
-    return res.status(200).json({ hasActiveVotings: false, daysRemaining: 0, closestVoting: null });
+    return res.status(200).json({ hasActiveVotings: false, closestVoting: null });
   }
 
   const activas = votaciones.filter((v: any) => calcularEstado(v.fecha_inicio, v.fecha_fin) === 'activa');
   if (activas.length === 0) {
-    return res.status(200).json({ hasActiveVotings: false, daysRemaining: 0, closestVoting: null });
+    return res.status(200).json({ hasActiveVotings: false, closestVoting: null });
   }
 
   const closest = activas[0] as any;
-  const diasRestantes = Math.max(0, Math.ceil((new Date(closest.fecha_fin).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
 
   return res.status(200).json({
     hasActiveVotings: true,
-    daysRemaining: diasRestantes,
     closestVoting: { titulo: closest.titulo, fecha_fin: closest.fecha_fin },
   });
 }
@@ -273,9 +275,15 @@ async function handleAdminCreate(req: any, res: any, supabase: Supa) {
     return res.status(400).json({ error: 'Faltan datos de la votación u opciones' });
   }
 
+  // El panel admin es una sola cuenta sin identidad propia (el token solo lleva
+  // caducidad), así que el autor lo pone el servidor y se ignora lo que mande el
+  // cliente — el formulario no tiene ese campo y enviaba siempre cadena vacía.
+  // Mismo literal que usan los anuncios, para que la autoría se lea igual.
+  const nuevaVotacion = { ...votacion, creado_por: 'Administrador' };
+
   const { data: nueva, error: votacionError } = await supabase
     .from('votaciones')
-    .insert(votacion as any)
+    .insert(nuevaVotacion as any)
     .select()
     .single();
 
@@ -306,7 +314,11 @@ async function handleAdminUpdate(req: any, res: any, supabase: Supa) {
   const { id, votacion, opciones } = req.body || {};
   if (!id || !votacion) return res.status(400).json({ error: 'Faltan datos' });
 
-  const { error: votacionError } = await (supabase.from('votaciones') as any).update(votacion).eq('id', id);
+  // La autoría la fija el servidor al crear; editar no la reescribe (el
+  // formulario llegó a mandarla vacía y borraba el valor bueno).
+  const { creado_por: _ignorado, ...cambios } = votacion;
+
+  const { error: votacionError } = await (supabase.from('votaciones') as any).update(cambios).eq('id', id);
   if (votacionError) {
     console.error('[voting] Error al actualizar votación:', votacionError);
     return res.status(500).json({ error: 'Error al actualizar la votación' });
@@ -373,7 +385,15 @@ async function handleResults(req: any, res: any, supabase: Supa) {
     .eq('id', votacionId)
     .maybeSingle();
 
-  if (!votacion || !(votacion as any).resultados_publicos) {
+  // Una votación que no existe no es "no pública": decir 403 ahí mandaba al panel
+  // (y a cualquiera) a buscar un permiso que no era el problema. El id no es
+  // secreto — se ve en la propia página pública —, así que distinguirlos no
+  // filtra nada que no se supiera ya.
+  if (!votacion) {
+    return res.status(404).json({ error: 'Votación no encontrada' });
+  }
+
+  if (!(votacion as any).resultados_publicos) {
     return res.status(403).json({ error: 'Los resultados de esta votación no son públicos' });
   }
 

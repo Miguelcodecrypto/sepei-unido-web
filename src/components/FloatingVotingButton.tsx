@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Vote } from 'lucide-react';
 import { checkActiveVotings } from '../services/votingDatabase';
+import { calcularTiempoRestante } from '../utils/tiempoRestante';
 
 interface FloatingVotingButtonProps {
   onClick: () => void;
@@ -8,7 +9,14 @@ interface FloatingVotingButtonProps {
 
 const FloatingVotingButton: React.FC<FloatingVotingButtonProps> = ({ onClick }) => {
   const [hasActiveVotings, setHasActiveVotings] = useState(false);
-  const [daysRemaining, setDaysRemaining] = useState(0);
+  // La fecha de cierre, no un contador ya calculado: el texto se deriva de ella
+  // con la misma función que usa la tarjeta de la votación, para que no puedan
+  // decir cosas distintas en la misma pantalla.
+  const [fechaFin, setFechaFin] = useState<string | null>(null);
+  // Se refresca en cada comprobación para que el contador baje solo: sin esto,
+  // una pestaña abierta toda la tarde seguiría enseñando las horas de cuando se
+  // cargó, que ahora se notan porque el texto ya no va en días enteros.
+  const [ahora, setAhora] = useState(() => new Date());
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -21,7 +29,8 @@ const FloatingVotingButton: React.FC<FloatingVotingButtonProps> = ({ onClick }) 
         if (!isMounted) return;
         
         setHasActiveVotings(result.hasActiveVotings);
-        setDaysRemaining(result.daysRemaining);
+        setFechaFin(result.closestVoting?.fecha_fin ?? null);
+        setAhora(new Date());
         
         // Mostrar el botón con animación de entrada
         if (result.hasActiveVotings) {
@@ -51,7 +60,12 @@ const FloatingVotingButton: React.FC<FloatingVotingButtonProps> = ({ onClick }) 
     };
   }, []);
 
-  if (!hasActiveVotings) return null;
+  if (!hasActiveVotings || !fechaFin) return null;
+
+  // Si se cierra con la página abierta, el botón desaparece sin esperar a la
+  // siguiente comprobación, en vez de quedarse con el contador a cero.
+  const restante = calcularTiempoRestante(fechaFin, ahora);
+  if (restante.finalizado) return null;
 
   return (
     <button
@@ -79,7 +93,7 @@ const FloatingVotingButton: React.FC<FloatingVotingButtonProps> = ({ onClick }) 
           {/* Badge con contador de días */}
           <div className="absolute -top-2 -right-2 min-w-[32px] h-8 px-2 bg-gradient-to-r from-red-600 to-red-700 border-2 border-white rounded-full flex items-center justify-center shadow-lg animate-pulse">
             <span className="text-xs font-black text-white">
-              {daysRemaining}d
+              {restante.corto}
             </span>
           </div>
 
@@ -91,7 +105,7 @@ const FloatingVotingButton: React.FC<FloatingVotingButtonProps> = ({ onClick }) 
         <div className="absolute bottom-full right-0 mb-3 px-4 py-2 bg-slate-900 text-white text-sm font-semibold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-            <span>Votación activa - {daysRemaining} {daysRemaining === 1 ? 'día' : 'días'} restantes</span>
+            <span>Votación activa - {restante.texto}</span>
           </div>
           {/* Flecha del tooltip */}
           <div className="absolute top-full right-6 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-slate-900"></div>

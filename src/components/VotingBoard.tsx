@@ -9,6 +9,7 @@ import {
   ResultadoVotacion
 } from '../services/votingDatabase';
 import { getCurrentUser } from '../services/sessionService';
+import { calcularTiempoRestante } from '../utils/tiempoRestante';
 import { trackInteraction, createSectionTimeTracker } from '../services/analyticsService';
 
 interface VotingBoardProps {
@@ -150,21 +151,6 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
     });
   };
 
-  const getTiempoRestante = (fechaFin: string) => {
-    const now = new Date();
-    const fin = new Date(fechaFin);
-    const diff = fin.getTime() - now.getTime();
-    
-    if (diff <= 0) return 'Finalizada';
-    
-    const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const horas = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
-    if (dias > 0) return `${dias} día${dias > 1 ? 's' : ''} restantes`;
-    if (horas > 0) return `${horas} hora${horas > 1 ? 's' : ''} restantes`;
-    return 'Menos de 1 hora';
-  };
-
   const getTipoIcon = (tipo: string) => {
     const icons = {
       votacion: '🗳️',
@@ -244,7 +230,7 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
                 <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm">
                   <div className="flex items-center gap-2 text-gray-300">
                     <Calendar className="w-4 h-4" />
-                    <span>{getTiempoRestante(votacion.fecha_fin)}</span>
+                    <span>{calcularTiempoRestante(votacion.fecha_fin).texto}</span>
                   </div>
                   {votacion.multiple_respuestas && (
                     <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 border border-blue-500/50 rounded-full">
