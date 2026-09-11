@@ -3,6 +3,7 @@ import { useNotifications } from './ui/NotificationProvider';
 import { BarChart3, CheckCircle, Calendar, Users, AlertCircle } from 'lucide-react';
 import {
   getVotacionesActivas,
+  getVotacionesPublicadas,
   emitirVoto,
   getResultadosVotacion,
   VotacionCompleta,
@@ -14,9 +15,16 @@ import { trackInteraction, createSectionTimeTracker } from '../services/analytic
 
 interface VotingBoardProps {
   onLoginRequired?: () => void;
+  /**
+   * Pinta una sola votación: la del enlace directo de los correos y de Telegram
+   * (`/votacion/<id>`). Cambia también de dónde se leen los datos — las
+   * publicadas en vez de solo las activas —, porque el aviso de resultados llega
+   * cuando la votación ya ha cerrado y ese enlace tiene que seguir abriéndola.
+   */
+  soloVotacionId?: string;
 }
 
-const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
+const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired, soloVotacionId }) => {
   const { notify, alert } = useNotifications();
   const [votaciones, setVotaciones] = useState<VotacionCompleta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +46,9 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
 
   const loadVotaciones = async () => {
     setLoading(true);
-    const data = await getVotacionesActivas();
+    const data = soloVotacionId
+      ? (await getVotacionesPublicadas()).filter(v => v.id === soloVotacionId)
+      : await getVotacionesActivas();
     setVotaciones(data);
     
     // Cargar resultados para votaciones con resultados públicos
@@ -169,17 +179,34 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
   }
 
   if (votaciones.length === 0) {
+    // Un enlace que no lleva a ninguna votación necesita decir otra cosa que la
+    // portada sin votaciones abiertas: quien llega aquí viene de un correo suyo.
     return (
-      <div className="text-center py-8 md:py-16 bg-slate-800/30 rounded-xl md:rounded-2xl border border-slate-700">
+      <div className="text-center py-8 md:py-16 bg-slate-800/30 rounded-xl md:rounded-2xl border border-slate-700 px-4">
         <BarChart3 className="w-12 h-12 md:w-20 md:h-20 text-gray-500 mx-auto mb-3 md:mb-4" />
-        <h3 className="text-lg md:text-2xl font-bold text-white mb-2">No hay votaciones activas</h3>
-        <p className="text-sm md:text-base text-gray-400">Vuelve pronto para participar en futuras votaciones</p>
+        <h3 className="text-lg md:text-2xl font-bold text-white mb-2">
+          {soloVotacionId ? 'Esta votación ya no está disponible' : 'No hay votaciones activas'}
+        </h3>
+        <p className="text-sm md:text-base text-gray-400">
+          {soloVotacionId
+            ? 'Puede que se haya retirado o que el enlace no sea correcto.'
+            : 'Vuelve pronto para participar en futuras votaciones'}
+        </p>
+        {soloVotacionId && (
+          <a
+            href="/#votaciones-section"
+            className="inline-block mt-5 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl transition-colors"
+          >
+            Ver las votaciones abiertas
+          </a>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-6 md:space-y-8">
+      {!soloVotacionId && (
       <div className="text-center mb-8 md:mb-12">
         <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 mb-3 md:mb-4">
           Votaciones Activas
@@ -188,11 +215,14 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
           Participa en las decisiones del movimiento. Tu voz cuenta.
         </p>
       </div>
+      )}
 
       <div className="grid gap-6 md:gap-8">
         {votaciones.map((votacion) => {
           const yaVoto = votacion.usuario_ya_voto;
-          const puedeVotar = !yaVoto;
+          // `published` trae `estado`; `active` no, porque allí todas están abiertas.
+          const abierta = votacion.estado ? votacion.estado === 'activa' : true;
+          const puedeVotar = !yaVoto && abierta;
           const selected = selectedOptions[votacion.id] || [];
           const mostrarResultados = showResults[votacion.id] && votacion.resultados_publicos;
           const resultadosVotacion = resultados[votacion.id] || [];
@@ -278,6 +308,16 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired }) => {
                   >
                     {votando === votacion.id ? 'Registrando voto...' : 'Votar'}
                   </button>
+                </div>
+              )}
+
+              {/* Llegar tarde (o pronto) tiene que explicarse: si no, la papeleta
+                  aparece sin opciones y parece rota. */}
+              {!abierta && !yaVoto && (
+                <div className="p-4 md:p-6 text-center text-sm md:text-base text-gray-300">
+                  {votacion.estado === 'programada'
+                    ? 'Esta votación todavía no está abierta.'
+                    : 'Esta votación ya ha finalizado, no se pueden emitir más votos.'}
                 </div>
               )}
 

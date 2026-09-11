@@ -38,6 +38,22 @@ function inputLocalAIso(valor: string): string {
   return isNaN(d.getTime()) ? valor : d.toISOString();
 }
 
+/**
+ * Enlace que va en el correo y en el mensaje de Telegram. Lleva a la papeleta de
+ * esa votación concreta (`/votacion/<id>`), no a la portada.
+ *
+ * Hasta ahora era `https://www.sepeiunido.org/#voting`, y ese ancla **no existe**
+ * en la web (la sección de la portada es `votaciones-section`): el botón "Votar
+ * ahora" dejaba al usuario en lo alto de la portada, buscando la votación a mano.
+ *
+ * Es un enlace normal, sin token ni identidad: abre la papeleta, y para emitir el
+ * voto sigue haciendo falta la sesión del usuario. Reenviar este correo no permite
+ * votar en nombre de nadie.
+ */
+function urlVotacion(id: string): string {
+  return `https://www.sepeiunido.org/votacion/${id}`;
+}
+
 function isoAInputLocal(iso: string): string {
   if (!iso) return '';
   const d = new Date(iso);
@@ -221,7 +237,7 @@ const VotingManager: React.FC = () => {
             tipo: pendingVotingData.tipo,
             total_votos: pendingVotingData.total_votos,
             resultados: pendingVotingData.resultados,
-            url: `https://www.sepeiunido.org/#voting`
+            url: urlVotacion(pendingVotingData.id)
           }
         );
       } else {
@@ -232,7 +248,7 @@ const VotingManager: React.FC = () => {
             titulo: pendingVotingData.titulo,
             descripcion: pendingVotingData.descripcion,
             fecha_fin: pendingVotingData.fecha_fin,
-            url: `https://www.sepeiunido.org/#voting`
+            url: urlVotacion(pendingVotingData.id)
           }
         );
       }
@@ -268,7 +284,7 @@ const VotingManager: React.FC = () => {
                 descripcion: pendingVotingData.descripcion,
                 total_votos: pendingVotingData.total_votos,
                 resultados: pendingVotingData.resultados,
-                url: `https://www.sepeiunido.org/#voting`
+                url: urlVotacion(pendingVotingData.id)
               }
             );
           } else {
@@ -278,7 +294,7 @@ const VotingManager: React.FC = () => {
                 titulo: pendingVotingData.titulo,
                 descripcion: pendingVotingData.descripcion,
                 fecha_fin: pendingVotingData.fecha_fin,
-                url: `https://www.sepeiunido.org/#voting`
+                url: urlVotacion(pendingVotingData.id)
               }
             );
           }
