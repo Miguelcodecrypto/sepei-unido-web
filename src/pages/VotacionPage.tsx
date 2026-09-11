@@ -25,6 +25,9 @@ const VotacionPage: React.FC = () => {
   // Cambiarla remonta el tablero: tras iniciar sesión hay que volver a pedir la
   // votación, que ahora sí dirá si esta persona ya había votado.
   const [sesionKey, setSesionKey] = useState(0);
+  // Cuando no hay papeleta, el propio tablero ya ofrece ir a las votaciones
+  // abiertas: repetir el enlace justo debajo sobra.
+  const [hayPapeleta, setHayPapeleta] = useState(true);
 
   useEffect(() => {
     document.title = 'Votación · SEPEI UNIDO';
@@ -81,17 +84,20 @@ const VotacionPage: React.FC = () => {
           key={sesionKey}
           soloVotacionId={id}
           onLoginRequired={() => setShowLogin(true)}
+          onCargado={cantidad => setHayPapeleta(cantidad > 0)}
         />
 
-        <div className="mt-10 text-center">
-          <a
-            href="/#votaciones-section"
-            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-orange-400 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Ver todas las votaciones
-          </a>
-        </div>
+        {hayPapeleta && (
+          <div className="mt-10 text-center">
+            <a
+              href="/#votaciones-section"
+              className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-orange-400 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Ver todas las votaciones
+            </a>
+          </div>
+        )}
       </main>
 
       {showLogin && (

@@ -22,9 +22,12 @@ interface VotingBoardProps {
    * cuando la votación ya ha cerrado y ese enlace tiene que seguir abriéndola.
    */
   soloVotacionId?: string;
+  /** Cuántas votaciones han quedado en pantalla tras cargar. El contenedor lo
+   *  usa para no repetir un "volver" que el propio tablero ya está ofreciendo. */
+  onCargado?: (cantidad: number) => void;
 }
 
-const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired, soloVotacionId }) => {
+const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired, soloVotacionId, onCargado }) => {
   const { notify, alert } = useNotifications();
   const [votaciones, setVotaciones] = useState<VotacionCompleta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +64,7 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired, soloVotacion
     }
     setResultados(newResultados);
     setLoading(false);
+    onCargado?.(data.length);
   };
 
   const handleOptionSelect = (votacionId: string, opcionId: string, multipleRespuestas: boolean) => {
