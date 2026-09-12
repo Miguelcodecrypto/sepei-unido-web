@@ -4,6 +4,10 @@
  * el navegador y las mandaba a `/api/send-email` con destinatario y HTML libres,
  * de modo que ese endpoint tenía que aceptar envíos sin autenticar — un open relay
  * con el que cualquiera podía escribir a quien quisiera desde noreply@sepeiunido.org.
+ *
+ * ⚠️ Los botones llevan el color en `bgcolor` del <td> y repetido en
+ * `background-color`, nunca solo en un `linear-gradient`: Yahoo Mail y Outlook de
+ * escritorio no lo pintan y el botón se queda blanco sobre blanco, invisible.
  * Ahora el cliente solo pide la acción (crear propuesta, registrarse) y es el
  * servidor quien decide a quién escribe y con qué contenido.
  */
@@ -248,9 +252,15 @@ export function generateSuggestionNotificationHTML(data: SuggestionEmailData): s
               <table role="presentation" style="width: 100%; margin: 30px 0 0 0;">
                 <tr>
                   <td align="center">
-                    <a href="https://www.sepeiunido.org" style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #dc2626 100%); color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 6px; font-weight: bold; font-size: 16px;">
-                      Ver en Panel de Administración
-                    </a>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" bgcolor="#dc2626" style="border-radius: 6px; background-color: #dc2626; background: linear-gradient(135deg, #f59e0b 0%, #dc2626 100%);">
+                          <a href="https://www.sepeiunido.org" style="display: inline-block; padding: 15px 40px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px;">
+                            Ver en Panel de Administración
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>
@@ -383,9 +393,15 @@ export function generateNewUserNotificationHTML(data: NewUserNotificationData): 
               <table role="presentation" style="width: 100%; margin: 30px 0 0 0;">
                 <tr>
                   <td align="center">
-                    <a href="https://www.sepeiunido.org" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 6px; font-weight: bold; font-size: 16px;">
-                      Ver en Panel de Administración
-                    </a>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" bgcolor="#059669" style="border-radius: 6px; background-color: #059669; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                          <a href="https://www.sepeiunido.org" style="display: inline-block; padding: 15px 40px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px;">
+                            Ver en Panel de Administración
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>

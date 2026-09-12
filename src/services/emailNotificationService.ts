@@ -400,16 +400,34 @@ function generateVotingEmailHTML(
                 </p>
               </div>
 
-              <!-- CTA Button -->
+              <!-- CTA Button.
+                   El color va en el atributo bgcolor del td y repetido en
+                   background-color, NO solo en un gradiente: Yahoo Mail y Outlook de
+                   escritorio no entienden linear-gradient, así que el botón se quedaba
+                   sin fondo y con el texto blanco encima: invisible. El gradiente se
+                   mantiene detrás, como mejora para quien sí lo pinta. -->
               <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                 <tr>
                   <td align="center">
-                    <a href="${voting.url}" style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #dc2626 100%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-size: 16px; font-weight: bold;">
-                      Votar ahora
-                    </a>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" bgcolor="#dc2626" style="border-radius: 6px; background-color: #dc2626; background: linear-gradient(135deg, #f59e0b 0%, #dc2626 100%);">
+                          <a href="${voting.url}" style="display: inline-block; padding: 14px 40px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold;">
+                            Votar ahora
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>
+
+              <!-- La dirección, escrita. Es la red de seguridad: si un cliente de
+                   correo estropea el botón, el enlace sigue estando a la vista. -->
+              <p style="color: #6b7280; font-size: 13px; text-align: center; margin: -10px 0 20px 0; word-break: break-all;">
+                Si el botón no funciona, copia esta dirección en tu navegador:<br />
+                <a href="${voting.url}" style="color: #2563eb;">${voting.url}</a>
+              </p>
 
               <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0 0 0; border-radius: 4px;">
                 <p style="color: #1e40af; margin: 0; font-size: 14px;">
@@ -626,9 +644,15 @@ function generateVotingResultsEmailHTML(
               <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0 0 0;">
                 <tr>
                   <td align="center">
-                    <a href="${results.url}" style="display: inline-block; background: linear-gradient(135deg, #16a34a 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-size: 16px; font-weight: bold;">
-                      Ver detalles completos
-                    </a>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" bgcolor="#16a34a" style="border-radius: 6px; background-color: #16a34a; background: linear-gradient(135deg, #16a34a 0%, #059669 100%);">
+                          <a href="${results.url}" style="display: inline-block; padding: 14px 40px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold;">
+                            Ver detalles completos
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>
