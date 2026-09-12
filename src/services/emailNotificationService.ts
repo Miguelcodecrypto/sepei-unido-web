@@ -2,6 +2,7 @@
  * Servicio de notificaciones por email para anuncios y votaciones
  * Permite enviar emails masivos a usuarios seleccionados
  */
+import { documento, boton, tarjeta, enlaceDeRespaldo, COLOR, FUENTE } from '../../api/_lib/emailTheme';
 import DOMPurify from 'dompurify';
 import { getAdminToken } from './authService';
 
@@ -65,6 +66,8 @@ function escapeHtml(text: string): string {
 export interface VotingNotificationData {
   titulo: string;
   descripcion: string;
+  /** Hace falta para saber si la votación ya está abierta cuando sale el correo. */
+  fecha_inicio: string;
   fecha_fin: string;
   url: string;
 }
@@ -208,111 +211,63 @@ export async function sendVotingNotification(
 /**
  * HTML para notificación de anuncio
  */
-function generateAnnouncementEmailHTML(
+export function generateAnnouncementEmailHTML(
   recipient: EmailRecipient,
   announcement: AnnouncementNotificationData
 ): string {
-  const categoryColors: Record<string, { bg: string; text: string }> = {
-    importante: { bg: '#dc2626', text: '#ffffff' },
-    informacion: { bg: '#3b82f6', text: '#ffffff' },
-    evento: { bg: '#16a34a', text: '#ffffff' },
-    urgente: { bg: '#f59e0b', text: '#ffffff' },
+  // El color de la píldora lo marca la categoría del anuncio, igual que en la web.
+  const colorCategoria: Record<string, string> = {
+    importante: COLOR.rojo,
+    urgente: COLOR.naranja,
+    evento: COLOR.verde,
+    informacion: COLOR.azul,
   };
-
-  const color = categoryColors[announcement.categoria] || categoryColors.informacion;
+  const acento = colorCategoria[announcement.categoria] || COLOR.azul;
 
   const contenidoHtml = announcement.esHtml
     ? sanitizeForEmail(announcement.descripcion)
-    : `<p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin: 0; white-space: pre-line;">${escapeHtml(announcement.descripcion)}</p>`;
+    : `<p style="margin: 0; font-family: ${FUENTE}; font-size: 15px; line-height: 1.65; color: ${COLOR.tintaSuave}; white-space: pre-line;">${escapeHtml(announcement.descripcion)}</p>`;
 
-  const attachmentsHtml = (announcement.attachments || [])
+  const adjuntos = (announcement.attachments || [])
     .map(
       (a) => `
-                    <a href="${escapeHtml(a.url)}" style="display: inline-block; background-color: #16a34a; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 15px; font-weight: bold; margin: 0 0 10px 0;">
-                      📄 ${escapeHtml(a.filename)}
-                    </a>
-                    <br>`
-    )
-    .join('');
-
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-          
-          <!-- Header -->
-          <tr>
-            <td style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 40px 20px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 28px;">📢 SEPEI UNIDO</h1>
-              <p style="color: #e0e7ff; margin: 10px 0 0 0; font-size: 16px;">Nuevo Anuncio</p>
-            </td>
-          </tr>
-
-          <!-- Content -->
-          <tr>
-            <td style="padding: 40px 30px;">
-              <p style="color: #4b5563; font-size: 16px; margin: 0 0 20px 0;">
-                Hola <strong>${escapeHtml(recipient.nombre)}</strong>,
-              </p>
-
-              <!-- Categoría Badge -->
-              <div style="display: inline-block; background-color: ${color.bg}; color: ${color.text}; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; margin: 0 0 20px 0;">
-                ${escapeHtml(announcement.categoria)}
-              </div>
-
-              <!-- Anuncio Box -->
-              <div style="background-color: #f9fafb; border-left: 4px solid #3b82f6; padding: 20px; margin: 20px 0; border-radius: 4px;">
-                <h2 style="color: #1f2937; margin: 0 0 15px 0; font-size: 20px;">${escapeHtml(announcement.titulo)}</h2>
-                ${contenidoHtml}
-              </div>
-
-              ${attachmentsHtml ? `
-              <!-- Adjuntos -->
-              <div style="margin: 0 0 20px 0;">
-                ${attachmentsHtml}
-              </div>
-              ` : ''}
-
-              <!-- CTA Button -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 10px 0;">
                 <tr>
-                  <td align="center">
-                    <a href="${escapeHtml(announcement.url)}" style="display: inline-block; background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-size: 16px; font-weight: bold;">
-                      📖 Ver en la web
+                  <td bgcolor="#f8fafc" style="background-color: #f8fafc; border: 1px solid ${COLOR.borde}; border-radius: 8px;">
+                    <a href="${escapeHtml(a.url)}" style="display: inline-block; padding: 12px 20px; font-family: ${FUENTE}; font-size: 14px; font-weight: bold; color: ${COLOR.azul}; text-decoration: none;">
+                      Descargar ${escapeHtml(a.filename)}
                     </a>
                   </td>
                 </tr>
-              </table>
-            </td>
-          </tr>
+              </table>`
+    )
+    .join('');
 
-          <!-- Footer -->
-          <tr>
-            <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
-              <p style="color: #6b7280; font-size: 13px; margin: 0 0 10px 0;">
-                Has recibido este email porque estás registrado en SEPEI UNIDO
+  const contenido = `
+              <p style="margin: 0 0 8px 0; font-family: ${FUENTE}; font-size: 22px; font-weight: bold; line-height: 1.3; color: ${COLOR.tinta};">
+                ${escapeHtml(announcement.titulo)}
               </p>
-              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                © ${new Date().getFullYear()} SEPEI UNIDO
+              <p style="margin: 0 0 26px 0; font-family: ${FUENTE}; font-size: 15px; line-height: 1.6; color: ${COLOR.tintaSuave};">
+                Hola <strong style="color: ${COLOR.tinta};">${escapeHtml(recipient.nombre)}</strong>, hay novedades en el tablón.
               </p>
-            </td>
-          </tr>
 
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-  `;
+              ${tarjeta(contenidoHtml, acento)}
+
+              ${adjuntos ? `
+              <p style="margin: 0 0 12px 0; font-family: ${FUENTE}; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.6px; color: ${COLOR.tintaTenue};">Documentos adjuntos</p>
+              ${adjuntos}
+              <div style="height: 16px; line-height: 16px; font-size: 0;">&nbsp;</div>` : ''}
+
+              ${boton(escapeHtml(announcement.url), 'Ver en la web', acento)}
+              ${enlaceDeRespaldo(announcement.url)}`;
+
+  return documento({
+    preheader: `${announcement.titulo}`,
+    etiqueta: announcement.categoria || 'Anuncio',
+    tono: 'anuncio',
+    contenido,
+    motivo: 'Recibes este correo porque estás registrado en SEPEI UNIDO.',
+  });
 }
 
 /**
@@ -347,156 +302,158 @@ ${attachmentsTexto ? `\n${attachmentsTexto}\n` : ''}
 }
 
 /**
- * HTML para notificación de votación
+ * HTML para notificación de votación.
+ *
+ * El correo se adapta a si la votación está abierta o todavía no: anunciar una
+ * con antelación es útil —da tiempo a que la gente se organice— pero un botón
+ * que dice "Votar ahora" y lleva a una pantalla que responde "todavía no está
+ * abierta" parece que la web falla.
+ *
+ * Un correo es una foto fija: si se avisa el viernes de una votación que abre el
+ * lunes y alguien lo lee el miércoles, el texto seguirá diciendo "se abre el
+ * lunes". Por eso el botón siempre lleva a la papeleta, que sí está viva, y el
+ * texto no promete más de la cuenta.
  */
-function generateVotingEmailHTML(
+export function generateVotingEmailHTML(
   recipient: EmailRecipient,
   voting: VotingNotificationData
 ): string {
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0;">
-</head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-          
-          <!-- Header -->
-          <tr>
-            <td style="background: linear-gradient(135deg, #f59e0b 0%, #dc2626 100%); padding: 40px 20px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 28px;">🗳️ SEPEI UNIDO</h1>
-              <p style="color: #fef3c7; margin: 10px 0 0 0; font-size: 16px;">Nueva Votación</p>
-            </td>
-          </tr>
+  const formato: Intl.DateTimeFormatOptions = {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  };
+  const apertura = new Date(voting.fecha_inicio).toLocaleDateString('es-ES', formato);
+  const cierre = new Date(voting.fecha_fin).toLocaleDateString('es-ES', formato);
 
-          <!-- Content -->
-          <tr>
-            <td style="padding: 40px 30px;">
-              <p style="color: #4b5563; font-size: 16px; margin: 0 0 20px 0;">
-                Hola <strong>${recipient.nombre}</strong>,
+  const ahora = Date.now();
+  const estado: 'programada' | 'activa' | 'finalizada' =
+    new Date(voting.fecha_inicio).getTime() > ahora
+      ? 'programada'
+      : new Date(voting.fecha_fin).getTime() < ahora
+        ? 'finalizada'
+        : 'activa';
+
+  const copia = {
+    programada: {
+      etiqueta: 'Votación programada',
+      titular: 'Se abre una votación',
+      entradilla: 'apunta la fecha: podrás votar en cuanto se abra.',
+      plazo: `Se abre el ${apertura} · se vota hasta el ${cierre}`,
+      colorPlazo: COLOR.tintaSuave,
+      textoBoton: 'Ver la votación',
+      preheader: `${voting.titulo} · se abre el ${apertura}`,
+    },
+    activa: {
+      etiqueta: 'Nueva votación',
+      titular: 'Se ha abierto una votación',
+      entradilla: 'tu voto cuenta en esta decisión del movimiento.',
+      plazo: `Cierra el ${cierre}`,
+      colorPlazo: COLOR.rojo,
+      textoBoton: 'Votar ahora',
+      preheader: `${voting.titulo} · vota antes del ${cierre}`,
+    },
+    finalizada: {
+      etiqueta: 'Votación cerrada',
+      titular: 'Una votación que ya ha terminado',
+      entradilla: 'esta votación ya está cerrada y no admite más votos.',
+      plazo: `Se cerró el ${cierre}`,
+      colorPlazo: COLOR.tintaSuave,
+      textoBoton: 'Ver la votación',
+      preheader: `${voting.titulo} · cerrada el ${cierre}`,
+    },
+  }[estado];
+
+  const contenido = `
+              <p style="margin: 0 0 8px 0; font-family: ${FUENTE}; font-size: 22px; font-weight: bold; line-height: 1.3; color: ${COLOR.tinta};">
+                ${copia.titular}
+              </p>
+              <p style="margin: 0 0 26px 0; font-family: ${FUENTE}; font-size: 15px; line-height: 1.6; color: ${COLOR.tintaSuave};">
+                Hola <strong style="color: ${COLOR.tinta};">${escapeHtml(recipient.nombre)}</strong>, ${copia.entradilla}
               </p>
 
-              <p style="color: #1f2937; font-size: 18px; font-weight: bold; margin: 0 0 15px 0;">
-                Se ha abierto una nueva votación en SEPEI UNIDO
-              </p>
+              ${tarjeta(`
+                    <p style="margin: 0 0 10px 0; font-family: ${FUENTE}; font-size: 18px; font-weight: bold; line-height: 1.35; color: ${COLOR.tinta};">${escapeHtml(voting.titulo)}</p>
+                    <p style="margin: 0 0 16px 0; font-family: ${FUENTE}; font-size: 15px; line-height: 1.65; color: ${COLOR.tintaSuave}; white-space: pre-line;">${escapeHtml(voting.descripcion || '')}</p>
+                    <p style="margin: 0; font-family: ${FUENTE}; font-size: 13px; font-weight: bold; color: ${copia.colorPlazo};">
+                      ${copia.plazo}
+                    </p>`)}
 
-              <!-- Votación Box -->
-              <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px 0; border-radius: 4px;">
-                <h2 style="color: #92400e; margin: 0 0 15px 0; font-size: 20px;">${voting.titulo}</h2>
-                <p style="color: #78350f; font-size: 15px; line-height: 1.6; margin: 0 0 15px 0; white-space: pre-line;">${voting.descripcion}</p>
-                <p style="color: #dc2626; font-size: 14px; margin: 0; font-weight: bold;">
-                  ⏰ Cierra: ${new Date(voting.fecha_fin).toLocaleDateString('es-ES', { 
-                    day: 'numeric', 
-                    month: 'long', 
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </p>
-              </div>
+              ${boton(voting.url, copia.textoBoton, estado === 'activa' ? COLOR.rojo : COLOR.tinta)}
+              ${enlaceDeRespaldo(voting.url)}
 
-              <!-- CTA Button.
-                   El color va en el atributo bgcolor del td y repetido en
-                   background-color, NO solo en un gradiente: Yahoo Mail y Outlook de
-                   escritorio no entienden linear-gradient, así que el botón se quedaba
-                   sin fondo y con el texto blanco encima: invisible. El gradiente se
-                   mantiene detrás, como mejora para quien sí lo pinta. -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
-                <tr>
-                  <td align="center">
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                      <tr>
-                        <td align="center" bgcolor="#dc2626" style="border-radius: 6px; background-color: #dc2626; background: linear-gradient(135deg, #f59e0b 0%, #dc2626 100%);">
-                          <a href="${voting.url}" style="display: inline-block; padding: 14px 40px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold;">
-                            Votar ahora
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
+              ${estado === 'finalizada' ? '' : `
+              <p style="margin: 26px 0 0 0; font-family: ${FUENTE}; font-size: 13px; line-height: 1.6; color: ${COLOR.tintaTenue}; text-align: center;">
+                El voto es secreto: se guarda quién ha participado, pero no qué ha votado.
+              </p>`}`;
 
-              <!-- La dirección, escrita. Es la red de seguridad: si un cliente de
-                   correo estropea el botón, el enlace sigue estando a la vista. -->
-              <p style="color: #6b7280; font-size: 13px; text-align: center; margin: -10px 0 20px 0; word-break: break-all;">
-                Si el botón no funciona, copia esta dirección en tu navegador:<br />
-                <a href="${voting.url}" style="color: #2563eb;">${voting.url}</a>
-              </p>
-
-              <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0 0 0; border-radius: 4px;">
-                <p style="color: #1e40af; margin: 0; font-size: 14px;">
-                  💡 <strong>Recuerda:</strong> Tu voto es importante. Asegúrate de votar antes de que cierre la votación.
-                </p>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
-              <p style="color: #6b7280; font-size: 13px; margin: 0 0 10px 0;">
-                Has recibido este email porque estás registrado en SEPEI UNIDO
-              </p>
-              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                © ${new Date().getFullYear()} SEPEI UNIDO
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-  `;
+  return documento({
+    preheader: copia.preheader,
+    etiqueta: copia.etiqueta,
+    tono: 'votacion',
+    contenido,
+    motivo: 'Recibes este correo porque estás registrado en SEPEI UNIDO.',
+  });
 }
 
-/**
- * Texto plano para votación
- */
 function generateVotingEmailText(
   recipient: EmailRecipient,
   voting: VotingNotificationData
 ): string {
+  const formato: Intl.DateTimeFormatOptions = {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  };
+  const apertura = new Date(voting.fecha_inicio).toLocaleDateString('es-ES', formato);
+  const cierre = new Date(voting.fecha_fin).toLocaleDateString('es-ES', formato);
+
+  const ahora = Date.now();
+  // Mismo criterio que la versión en HTML: el texto no puede prometer un voto
+  // que todavía no se puede emitir.
+  const programada = new Date(voting.fecha_inicio).getTime() > ahora;
+  const finalizada = new Date(voting.fecha_fin).getTime() < ahora;
+
+  const titular = programada
+    ? 'Se abre una votación en SEPEI UNIDO'
+    : finalizada
+      ? 'Una votación que ya ha terminado'
+      : 'Se ha abierto una votación en SEPEI UNIDO';
+
+  const plazo = programada
+    ? `Se abre: ${apertura}\nSe vota hasta: ${cierre}`
+    : finalizada
+      ? `Se cerró: ${cierre}`
+      : `Cierra: ${cierre}`;
+
+  const llamada = finalizada ? 'Ver la votación' : programada ? 'Ver la votación' : 'Vota aquí';
+
   return `
-SEPEI UNIDO - Nueva Votación
+SEPEI UNIDO
 
 Hola ${recipient.nombre},
 
-Se ha abierto una nueva votación en SEPEI UNIDO
+${titular}
 
 ${voting.titulo}
 ${'='.repeat(voting.titulo.length)}
 
 ${voting.descripcion}
 
-⏰ Cierra: ${new Date(voting.fecha_fin).toLocaleDateString('es-ES', { 
-  day: 'numeric', 
-  month: 'long', 
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit'
-})}
+${plazo}
 
-Vota aquí: ${voting.url}
-
-💡 Tu voto es importante. Asegúrate de votar antes de que cierre.
+${llamada}: ${voting.url}
+${finalizada ? '' : '\nEl voto es secreto: se guarda quién ha participado, pero no qué ha votado.'}
 
 ---
 © ${new Date().getFullYear()} SEPEI UNIDO
   `;
 }
 
-/**
- * Enviar notificación de resultados de votación
- */
 export async function sendVotingResultsNotification(
   recipients: EmailRecipient[],
   results: VotingResultsNotificationData
@@ -555,136 +512,82 @@ export async function sendVotingResultsNotification(
 /**
  * HTML para notificación de resultados
  */
-function generateVotingResultsEmailHTML(
+export function generateVotingResultsEmailHTML(
   recipient: EmailRecipient,
   results: VotingResultsNotificationData
 ): string {
   const ganador = results.resultados[0];
-  
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-          
-          <tr>
-            <td style="background: linear-gradient(135deg, #16a34a 0%, #059669 100%); padding: 40px 20px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 28px;">📊 SEPEI UNIDO</h1>
-              <p style="color: #d1fae5; margin: 10px 0 0 0; font-size: 16px;">Resultados de ${results.tipo}</p>
-            </td>
-          </tr>
 
-          <tr>
-            <td style="padding: 40px 30px;">
-              <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">
-                ${results.titulo}
-              </h2>
-              
-              <p style="color: #6b7280; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
-                Hola ${recipient.nombre},
-              </p>
+  // Las barras van en tablas, no en divs con flex ni gradientes: Outlook ignora
+  // `display: flex` y no pinta `linear-gradient`, así que con divs las barras
+  // llegaban desmontadas o directamente invisibles.
+  const barras = results.resultados
+    .map((resultado, index) => {
+      const pct = Math.round(resultado.porcentaje * 10) / 10;
+      const relleno = Math.max(0, Math.min(100, pct));
+      const color = index === 0 ? COLOR.verde : COLOR.azul;
 
-              <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
-                La votación ha finalizado. Aquí están los resultados oficiales:
-              </p>
-
-              ${results.descripcion ? `
-              <div style="background-color: #f9fafb; border-left: 4px solid #3b82f6; padding: 15px; margin: 0 0 30px 0; border-radius: 4px;">
-                <p style="color: #374151; margin: 0; font-size: 14px;">
-                  ${results.descripcion}
-                </p>
-              </div>
-              ` : ''}
-
-              <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 20px; margin: 0 0 20px 0; border-radius: 4px;">
-                <h3 style="color: #166534; margin: 0 0 15px 0; font-size: 18px;">
-                  🏆 Opción ganadora
-                </h3>
-                <p style="color: #15803d; font-size: 20px; font-weight: bold; margin: 0;">
-                  ${ganador.opcion}
-                </p>
-                <p style="color: #16a34a; font-size: 16px; margin: 10px 0 0 0;">
-                  ${ganador.votos} votos (${ganador.porcentaje.toFixed(1)}%)
-                </p>
-              </div>
-
-              <div style="margin: 0 0 30px 0;">
-                <h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px;">
-                  📊 Todos los resultados
-                </h3>
-                ${results.resultados.map((resultado, index) => `
-                  <div style="margin: 0 0 15px 0; background-color: #f9fafb; border-radius: 8px; overflow: hidden;">
-                    <div style="padding: 15px;">
-                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="color: #1f2937; font-weight: bold; font-size: 16px;">${index + 1}. ${resultado.opcion}</span>
-                        <span style="color: #3b82f6; font-weight: bold; font-size: 16px;">${resultado.porcentaje.toFixed(1)}%</span>
-                      </div>
-                      <div style="background-color: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden;">
-                        <div style="background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); height: 100%; width: ${resultado.porcentaje}%; transition: width 0.3s;"></div>
-                      </div>
-                      <span style="color: #6b7280; font-size: 14px;">${resultado.votos} votos</span>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-
-              <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin: 0 0 20px 0; border-radius: 4px;">
-                <p style="color: #1e40af; margin: 0; font-size: 14px;">
-                  📈 Total de participantes: <strong>${results.total_votos}</strong>
-                </p>
-              </div>
-
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0 0 0;">
+      return `
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 18px 0;">
                 <tr>
-                  <td align="center">
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <td style="font-family: ${FUENTE}; font-size: 15px; font-weight: bold; color: ${COLOR.tinta}; padding: 0 0 6px 0;">
+                    ${index + 1}. ${escapeHtml(resultado.opcion)}
+                  </td>
+                  <td align="right" style="font-family: ${FUENTE}; font-size: 15px; font-weight: bold; color: ${color}; padding: 0 0 6px 0; white-space: nowrap;">
+                    ${pct.toFixed(1)}%
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2" style="padding: 0;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#e2e8f0" style="background-color: #e2e8f0; border-radius: 5px;">
                       <tr>
-                        <td align="center" bgcolor="#16a34a" style="border-radius: 6px; background-color: #16a34a; background: linear-gradient(135deg, #16a34a 0%, #059669 100%);">
-                          <a href="${results.url}" style="display: inline-block; padding: 14px 40px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold;">
-                            Ver detalles completos
-                          </a>
-                        </td>
+                        ${relleno > 0 ? `<td bgcolor="${color}" width="${relleno}%" style="background-color: ${color}; border-radius: 5px; font-size: 0; line-height: 0; height: 10px;">&nbsp;</td>` : ''}
+                        ${relleno < 100 ? `<td width="${100 - relleno}%" style="font-size: 0; line-height: 0; height: 10px;">&nbsp;</td>` : ''}
                       </tr>
                     </table>
                   </td>
                 </tr>
-              </table>
-            </td>
-          </tr>
+                <tr>
+                  <td colspan="2" style="font-family: ${FUENTE}; font-size: 13px; color: ${COLOR.tintaTenue}; padding: 5px 0 0 0;">
+                    ${resultado.votos} ${resultado.votos === 1 ? 'voto' : 'votos'}
+                  </td>
+                </tr>
+              </table>`;
+    })
+    .join('');
 
-          <tr>
-            <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
-              <p style="color: #6b7280; font-size: 13px; margin: 0 0 10px 0;">
-                Gracias por tu participación en SEPEI UNIDO
+  const contenido = `
+              <p style="margin: 0 0 8px 0; font-family: ${FUENTE}; font-size: 22px; font-weight: bold; line-height: 1.3; color: ${COLOR.tinta};">
+                ${escapeHtml(results.titulo)}
               </p>
-              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                © ${new Date().getFullYear()} SEPEI UNIDO. Todos los derechos reservados.
+              <p style="margin: 0 0 26px 0; font-family: ${FUENTE}; font-size: 15px; line-height: 1.6; color: ${COLOR.tintaSuave};">
+                Hola <strong style="color: ${COLOR.tinta};">${escapeHtml(recipient.nombre)}</strong>, la votación ha terminado. Estos son los resultados, con
+                <strong style="color: ${COLOR.tinta};">${results.total_votos} ${results.total_votos === 1 ? 'participante' : 'participantes'}</strong>.
               </p>
-              <p style="color: #9ca3af; font-size: 12px; margin: 10px 0 0 0;">
-                <a href="https://www.sepeiunido.org" style="color: #3b82f6; text-decoration: none;">www.sepeiunido.org</a>
-              </p>
-            </td>
-          </tr>
 
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-  `;
+              ${ganador ? tarjeta(`
+                    <p style="margin: 0 0 6px 0; font-family: ${FUENTE}; font-size: 12px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; color: ${COLOR.verde};">Opción más votada</p>
+                    <p style="margin: 0 0 4px 0; font-family: ${FUENTE}; font-size: 19px; font-weight: bold; color: ${COLOR.tinta};">${escapeHtml(ganador.opcion)}</p>
+                    <p style="margin: 0; font-family: ${FUENTE}; font-size: 14px; color: ${COLOR.tintaSuave};">${ganador.votos} ${ganador.votos === 1 ? 'voto' : 'votos'} · ${ganador.porcentaje.toFixed(1)}%</p>`, COLOR.verde) : ''}
+
+              <p style="margin: 0 0 16px 0; font-family: ${FUENTE}; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.6px; color: ${COLOR.tintaTenue};">
+                Todos los resultados
+              </p>
+              ${barras}
+
+              <div style="height: 10px; line-height: 10px; font-size: 0;">&nbsp;</div>
+              ${boton(results.url, 'Ver en la web', COLOR.verde)}
+              ${enlaceDeRespaldo(results.url)}`;
+
+  return documento({
+    preheader: `Resultados de ${results.titulo} · ${results.total_votos} ${results.total_votos === 1 ? 'participante' : 'participantes'}`,
+    etiqueta: `Resultados`,
+    tono: 'resultados',
+    contenido,
+    motivo: 'Recibes este correo porque estás registrado en SEPEI UNIDO.',
+  });
 }
 
-/**
- * Texto plano para notificación de resultados
- */
 function generateVotingResultsEmailText(
   recipient: EmailRecipient,
   results: VotingResultsNotificationData

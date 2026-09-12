@@ -247,6 +247,7 @@ const VotingManager: React.FC = () => {
           {
             titulo: pendingVotingData.titulo,
             descripcion: pendingVotingData.descripcion,
+            fecha_inicio: pendingVotingData.fecha_inicio,
             fecha_fin: pendingVotingData.fecha_fin,
             url: urlVotacion(pendingVotingData.id)
           }
@@ -293,6 +294,7 @@ const VotingManager: React.FC = () => {
               {
                 titulo: pendingVotingData.titulo,
                 descripcion: pendingVotingData.descripcion,
+                fecha_inicio: pendingVotingData.fecha_inicio,
                 fecha_fin: pendingVotingData.fecha_fin,
                 url: urlVotacion(pendingVotingData.id)
               }
@@ -331,7 +333,21 @@ const VotingManager: React.FC = () => {
     }
   };
 
-  const handleNotifyExistingVoting = (votacion: VotacionCompleta, type: 'new' | 'results') => {
+  const handleNotifyExistingVoting = async (votacion: VotacionCompleta, type: 'new' | 'results') => {
+    // Avisar de una votación ya cerrada como si fuera nueva casi siempre es un
+    // despiste: el correo anuncia una votación y quien lo abre no puede votar.
+    // Se avisa, pero no se prohíbe: puede querer recordarla a propósito.
+    if (type === 'new' && new Date() > new Date(votacion.fecha_fin)) {
+      const seguir = await confirm({
+        title: 'Esta votación ya ha terminado',
+        message: `Cerró el ${new Date(votacion.fecha_fin).toLocaleString('es-ES')}.\n\n`
+          + 'El aviso anuncia una votación, y quien lo abra no va a poder votar. '
+          + 'Si lo que querías era mandar el recuento, cancela y usa el botón de resultados.',
+        confirmLabel: 'Enviar de todas formas',
+      });
+      if (!seguir) return;
+    }
+
     setNotificationType(type);
     setNotifyingVotingId(votacion.id);
     
@@ -367,6 +383,7 @@ const VotingManager: React.FC = () => {
         titulo: votacion.titulo,
         descripcion: votacion.descripcion,
         tipo: votacion.tipo,
+        fecha_inicio: votacion.fecha_inicio,
         fecha_fin: votacion.fecha_fin
       });
       setShowNotificationModal(true);
