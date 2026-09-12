@@ -66,6 +66,8 @@ function escapeHtml(text: string): string {
 export interface VotingNotificationData {
   titulo: string;
   descripcion: string;
+  /** Hace falta para saber si la votación ya está abierta cuando sale el correo. */
+  fecha_inicio: string;
   fecha_fin: string;
   url: string;
 }
@@ -300,45 +302,96 @@ ${attachmentsTexto ? `\n${attachmentsTexto}\n` : ''}
 }
 
 /**
- * HTML para notificación de votación
+ * HTML para notificación de votación.
+ *
+ * El correo se adapta a si la votación está abierta o todavía no: anunciar una
+ * con antelación es útil —da tiempo a que la gente se organice— pero un botón
+ * que dice "Votar ahora" y lleva a una pantalla que responde "todavía no está
+ * abierta" parece que la web falla.
+ *
+ * Un correo es una foto fija: si se avisa el viernes de una votación que abre el
+ * lunes y alguien lo lee el miércoles, el texto seguirá diciendo "se abre el
+ * lunes". Por eso el botón siempre lleva a la papeleta, que sí está viva, y el
+ * texto no promete más de la cuenta.
  */
 export function generateVotingEmailHTML(
   recipient: EmailRecipient,
   voting: VotingNotificationData
 ): string {
-  const cierre = new Date(voting.fecha_fin).toLocaleDateString('es-ES', {
+  const formato: Intl.DateTimeFormatOptions = {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  });
+  };
+  const apertura = new Date(voting.fecha_inicio).toLocaleDateString('es-ES', formato);
+  const cierre = new Date(voting.fecha_fin).toLocaleDateString('es-ES', formato);
+
+  const ahora = Date.now();
+  const estado: 'programada' | 'activa' | 'finalizada' =
+    new Date(voting.fecha_inicio).getTime() > ahora
+      ? 'programada'
+      : new Date(voting.fecha_fin).getTime() < ahora
+        ? 'finalizada'
+        : 'activa';
+
+  const copia = {
+    programada: {
+      etiqueta: 'Votación programada',
+      titular: 'Se abre una votación',
+      entradilla: 'apunta la fecha: podrás votar en cuanto se abra.',
+      plazo: `Se abre el ${apertura} · se vota hasta el ${cierre}`,
+      colorPlazo: COLOR.tintaSuave,
+      textoBoton: 'Ver la votación',
+      preheader: `${voting.titulo} · se abre el ${apertura}`,
+    },
+    activa: {
+      etiqueta: 'Nueva votación',
+      titular: 'Se ha abierto una votación',
+      entradilla: 'tu voto cuenta en esta decisión del movimiento.',
+      plazo: `Cierra el ${cierre}`,
+      colorPlazo: COLOR.rojo,
+      textoBoton: 'Votar ahora',
+      preheader: `${voting.titulo} · vota antes del ${cierre}`,
+    },
+    finalizada: {
+      etiqueta: 'Votación cerrada',
+      titular: 'Una votación que ya ha terminado',
+      entradilla: 'esta votación ya está cerrada y no admite más votos.',
+      plazo: `Se cerró el ${cierre}`,
+      colorPlazo: COLOR.tintaSuave,
+      textoBoton: 'Ver la votación',
+      preheader: `${voting.titulo} · cerrada el ${cierre}`,
+    },
+  }[estado];
 
   const contenido = `
               <p style="margin: 0 0 8px 0; font-family: ${FUENTE}; font-size: 22px; font-weight: bold; line-height: 1.3; color: ${COLOR.tinta};">
-                Se ha abierto una votación
+                ${copia.titular}
               </p>
               <p style="margin: 0 0 26px 0; font-family: ${FUENTE}; font-size: 15px; line-height: 1.6; color: ${COLOR.tintaSuave};">
-                Hola <strong style="color: ${COLOR.tinta};">${escapeHtml(recipient.nombre)}</strong>, tu voto cuenta en esta decisión del movimiento.
+                Hola <strong style="color: ${COLOR.tinta};">${escapeHtml(recipient.nombre)}</strong>, ${copia.entradilla}
               </p>
 
               ${tarjeta(`
                     <p style="margin: 0 0 10px 0; font-family: ${FUENTE}; font-size: 18px; font-weight: bold; line-height: 1.35; color: ${COLOR.tinta};">${escapeHtml(voting.titulo)}</p>
                     <p style="margin: 0 0 16px 0; font-family: ${FUENTE}; font-size: 15px; line-height: 1.65; color: ${COLOR.tintaSuave}; white-space: pre-line;">${escapeHtml(voting.descripcion || '')}</p>
-                    <p style="margin: 0; font-family: ${FUENTE}; font-size: 13px; font-weight: bold; color: ${COLOR.rojo};">
-                      Cierra el ${cierre}
+                    <p style="margin: 0; font-family: ${FUENTE}; font-size: 13px; font-weight: bold; color: ${copia.colorPlazo};">
+                      ${copia.plazo}
                     </p>`)}
 
-              ${boton(voting.url, 'Votar ahora', COLOR.rojo)}
+              ${boton(voting.url, copia.textoBoton, estado === 'activa' ? COLOR.rojo : COLOR.tinta)}
               ${enlaceDeRespaldo(voting.url)}
 
+              ${estado === 'finalizada' ? '' : `
               <p style="margin: 26px 0 0 0; font-family: ${FUENTE}; font-size: 13px; line-height: 1.6; color: ${COLOR.tintaTenue}; text-align: center;">
                 El voto es secreto: se guarda quién ha participado, pero no qué ha votado.
-              </p>`;
+              </p>`}`;
 
   return documento({
-    preheader: `${voting.titulo} · vota antes del ${cierre}`,
-    etiqueta: 'Nueva votación',
+    preheader: copia.preheader,
+    etiqueta: copia.etiqueta,
     tono: 'votacion',
     contenido,
     motivo: 'Recibes este correo porque estás registrado en SEPEI UNIDO.',
@@ -349,38 +402,58 @@ function generateVotingEmailText(
   recipient: EmailRecipient,
   voting: VotingNotificationData
 ): string {
+  const formato: Intl.DateTimeFormatOptions = {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  };
+  const apertura = new Date(voting.fecha_inicio).toLocaleDateString('es-ES', formato);
+  const cierre = new Date(voting.fecha_fin).toLocaleDateString('es-ES', formato);
+
+  const ahora = Date.now();
+  // Mismo criterio que la versión en HTML: el texto no puede prometer un voto
+  // que todavía no se puede emitir.
+  const programada = new Date(voting.fecha_inicio).getTime() > ahora;
+  const finalizada = new Date(voting.fecha_fin).getTime() < ahora;
+
+  const titular = programada
+    ? 'Se abre una votación en SEPEI UNIDO'
+    : finalizada
+      ? 'Una votación que ya ha terminado'
+      : 'Se ha abierto una votación en SEPEI UNIDO';
+
+  const plazo = programada
+    ? `Se abre: ${apertura}\nSe vota hasta: ${cierre}`
+    : finalizada
+      ? `Se cerró: ${cierre}`
+      : `Cierra: ${cierre}`;
+
+  const llamada = finalizada ? 'Ver la votación' : programada ? 'Ver la votación' : 'Vota aquí';
+
   return `
-SEPEI UNIDO - Nueva Votación
+SEPEI UNIDO
 
 Hola ${recipient.nombre},
 
-Se ha abierto una nueva votación en SEPEI UNIDO
+${titular}
 
 ${voting.titulo}
 ${'='.repeat(voting.titulo.length)}
 
 ${voting.descripcion}
 
-⏰ Cierra: ${new Date(voting.fecha_fin).toLocaleDateString('es-ES', { 
-  day: 'numeric', 
-  month: 'long', 
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit'
-})}
+${plazo}
 
-Vota aquí: ${voting.url}
-
-💡 Tu voto es importante. Asegúrate de votar antes de que cierre.
+${llamada}: ${voting.url}
+${finalizada ? '' : '\nEl voto es secreto: se guarda quién ha participado, pero no qué ha votado.'}
 
 ---
 © ${new Date().getFullYear()} SEPEI UNIDO
   `;
 }
 
-/**
- * Enviar notificación de resultados de votación
- */
 export async function sendVotingResultsNotification(
   recipients: EmailRecipient[],
   results: VotingResultsNotificationData
