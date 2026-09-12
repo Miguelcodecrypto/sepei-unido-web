@@ -294,6 +294,7 @@ const VotingManager: React.FC = () => {
               {
                 titulo: pendingVotingData.titulo,
                 descripcion: pendingVotingData.descripcion,
+                fecha_inicio: pendingVotingData.fecha_inicio,
                 fecha_fin: pendingVotingData.fecha_fin,
                 url: urlVotacion(pendingVotingData.id)
               }
