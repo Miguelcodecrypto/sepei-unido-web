@@ -507,7 +507,7 @@ export function generateVotingResultsEmailHTML(
               ${enlaceDeRespaldo(results.url)}`;
 
   return documento({
-    preheader: `Resultados de ${escapeHtml(results.titulo)} · ${results.total_votos} ${results.total_votos === 1 ? 'participante' : 'participantes'}`,
+    preheader: `Resultados de ${results.titulo} · ${results.total_votos} ${results.total_votos === 1 ? 'participante' : 'participantes'}`,
     etiqueta: `Resultados`,
     tono: 'resultados',
     contenido,

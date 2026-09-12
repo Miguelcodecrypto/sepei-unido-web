@@ -70,7 +70,7 @@ export function generateSuggestionConfirmationHTML(data: SuggestionEmailData): s
                     </p>`, COLOR.verde)}`;
 
   return documento({
-    preheader: `Tu propuesta "${esc(data.asunto)}" ha quedado registrada`,
+    preheader: `Tu propuesta "${data.asunto}" ha quedado registrada`,
     etiqueta: 'Propuesta recibida',
     tono: 'resultados',
     contenido,
@@ -135,7 +135,7 @@ export function generateSuggestionNotificationHTML(data: SuggestionEmailData): s
               ${boton(`${MARCA.web}/admin`, 'Abrir el panel', COLOR.tinta)}`;
 
   return documento({
-    preheader: `${esc(data.nombre)} ${esc(data.apellidos)}: ${esc(data.asunto)}`,
+    preheader: `${data.nombre} ${data.apellidos}: ${data.asunto}`,
     etiqueta: 'Propuesta nueva',
     tono: 'aviso',
     contenido,
@@ -198,7 +198,7 @@ export function generateNewUserNotificationHTML(data: NewUserNotificationData): 
               ${boton(`${MARCA.web}/admin`, 'Abrir el panel', COLOR.tinta)}`;
 
   return documento({
-    preheader: `${esc(data.nombre)} ${esc(data.apellidos)} se ha registrado en la web`,
+    preheader: `${data.nombre} ${data.apellidos} se ha registrado en la web`,
     etiqueta: 'Usuario nuevo',
     tono: 'resultados',
     contenido,

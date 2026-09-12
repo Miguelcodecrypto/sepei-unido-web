@@ -46,6 +46,23 @@ export const COLOR = {
   azul: '#2563eb',
 };
 
+/**
+ * Escapa texto plano que se incrusta en el HTML del correo.
+ *
+ * `documento()` lo aplica por su cuenta a `preheader`, `etiqueta` y `motivo`:
+ * son campos de texto, salen de contenido que escribe alguien (el título de un
+ * anuncio, su categoría) y no deben poder inyectar etiquetas. El único hueco
+ * que espera HTML ya montado es `contenido`, y de escaparlo se encarga quien lo
+ * construye — que es el único que sabe qué parte es marcado y cuál es texto.
+ */
+export function escaparTexto(valor: string | undefined | null): string {
+  return String(valor ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 export const FUENTE =
   "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
@@ -142,6 +159,9 @@ interface DocumentoOpciones {
  */
 export function documento({ preheader, etiqueta, tono, contenido, motivo }: DocumentoOpciones): string {
   const acento = TONOS[tono];
+  const preheaderSeguro = escaparTexto(preheader);
+  const etiquetaSeguro = escaparTexto(etiqueta);
+  const motivoSeguro = motivo ? escaparTexto(motivo) : '';
 
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -156,7 +176,7 @@ export function documento({ preheader, etiqueta, tono, contenido, motivo }: Docu
 
   <!-- Texto de previsualización: se lee en la bandeja, no en el correo abierto. -->
   <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px; color: ${COLOR.fondo};">
-    ${preheader}
+    ${preheaderSeguro}
   </div>
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${COLOR.fondo}" style="background-color: ${COLOR.fondo};">
@@ -189,7 +209,7 @@ export function documento({ preheader, etiqueta, tono, contenido, motivo }: Docu
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 20px 0;">
                 <tr>
                   <td bgcolor="${acento}" style="background-color: ${acento}; border-radius: 20px; padding: 5px 14px;">
-                    <span style="font-family: ${FUENTE}; font-size: 11px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; color: #ffffff;">${etiqueta}</span>
+                    <span style="font-family: ${FUENTE}; font-size: 11px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; color: #ffffff;">${etiquetaSeguro}</span>
                   </td>
                 </tr>
               </table>
@@ -208,7 +228,7 @@ export function documento({ preheader, etiqueta, tono, contenido, motivo }: Docu
               <p style="margin: 0 0 14px 0; font-family: ${FUENTE}; font-size: 12px; color: ${COLOR.tintaSuave};">
                 <a href="${MARCA.web}" style="color: ${COLOR.azul}; text-decoration: none;">www.sepeiunido.org</a>
               </p>
-              ${motivo ? `<p style="margin: 0 0 10px 0; font-family: ${FUENTE}; font-size: 11px; line-height: 1.6; color: ${COLOR.tintaTenue};">${motivo}</p>` : ''}
+              ${motivoSeguro ? `<p style="margin: 0 0 10px 0; font-family: ${FUENTE}; font-size: 11px; line-height: 1.6; color: ${COLOR.tintaTenue};">${motivoSeguro}</p>` : ''}
               <p style="margin: 0; font-family: ${FUENTE}; font-size: 11px; color: ${COLOR.tintaTenue};">
                 © ${new Date().getFullYear()} ${MARCA.nombre}
               </p>
