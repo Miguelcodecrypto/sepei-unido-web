@@ -540,9 +540,9 @@ export default function SepeiUnido() {
               {/* Enlace a Convocatorias BOE */}
               <Link
                 to="/convocatorias"
-                className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold transition-all duration-300"
+                className="flex items-center gap-1.5 whitespace-nowrap text-emerald-400 hover:text-emerald-300 font-semibold transition-all duration-300"
               >
-                <FileSearch className="w-4 h-4" />
+                <FileSearch className="w-4 h-4 shrink-0" />
                 Oposiciones BOE
               </Link>
               
