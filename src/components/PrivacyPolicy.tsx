@@ -24,8 +24,8 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
               <Shield className="w-8 h-8 text-white" />
               <h1 className="text-3xl font-bold text-white">Política de Privacidad</h1>
             </div>
-            <p className="text-blue-100">SEPEI UNIDO - Movimiento de Bomberos de Castilla-La Mancha</p>
-            <p className="text-blue-200 text-sm mt-2">Última actualización: 24 de noviembre de 2025</p>
+            <p className="text-blue-100">SEPEI UNIDO - Movimiento Asindical</p>
+            <p className="text-blue-200 text-sm mt-2">Última actualización: 13 de septiembre de 2026</p>
           </div>
 
           {/* Content */}
@@ -51,7 +51,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
                 <h2 className="text-2xl font-bold text-gray-800">2. Responsable del Tratamiento</h2>
               </div>
               <div className="space-y-2 text-gray-700">
-                <p><strong>Identidad:</strong> SEPEI UNIDO - Movimiento de Bomberos de Castilla-La Mancha</p>
+                <p><strong>Identidad:</strong> SEPEI UNIDO - Movimiento Asindical</p>
                 <p><strong>Correo electrónico:</strong> sepeiunido@gmail.com</p>
                 <p><strong>Sitio web:</strong> www.sepeiunido.org</p>
               </div>
@@ -71,7 +71,8 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
                     <li>DNI/NIE (documento identificativo)</li>
                     <li>Dirección de correo electrónico</li>
                     <li>Número de teléfono (opcional)</li>
-                    <li>Redes sociales (Instagram, Facebook, Twitter, LinkedIn - opcional)</li>
+                    <li>Parque de destino</li>
+                    <li>Contraseña, guardada siempre cifrada con bcrypt: nadie puede leerla</li>
                   </ul>
                 </div>
                 <div>
@@ -89,6 +90,48 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
                     <li>Lugar de trabajo</li>
                     <li>Contenido de las propuestas enviadas</li>
                   </ul>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800 mb-2">3.4. Seguridad de la Cuenta</h3>
+                  <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+                    <li>Dirección IP desde la que te registras</li>
+                    <li>Fecha del último acceso y del último cambio de contraseña</li>
+                    <li>Intentos de acceso al panel de administración: IP, navegador y ubicación aproximada, para detectar y bloquear ataques</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800 mb-2">3.5. Telegram (solo si lo vinculas)</h3>
+                  <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+                    <li>Identificador y nombre de usuario de Telegram, para enviarte avisos por ese canal</li>
+                    <li>Fecha de vinculación. Puedes desvincularlo cuando quieras desde tu perfil</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800 mb-2">3.6. Votaciones</h3>
+                  <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+                    <li>La autorización para votar que concede la administración</li>
+                    <li>El registro de que has participado en una votación concreta, para impedir votos duplicados</li>
+                  </ul>
+                  <p className="text-gray-700 mt-2 bg-green-50 border-l-4 border-green-600 p-3 rounded-r">
+                    <strong>El sentido de tu voto se guarda por separado, sin ningún vínculo con tu identidad.</strong> La
+                    participación y el voto viven en tablas distintas y no hay forma de cruzarlas: ni quien administra la
+                    plataforma puede saber qué has votado.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800 mb-2">3.7. Analítica de Uso</h3>
+                  <p className="text-gray-700 mb-2">
+                    Registramos la navegación por la web para saber qué contenidos resultan útiles al colectivo:
+                  </p>
+                  <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+                    <li>Páginas visitadas y tiempo de permanencia</li>
+                    <li>Dirección IP, navegador y web de procedencia</li>
+                    <li>Si has iniciado sesión, estos datos quedan asociados a tu cuenta</li>
+                  </ul>
+                  <p className="text-gray-700 mt-2">
+                    Es analítica propia: no la compartimos con plataformas publicitarias ni de terceros. Puedes oponerte a
+                    este tratamiento escribiendo a sepeiunido@gmail.com.
+                  </p>
                 </div>
               </div>
             </section>
@@ -139,7 +182,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
                 <li>Exista una obligación legal de conservación</li>
               </ul>
               <p className="text-gray-700 mt-3">
-                Cuando solicites la eliminación de tu cuenta o transcurran <strong>2 años de inactividad</strong>, 
+                Cuando solicites la eliminación de tu cuenta o transcurran <strong>3 años de inactividad</strong>, 
                 tus datos serán eliminados de forma segura, salvo que exista obligación legal de conservarlos.
               </p>
             </section>
@@ -155,10 +198,17 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
               </p>
               <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
                 <li><strong>Obligación legal:</strong> Cuando sea requerido por autoridades competentes</li>
-                <li><strong>Proveedores de servicios:</strong> Utilizamos servicios de alojamiento web (Vercel) y 
-                base de datos (Supabase) que actúan como encargados del tratamiento bajo estrictas garantías de seguridad</li>
+                <li><strong>Proveedores de servicios:</strong> alojamiento web (Vercel), base de datos (Supabase),
+                envío de correo (Resend) y avisos por mensajería (Telegram, solo si vinculas tu cuenta). Todos actúan como
+                encargados del tratamiento bajo estrictas garantías de seguridad</li>
                 <li><strong>Con tu consentimiento:</strong> Si autorizas expresamente cualquier otra cesión</li>
               </ul>
+              <p className="text-gray-700 mt-3">
+                <strong>Transferencias internacionales:</strong> algunos de estos proveedores están establecidos fuera del
+                Espacio Económico Europeo o tratan datos en servidores situados fuera de él. Dichas transferencias se
+                amparan en las cláusulas contractuales tipo aprobadas por la Comisión Europea. <strong>No vendemos tus
+                datos</strong> ni los cedemos con fines comerciales.
+              </p>
             </section>
 
             {/* Derechos */}
@@ -247,8 +297,10 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
                 <h2 className="text-2xl font-bold text-gray-800">10. Cookies</h2>
               </div>
               <p className="text-gray-700">
-                Utilizamos cookies técnicas estrictamente necesarias para el funcionamiento de la plataforma 
-                (sesión de usuario, preferencias). No utilizamos cookies de publicidad ni seguimiento. 
+                Utilizamos cookies técnicas estrictamente necesarias para el funcionamiento de la plataforma
+                (sesión de usuario, preferencias). <strong>No utilizamos cookies de publicidad, ni de terceros, ni
+                compartimos tu navegación con plataformas externas.</strong> Sí registramos tu navegación por la web en
+                nuestros propios sistemas, tal y como se explica en el apartado 3.7: es analítica propia, no publicitaria.
                 Puedes configurar tu navegador para rechazar cookies, aunque esto puede afectar la funcionalidad del sitio.
               </p>
             </section>

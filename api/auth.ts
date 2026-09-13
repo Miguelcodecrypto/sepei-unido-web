@@ -16,6 +16,7 @@ import {
 } from './_lib/plantillasEmail.js';
 import { getClientIP } from './_lib/clientIp.js';
 import { checkLoginAllowed, recordLoginAttempt } from './_lib/adminSecurity.js';
+import { VERSION_TERMINOS } from './_lib/terminos';
 
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 const VERIFICATION_TOKEN_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
@@ -234,7 +235,7 @@ async function handleRegister(req: any, res: any, supabase: ReturnType<typeof ge
     // FNMT server-side, así que no hay base real para confiar en esa afirmación.
     certificado_nif, certificado_thumbprint, certificado_fecha_validacion,
     certificado_valido: false,
-    version_terminos: '1.0',
+    version_terminos: VERSION_TERMINOS,
     verified: false,
   };
 
