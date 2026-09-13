@@ -12,14 +12,11 @@ import {
   ChevronDown,
   ChevronUp,
   Building2,
-  Lock,
   ArrowLeft,
   Loader2,
   X,
   Info,
   SlidersHorizontal,
-  LogIn,
-  UserCheck,
 } from 'lucide-react';
 import { PROVINCIAS_ES, detectProvincia, getProvinciaColor, type Provincia } from '../utils/provincias';
 import { getCurrentUser, type SessionUser } from '../services/sessionService';
@@ -104,7 +101,6 @@ export default function ConvocatoriasPage() {
   // ── Carga de datos ─────────────────────────────────────────────────────────
 
   const fetchData = useCallback(async (retryCount = 0) => {
-    if (!currentUser) return; // Solo cargar si hay usuario autenticado
 
     setLoading(true);
     setError(null);
@@ -166,7 +162,7 @@ export default function ConvocatoriasPage() {
 
   // Cargar datos cuando el usuario esté autenticado
   useEffect(() => {
-    if (currentUser && !checkingAuth) {
+    if (!checkingAuth) {
       fetchData();
     }
   }, [currentUser, checkingAuth, fetchData]);
@@ -216,80 +212,6 @@ export default function ConvocatoriasPage() {
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Pantalla de carga mientras se verifica autenticación
-  if (checkingAuth) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Verificando acceso...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Pantalla de acceso restringido para usuarios no autenticados
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col">
-        {/* Header mínimo */}
-        <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/60 shadow-xl">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-            <a href="/" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm">
-              <ArrowLeft className="w-4 h-4" />
-              <span>Volver al inicio</span>
-            </a>
-          </div>
-        </header>
-
-        {/* Contenido de acceso restringido */}
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="max-w-md w-full text-center space-y-6">
-            <div className="w-20 h-20 bg-orange-500/20 rounded-2xl flex items-center justify-center mx-auto">
-              <Lock className="w-10 h-10 text-orange-400" />
-            </div>
-            
-            <div>
-              <h1 className="text-2xl font-bold text-white mb-2">Acceso Restringido</h1>
-              <p className="text-gray-400">
-                El buscador de convocatorias del BOE está disponible solo para usuarios registrados de SEPEI UNIDO.
-              </p>
-            </div>
-
-            <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 space-y-4">
-              <div className="flex items-center gap-3 text-left">
-                <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center shrink-0">
-                  <UserCheck className="w-5 h-5 text-emerald-400" />
-                </div>
-                <div>
-                  <p className="text-white font-medium text-sm">¿Ya tienes cuenta?</p>
-                  <p className="text-gray-500 text-xs">Inicia sesión desde la página principal</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 text-left">
-                <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center shrink-0">
-                  <Flame className="w-5 h-5 text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-white font-medium text-sm">¿Eres bombero del SEPEI?</p>
-                  <p className="text-gray-500 text-xs">Regístrate para acceder a todas las funcionalidades</p>
-                </div>
-              </div>
-            </div>
-
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white rounded-xl font-semibold transition-all"
-            >
-              <LogIn className="w-5 h-5" />
-              Ir a Iniciar Sesión
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col">
 

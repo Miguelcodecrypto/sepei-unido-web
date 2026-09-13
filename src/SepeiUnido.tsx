@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNotifications } from './components/ui/NotificationProvider';
 import { Link } from 'react-router-dom';
-import { Flame, Users, Shield, Target, Mail, Phone, ChevronDown, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, LogIn, FileSearch, HardHat, Lightbulb } from 'lucide-react';
+import { Flame, Users, Shield, Target, Mail, Phone, ChevronDown, ChevronRight, CheckCircle, AlertCircle, TrendingUp, Clock, BookOpen, Award, Settings, Menu, X, LogIn, FileSearch, HardHat, Lightbulb } from 'lucide-react';
 import { getCertificateFromSession, clearCertificateSession, type BrowserCertificate } from './services/browserCertificateService';
 import TermsModal from './components/TermsModal';
 import SuggestionsForm from './components/SuggestionsForm';
@@ -540,10 +540,10 @@ export default function SepeiUnido() {
               {/* Enlace a Convocatorias BOE */}
               <Link
                 to="/convocatorias"
-                className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold transition-all duration-300"
+                className="flex items-center gap-1.5 whitespace-nowrap text-emerald-400 hover:text-emerald-300 font-semibold transition-all duration-300"
               >
-                <FileSearch className="w-4 h-4" />
-                Convocatorias
+                <FileSearch className="w-4 h-4 shrink-0" />
+                Oposiciones BOE
               </Link>
               
               {/* Botón de Login/Usuario */}
@@ -621,7 +621,7 @@ export default function SepeiUnido() {
                 className="flex items-center gap-2 w-full text-left text-emerald-400 hover:text-emerald-300 font-semibold py-2"
               >
                 <FileSearch className="w-5 h-5" />
-                Convocatorias BOE
+                Oposiciones BOE
               </Link>
               
               {/* Botón Login/Usuario móvil */}
@@ -731,7 +731,7 @@ export default function SepeiUnido() {
               className="flex items-center justify-center gap-2 px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm md:text-base font-bold rounded-xl shadow-lg hover:shadow-emerald-500/40 active:scale-95 transition-all"
             >
               <FileSearch className="w-4 h-4" />
-              <span>BOE</span>
+              <span>Oposiciones</span>
             </Link>
           </div>
 
@@ -1153,6 +1153,27 @@ export default function SepeiUnido() {
                 ayudarte a planificar tu carrera profesional.
               </p>
 
+              {/* La puerta al buscador va SIEMPRE delante: el BOE se rastrea solo
+                  cada día, mientras que la lista de abajo se mantiene a mano. */}
+              <Link
+                to="/convocatorias"
+                onClick={() => trackInterinosClick('oposicion_buscador_click', 'buscador_boe', 'Buscador de oposiciones BOE')}
+                className="block bg-gradient-to-r from-emerald-500/15 to-teal-600/15 border border-emerald-500/40 hover:border-emerald-400 rounded-xl md:rounded-2xl p-3 md:p-4 mb-3 md:mb-4 transition-all group"
+              >
+                <div className="flex items-center gap-2 md:gap-3">
+                  <FileSearch className="w-5 h-5 md:w-6 md:h-6 text-emerald-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs md:text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">
+                      Buscador de oposiciones del BOE
+                    </p>
+                    <p className="text-[10px] md:text-xs text-gray-400">
+                      Rastreamos el BOE a diario buscando convocatorias de bomberos
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-emerald-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </Link>
+
               <div className="space-y-2 md:space-y-3 lg:space-y-4">
                 <div className="bg-slate-900/60 rounded-xl md:rounded-2xl p-3 md:p-4 border border-slate-700/60 space-y-2 md:space-y-3">
                   <p className="text-xs md:text-sm font-semibold text-orange-300 mb-1">
@@ -1163,9 +1184,9 @@ export default function SepeiUnido() {
                     <p className="text-xs text-gray-400">Cargando información...</p>
                   ) : interinosOposiciones.length === 0 ? (
                     <p className="text-xs text-gray-300">
-                      Próximamente se centralizarán aquí las bases de
-                      oposiciones, convocatorias y procesos en marcha
-                      relacionados con el SEPEI.
+                      Aquí aparecerán las bases y procesos del SEPEI que
+                      recopilemos a mano. Para las convocatorias publicadas en el
+                      BOE, usa el buscador de arriba.
                     </p>
                   ) : (
                     <div className="space-y-1.5 md:space-y-2 max-h-32 md:max-h-48 overflow-y-auto pr-1">
