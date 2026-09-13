@@ -65,6 +65,19 @@ export async function sendTelegramMessage(
   }
 }
 
+/** Fecha en cristiano, con la zona horaria del lector. */
+function fechaLegible(valor: string): string {
+  const fecha = new Date(valor);
+  if (isNaN(fecha.getTime())) return valor;
+  return fecha.toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 /**
  * Formatear mensaje para Telegram según el tipo
  */
@@ -84,7 +97,24 @@ function formatTelegramMessage(data: TelegramNotificationData, recipientName: st
   
   // Añadir información extra según el tipo
   if (data.type === 'voting' && data.extra?.fecha_fin) {
-    message += `\n⏰ <i>Fecha límite: ${data.extra.fecha_fin}</i>\n`;
+    // Mismo criterio que el correo: si la votación aún no está abierta, el
+    // mensaje dice cuándo se abre en vez de dar por hecho que se puede votar.
+    // Y las fechas se escriben en cristiano: antes se colaba el ISO crudo
+    // ("2026-09-20T20:00:00+00:00") en el mensaje.
+    const cierre = fechaLegible(data.extra.fecha_fin);
+    const programada = data.extra.fecha_inicio
+      ? new Date(data.extra.fecha_inicio).getTime() > Date.now()
+      : false;
+    const finalizada = new Date(data.extra.fecha_fin).getTime() < Date.now();
+
+    if (programada) {
+      message += `\n🕒 <i>Se abre: ${fechaLegible(data.extra.fecha_inicio)}</i>\n`;
+      message += `⏰ <i>Se vota hasta: ${cierre}</i>\n`;
+    } else if (finalizada) {
+      message += `\n🔒 <i>Votación cerrada el ${cierre}</i>\n`;
+    } else {
+      message += `\n⏰ <i>Fecha límite: ${cierre}</i>\n`;
+    }
   }
   
   if (data.type === 'voting_results' && data.extra?.resultados) {
@@ -102,6 +132,13 @@ function formatTelegramMessage(data: TelegramNotificationData, recipientName: st
   if (data.url) {
     if (data.type === 'announcement') {
       message += `\n\n📖 <a href="${data.url}">Leer noticia completa</a>`;
+    } else if (data.type === 'voting') {
+      const sePuedeVotar =
+        (!data.extra?.fecha_inicio || new Date(data.extra.fecha_inicio).getTime() <= Date.now()) &&
+        (!data.extra?.fecha_fin || new Date(data.extra.fecha_fin).getTime() >= Date.now());
+      message += sePuedeVotar
+        ? `\n\n🗳️ <a href="${data.url}">Votar ahora</a>`
+        : `\n\n🔗 <a href="${data.url}">Ver la votación</a>`;
     } else {
       message += `\n\n🔗 <a href="${data.url}">Ver más detalles</a>`;
     }
@@ -218,6 +255,7 @@ export async function sendVotingTelegram(
   voting: {
     titulo: string;
     descripcion: string;
+    fecha_inicio: string;
     fecha_fin: string;
     url: string;
   }
@@ -227,7 +265,7 @@ export async function sendVotingTelegram(
     titulo: voting.titulo,
     descripcion: voting.descripcion,
     url: voting.url,
-    extra: { fecha_fin: voting.fecha_fin },
+    extra: { fecha_inicio: voting.fecha_inicio, fecha_fin: voting.fecha_fin },
   });
 }
 
