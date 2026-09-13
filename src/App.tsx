@@ -10,6 +10,7 @@ const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy').then(m => 
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail').then(m => ({ default: m.VerifyEmail })));
 const ConvocatoriasPage = lazy(() => import('./pages/ConvocatoriasPage'));
 const VotacionPage = lazy(() => import('./pages/VotacionPage'));
+const BajaCorreos = lazy(() => import('./pages/BajaCorreos'));
 
 // Error Boundary para capturar errores de renderizado
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
@@ -70,6 +71,7 @@ export default function App() {
             <Route path="/convocatorias" element={<ConvocatoriasPage />} />
             {/* Destino de los enlaces de los correos y de Telegram: la papeleta directa. */}
             <Route path="/votacion/:id" element={<VotacionPage />} />
+            <Route path="/baja" element={<BajaCorreos />} />
           </Routes>
         </Suspense>
       </BrowserRouter>

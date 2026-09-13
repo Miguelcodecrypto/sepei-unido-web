@@ -151,17 +151,25 @@ interface DocumentoOpciones {
   contenido: string;
   /** Una línea en el pie explicando por qué recibe esto. */
   motivo?: string;
+  /**
+   * URL de baja, SOLO para los contactos externos: la gente registrada se da de
+   * baja desde su perfil, y ofrecerle aquí un enlace de un clic sería invitarla
+   * a irse sin querer. Va debajo del motivo, escrita entera además de enlazada,
+   * porque algunos clientes estropean los enlaces.
+   */
+  enlaceBaja?: string;
 }
 
 /**
  * El sobre común: cabecera de marca, cuerpo y pie. Todas las plantillas pasan
  * por aquí, que es lo que hace que los correos se parezcan entre sí.
  */
-export function documento({ preheader, etiqueta, tono, contenido, motivo }: DocumentoOpciones): string {
+export function documento({ preheader, etiqueta, tono, contenido, motivo, enlaceBaja }: DocumentoOpciones): string {
   const acento = TONOS[tono];
   const preheaderSeguro = escaparTexto(preheader);
   const etiquetaSeguro = escaparTexto(etiqueta);
   const motivoSeguro = motivo ? escaparTexto(motivo) : '';
+  const bajaSegura = enlaceBaja ? escaparTexto(enlaceBaja) : '';
 
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -229,6 +237,7 @@ export function documento({ preheader, etiqueta, tono, contenido, motivo }: Docu
                 <a href="${MARCA.web}" style="color: ${COLOR.azul}; text-decoration: none;">www.sepeiunido.org</a>
               </p>
               ${motivoSeguro ? `<p style="margin: 0 0 10px 0; font-family: ${FUENTE}; font-size: 11px; line-height: 1.6; color: ${COLOR.tintaTenue};">${motivoSeguro}</p>` : ''}
+              ${bajaSegura ? `<p style="margin: 0 0 10px 0; font-family: ${FUENTE}; font-size: 11px; line-height: 1.6; color: ${COLOR.tintaTenue};">Si no quieres recibir más correos, <a href="${bajaSegura}" style="color: ${COLOR.azul}; text-decoration: underline;">date de baja aquí</a>.<br /><span style="color: ${COLOR.tintaTenue};">${bajaSegura}</span></p>` : ''}
               <p style="margin: 0; font-family: ${FUENTE}; font-size: 11px; color: ${COLOR.tintaTenue};">
                 © ${new Date().getFullYear()} ${MARCA.nombre}
               </p>

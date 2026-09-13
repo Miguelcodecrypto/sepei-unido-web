@@ -119,7 +119,27 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-800 mb-2">3.7. Analítica de Uso</h3>
+                  <h3 className="font-semibold text-gray-800 mb-2">3.7. Contactos de Difusión</h3>
+                  <p className="text-gray-700 mb-2">
+                    Mantenemos una lista de direcciones de correo de <strong>ayuntamientos, servicios y entidades</strong>
+                    relacionados con la seguridad y las emergencias de la provincia, junto con algún contacto profesional
+                    concreto, para hacerles llegar nuestros comunicados. De cada contacto guardamos la dirección de correo,
+                    un nombre y una descripción de quién es.
+                  </p>
+                  <p className="text-gray-700 mb-2">
+                    <strong>Base jurídica:</strong> interés legítimo en la comunicación institucional (art. 6.1.f RGPD).
+                    Escribimos exclusivamente sobre asuntos del servicio público de bomberos, nunca con fines comerciales,
+                    y no cedemos esta lista a nadie.
+                  </p>
+                  <p className="text-gray-700">
+                    <strong>Cómo dejar de recibirlos:</strong> cada correo que enviamos a estas direcciones incluye un
+                    enlace de baja al pie. Al pulsarlo se abre una página que pide confirmación y, en cuanto se confirma,
+                    la dirección deja de recibir cualquier envío. También puedes pedirlo escribiendo a
+                    sepeiunido@gmail.com.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800 mb-2">3.8. Analítica de Uso</h3>
                   <p className="text-gray-700 mb-2">
                     Registramos la navegación por la web para saber qué contenidos resultan útiles al colectivo:
                   </p>
@@ -301,7 +321,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
                 Utilizamos cookies técnicas estrictamente necesarias para el funcionamiento de la plataforma
                 (sesión de usuario, preferencias). <strong>No utilizamos cookies de publicidad, ni de terceros, ni
                 compartimos tu navegación con plataformas externas.</strong> Sí registramos tu navegación por la web en
-                nuestros propios sistemas, tal y como se explica en el apartado 3.7: es analítica propia, no publicitaria.
+                nuestros propios sistemas, tal y como se explica en el apartado 3.8: es analítica propia, no publicitaria.
                 Puedes configurar tu navegador para rechazar cookies, aunque esto puede afectar la funcionalidad del sitio.
               </p>
             </section>
