@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle, Mail, User, CreditCard, AlertCircle, MapPin } from 'lucide-react';
+import { VERSION_TERMINOS, FECHA_TERMINOS } from '../../api/_lib/terminos';
 
 interface TraditionalRegistrationProps {
   onSuccess: (userData: UserData) => void;
@@ -467,11 +468,18 @@ export const TraditionalRegistration: React.FC<TraditionalRegistrationProps> = (
               >
                 Política de Privacidad
               </a>
-              {' '}y el tratamiento de mis datos personales conforme al RGPD. 
-              Mis datos serán utilizados únicamente para gestionar mi participación en SEPEI UNIDO 
-              y no serán cedidos a terceros sin mi consentimiento.
+              {' '}y el tratamiento de mis datos personales conforme al RGPD para gestionar mi cuenta,
+              recibir las comunicaciones del movimiento, participar en las votaciones, mantener la
+              seguridad de la plataforma y conocer el uso que se hace de la web.
+              Mis datos <span className="font-semibold">no se venden ni se ceden con fines comerciales</span>:
+              solo los tratan los proveedores necesarios para que la plataforma funcione (alojamiento,
+              base de datos, envío de correo y, si vinculo mi cuenta, Telegram), tal y como detalla la
+              Política de Privacidad.
             </span>
           </label>
+          <p className="mt-3 pl-7 text-xs text-gray-500">
+            Texto de consentimiento versión {VERSION_TERMINOS} · {FECHA_TERMINOS}
+          </p>
         </div>
 
         {/* Botones */}
