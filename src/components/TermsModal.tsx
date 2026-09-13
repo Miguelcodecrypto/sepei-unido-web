@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle, AlertCircle, X } from 'lucide-react';
+import { VERSION_TERMINOS, FECHA_TERMINOS } from '../../api/_lib/terminos';
 
 interface TermsModalProps {
   onAccept: () => void;
@@ -26,6 +27,7 @@ export default function TermsModal({ onAccept, onReject }: TermsModalProps) {
           <div>
             <h2 className="text-2xl font-black text-white mb-2">Términos y Condiciones</h2>
             <p className="text-gray-400 text-sm">Protección de Datos Personales (RGPD)</p>
+            <p className="text-gray-500 text-xs mt-1">Versión {VERSION_TERMINOS} · {FECHA_TERMINOS}</p>
           </div>
           <button
             onClick={onReject}
@@ -52,27 +54,43 @@ export default function TermsModal({ onAccept, onReject }: TermsModalProps) {
               <span className="font-semibold text-white">SEPEI UNIDO</span> - Movimiento Asindical
             </p>
             <p className="text-sm leading-relaxed mt-2">
-              Es el responsable del tratamiento de los datos personales que proporciones a través de este formulario de registro.
+              Es el responsable del tratamiento de los datos personales que proporciones a través de este formulario de registro. Puedes contactar en{' '}
+              <a href="mailto:sepeiunido@gmail.com" className="text-orange-400 hover:underline font-semibold">sepeiunido@gmail.com</a>.
             </p>
           </div>
 
-          {/* Sección 2: Datos personales */}
+          {/* Sección 2: Datos personales — agrupados por finalidad, que se entiende mejor
+              que una lista plana de columnas */}
           <div>
             <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-orange-500" />
               2. Datos Personales Recabados
             </h3>
+
             <p className="text-sm leading-relaxed mb-2">
-              Recopilaremos los siguientes datos personales:
+              <span className="font-semibold text-white">Para crear y usar tu cuenta:</span> nombre y apellidos, DNI o NIE, correo electrónico, teléfono y parque de destino. El DNI es tu identificador de acceso, y el parque permite organizar la información por centro de trabajo.
             </p>
-            <ul className="text-sm leading-relaxed space-y-1 ml-4">
-              <li>• <span className="font-semibold">Nombre completo</span> (obligatorio)</li>
-              <li>• <span className="font-semibold">Correo electrónico</span> (obligatorio)</li>
-              <li>• <span className="font-semibold">Teléfono</span> (opcional)</li>
-              <li>• <span className="font-semibold">Redes sociales</span> (opcional)</li>
-              <li>• <span className="font-semibold">Fecha y hora del registro</span></li>
-              <li>• <span className="font-semibold">Consentimiento de tratamiento de datos</span></li>
-            </ul>
+
+            <p className="text-sm leading-relaxed mb-2">
+              <span className="font-semibold text-white">Si te registras con certificado digital:</span> el NIF y la huella del certificado FNMT, y la fecha en que se validó. No conservamos el certificado.
+            </p>
+
+            <p className="text-sm leading-relaxed mb-2">
+              <span className="font-semibold text-white">Por seguridad:</span> la dirección IP desde la que te registras, la fecha de tu último acceso y la del último cambio de contraseña. Tu contraseña se guarda cifrada con bcrypt: nadie, tampoco quien administra la web, puede leerla.
+            </p>
+
+            <p className="text-sm leading-relaxed mb-2">
+              <span className="font-semibold text-white">Si vinculas Telegram:</span> tu identificador y nombre de usuario de Telegram, para enviarte avisos por ese canal. Puedes desvincularlo cuando quieras.
+            </p>
+
+            <p className="text-sm leading-relaxed mb-2">
+              <span className="font-semibold text-white">Si participas en votaciones:</span> queda registrado que has votado, para impedir votos duplicados, junto con la autorización para votar que concede la administración.{' '}
+              <span className="font-semibold text-orange-300">El sentido de tu voto se guarda separado y sin ningún vínculo con tu identidad</span>: ni quien administra la web puede saber qué has votado.
+            </p>
+
+            <p className="text-sm leading-relaxed">
+              <span className="font-semibold text-white">Al navegar por la web:</span> registramos las páginas visitadas, la dirección IP, el navegador y la web de procedencia, asociados a tu cuenta si has iniciado sesión, para saber qué contenidos resultan útiles al colectivo.
+            </p>
           </div>
 
           {/* Sección 3: Base legal */}
@@ -82,7 +100,7 @@ export default function TermsModal({ onAccept, onReject }: TermsModalProps) {
               3. Base Legal para el Tratamiento
             </h3>
             <p className="text-sm leading-relaxed">
-              El tratamiento de tus datos personales se realiza conforme a tu <span className="font-semibold">consentimiento explícito</span> otorgado mediante este formulario, de conformidad con el Artículo 6(1)(a) del Reglamento (UE) 2016/679 (RGPD).
+              La gestión de tu cuenta y el envío de información se basan en tu <span className="font-semibold">consentimiento explícito</span>, otorgado mediante este formulario, conforme al Artículo 6(1)(a) del Reglamento (UE) 2016/679 (RGPD). La seguridad de la plataforma y la analítica de uso se basan en el <span className="font-semibold">interés legítimo</span> del movimiento, Artículo 6(1)(f).
             </p>
           </div>
 
@@ -96,9 +114,10 @@ export default function TermsModal({ onAccept, onReject }: TermsModalProps) {
               Los datos se utilizarán exclusivamente para:
             </p>
             <ul className="text-sm leading-relaxed space-y-1 ml-4">
-              <li>• Mantener contacto sobre actividades de SEPEI UNIDO</li>
-              <li>• Enviar información y convocatorias</li>
-              <li>• Gestionar tu participación en el movimiento</li>
+              <li>• Gestionar tu cuenta y verificar que perteneces al colectivo</li>
+              <li>• Enviarte convocatorias, comunicados e información del movimiento</li>
+              <li>• Permitirte enviar propuestas y participar en las votaciones</li>
+              <li>• Mantener la seguridad de la plataforma</li>
               <li>• Cumplir con obligaciones legales</li>
             </ul>
           </div>
@@ -130,36 +149,52 @@ export default function TermsModal({ onAccept, onReject }: TermsModalProps) {
               6. Seguridad de los Datos
             </h3>
             <p className="text-sm leading-relaxed">
-              Implementamos medidas técnicas y organizativas apropiadas para proteger tus datos personales contra acceso no autorizado, alteración, divulgación o destrucción.
+              Implementamos medidas técnicas y organizativas apropiadas para proteger tus datos personales contra acceso no autorizado, alteración, divulgación o destrucción. Registramos los intentos de acceso al panel de administración (dirección IP y navegador) para detectar y bloquear ataques.
             </p>
           </div>
 
-          {/* Sección 7: Retención */}
+          {/* Sección 7: Quién más trata tus datos */}
           <div>
             <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-orange-500" />
-              7. Período de Retención
+              7. Encargados del Tratamiento
             </h3>
             <p className="text-sm leading-relaxed">
-              Tus datos se conservarán mientras mantengas tu participación en SEPEI UNIDO. Podrás solicitar la eliminación de tus datos en cualquier momento.
+              Para funcionar, la plataforma se apoya en <span className="font-semibold text-white">Vercel</span> (alojamiento), <span className="font-semibold text-white">Supabase</span> (base de datos), <span className="font-semibold text-white">Resend</span> (envío de correo) y <span className="font-semibold text-white">Telegram</span> (avisos, solo si lo vinculas). Algunos de estos proveedores están fuera del Espacio Económico Europeo, y las transferencias se amparan en las cláusulas contractuales tipo aprobadas por la Comisión Europea. No cedemos tus datos a ningún tercero más, ni los vendemos.
             </p>
           </div>
 
-          {/* Sección 8: Contacto */}
+          {/* Sección 8: Retención */}
+          <div>
+            <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-orange-500" />
+              8. Período de Conservación
+            </h3>
+            <p className="text-sm leading-relaxed">
+              Conservamos tus datos mientras mantengas tu cuenta activa. Se eliminarán cuando lo solicites o tras <span className="font-semibold">3 años de inactividad</span>, salvo que exista una obligación legal de conservarlos.
+            </p>
+          </div>
+
+          {/* Sección 9: Contacto */}
           <div>
             <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-blue-500" />
-              8. Contacto - Ejercer tus Derechos
+              9. Contacto - Ejercer tus Derechos
             </h3>
             <p className="text-sm leading-relaxed">
-              Para ejercer cualquiera de tus derechos RGPD o para consultas sobre tratamiento de datos, puedes contactar con nosotros a través del correo electrónico o formulario disponible en nuestra plataforma.
+              Para ejercer cualquiera de tus derechos o para consultas sobre el tratamiento de datos, escribe a{' '}
+              <a href="mailto:sepeiunido@gmail.com" className="text-orange-400 hover:underline font-semibold">sepeiunido@gmail.com</a>. Si consideras que no hemos atendido tu solicitud correctamente, puedes reclamar ante la Agencia Española de Protección de Datos (<a href="https://www.aepd.es" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">www.aepd.es</a>).
+            </p>
+            <p className="text-sm leading-relaxed mt-2">
+              Encontrarás la información detallada en nuestra{' '}
+              <a href="/politica-privacidad" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline font-semibold">Política de Privacidad</a>.
             </p>
           </div>
 
           {/* Descargo */}
           <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4">
             <p className="text-sm leading-relaxed text-orange-100">
-              <span className="font-bold">Declaración de consentimiento:</span> Al aceptar estos términos, confirmas que has leído esta información y que consietes el tratamiento de tus datos personales conforme a lo descrito, de acuerdo con la legislación de protección de datos vigente (RGPD y Ley Orgánica 3/2018).
+              <span className="font-bold">Declaración de consentimiento:</span> Al aceptar estos términos, confirmas que has leído esta información y que consientes el tratamiento de tus datos personales conforme a lo descrito, de acuerdo con la legislación de protección de datos vigente (RGPD y Ley Orgánica 3/2018).
             </p>
           </div>
         </div>
