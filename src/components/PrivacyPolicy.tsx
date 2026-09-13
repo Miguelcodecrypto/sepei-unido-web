@@ -125,12 +125,13 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose }) => {
                   </p>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
                     <li>Páginas visitadas y tiempo de permanencia</li>
-                    <li>Dirección IP, navegador y web de procedencia</li>
+                    <li>Navegador y web de procedencia</li>
                     <li>Si has iniciado sesión, estos datos quedan asociados a tu cuenta</li>
                   </ul>
                   <p className="text-gray-700 mt-2">
-                    Es analítica propia: no la compartimos con plataformas publicitarias ni de terceros. Puedes oponerte a
-                    este tratamiento escribiendo a sepeiunido@gmail.com.
+                    Es analítica propia: no la compartimos con plataformas publicitarias ni de terceros, y
+                    <strong>no registra tu dirección IP</strong>. Puedes oponerte a este tratamiento escribiendo a
+                    sepeiunido@gmail.com.
                   </p>
                 </div>
               </div>

@@ -1,6 +1,5 @@
 import { supabase } from '../lib/supabase';
 import { getCurrentUser } from './sessionService';
-import { getClientIP } from '../utils/network';
 import { adminFetch } from './adminFetch';
 
 /**
@@ -24,7 +23,6 @@ export async function trackPageVisit(pageUrl?: string): Promise<void> {
   try {
     const sessionId = getOrCreateSessionId();
     const currentUser = await getCurrentUser();
-    const ip = await getClientIP();
     
     console.log('📊 [ANALYTICS] Usuario actual:', currentUser ? `${currentUser.nombre} (ID: ${currentUser.id})` : 'No autenticado');
     
@@ -32,7 +30,6 @@ export async function trackPageVisit(pageUrl?: string): Promise<void> {
       session_id: sessionId,
       user_id: currentUser?.id || null,
       visited_at: new Date().toISOString(),
-      ip_address: ip,
       user_agent: navigator.userAgent,
       referrer: document.referrer || null,
       page_url: pageUrl || window.location.pathname
@@ -69,7 +66,6 @@ export async function trackInteraction(
   try {
     const sessionId = getOrCreateSessionId();
     const currentUser = await getCurrentUser();
-    const ip = await getClientIP();
     
     const interactionData = {
       session_id: sessionId,
@@ -79,7 +75,6 @@ export async function trackInteraction(
       item_id: itemId || null,
       interaction_data: additionalData || null,
       created_at: new Date().toISOString(),
-      ip_address: ip,
       duration_seconds: durationSeconds || null
     };
 

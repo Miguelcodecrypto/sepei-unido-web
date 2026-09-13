@@ -24,8 +24,10 @@
  * - 2.0 (2026-09-13) — declara DNI, parque, certificado FNMT, IP de registro,
  *   Telegram, último acceso, votaciones y analítica; retira "redes sociales"
  *   (campo que nunca existió); conservación unificada en 3 años de inactividad.
+ * - 2.1 (2026-09-13) — la analítica deja de registrar la dirección IP, y con ella
+ *   desaparece la llamada del navegador a api.ipify.org.
  */
-export const VERSION_TERMINOS = '2.0';
+export const VERSION_TERMINOS = '2.1';
 
 /** Fecha de la versión vigente, para mostrarla junto al texto. */
 export const FECHA_TERMINOS = '13 de septiembre de 2026';

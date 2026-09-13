@@ -4,25 +4,6 @@
  */
 
 /**
- * Obtener la IP pública del cliente usando un servicio externo
- * @returns Promise con la IP del cliente o 'unknown' si falla
- */
-export async function getClientIP(): Promise<string> {
-  try {
-    const response = await fetch('https://api.ipify.org?format=json');
-    if (!response.ok) {
-      console.warn('[NETWORK] Error al obtener IP:', response.status);
-      return 'unknown';
-    }
-    const data = await response.json();
-    return data.ip || 'unknown';
-  } catch (error) {
-    console.warn('[NETWORK] No se pudo obtener la IP del cliente:', error);
-    return 'unknown';
-  }
-}
-
-/**
  * Generar un token aleatorio seguro
  * @param length Longitud del token en bytes (el resultado será el doble en caracteres hex)
  * @returns String hexadecimal aleatorio

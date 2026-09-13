@@ -89,7 +89,7 @@ export default function TermsModal({ onAccept, onReject }: TermsModalProps) {
             </p>
 
             <p className="text-sm leading-relaxed">
-              <span className="font-semibold text-white">Al navegar por la web:</span> registramos las páginas visitadas, la dirección IP, el navegador y la web de procedencia, asociados a tu cuenta si has iniciado sesión, para saber qué contenidos resultan útiles al colectivo.
+              <span className="font-semibold text-white">Al navegar por la web:</span> registramos las páginas visitadas, el navegador y la web de procedencia, asociados a tu cuenta si has iniciado sesión, para saber qué contenidos resultan útiles al colectivo. Esta analítica <span className="font-semibold">no registra tu dirección IP</span>.
             </p>
           </div>
 
