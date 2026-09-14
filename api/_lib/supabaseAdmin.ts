@@ -5,8 +5,9 @@
  * autorización antes de leer o escribir datos.
  */
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from './database.types.js';
 
-let cached: ReturnType<typeof createClient> | null = null;
+let cached: ReturnType<typeof createClient<Database>> | null = null;
 
 export function getSupabaseAdmin() {
   if (cached) return cached;
@@ -18,7 +19,7 @@ export function getSupabaseAdmin() {
     throw new Error('Falta SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en las variables de entorno del servidor');
   }
 
-  cached = createClient(supabaseUrl, serviceRoleKey, {
+  cached = createClient<Database>(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 

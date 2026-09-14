@@ -8,6 +8,18 @@ import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
 import { createAdminToken, verifyAdminToken, getBearerToken } from './_lib/adminAuth.js';
 import { getClientIP, checkLoginAllowed, recordLoginAttempt } from './_lib/adminSecurity.js';
 import { generateTempPassword } from './_lib/password.js';
+import type { Database } from './_lib/database.types.js';
+
+/**
+ * Filas tal y como las acepta la base de datos. `pickColumns()` construye los objetos
+ * en runtime a partir de una lista blanca, así que TypeScript no puede deducir que
+ * lleven las columnas obligatorias: el cast dice "esto ya está validado por la lista
+ * blanca", y de paso falla a la vista si alguna columna se renombra en el esquema.
+ */
+type Tablas = Database['public']['Tables'];
+type AnnouncementInsert = Tablas['announcements']['Insert'];
+type AttachmentInsert = Tablas['announcements_attachments']['Insert'];
+type BibliografiaInsert = Tablas['interinos_bibliografia']['Insert'];
 
 const USERS_PUBLIC_COLUMNS = [
   'id', 'nombre', 'apellidos', 'dni', 'email', 'telefono', 'parque_sepei',
@@ -321,7 +333,7 @@ async function handleAnnouncements(req: any, res: any, supabase: ReturnType<type
 
       const { data, error } = await supabase
         .from('announcements')
-        .insert([values])
+        .insert([values as AnnouncementInsert])
         .select('*, attachments:announcements_attachments(*)')
         .single();
 
@@ -340,7 +352,7 @@ async function handleAnnouncements(req: any, res: any, supabase: ReturnType<type
 
       const { data, error } = await supabase
         .from('announcements_attachments')
-        .insert([pickColumns(attachment, ATTACHMENT_WRITABLE_COLUMNS)])
+        .insert([pickColumns(attachment, ATTACHMENT_WRITABLE_COLUMNS) as AttachmentInsert])
         .select()
         .single();
 
@@ -650,7 +662,7 @@ async function handleInterinos(req: any, res: any, supabase: ReturnType<typeof g
 
     const { data, error } = await supabase
       .from('interinos_bibliografia')
-      .insert([values])
+      .insert([values as BibliografiaInsert])
       .select()
       .single();
 
