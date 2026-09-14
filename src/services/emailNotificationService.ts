@@ -24,6 +24,34 @@ export interface EmailRecipient {
   email: string;
   nombre: string;
   apellidos?: string;
+  /**
+   * Contacto de `external_emails`: ayuntamientos, servicios y algún contacto
+   * personal que NO están registrados en la web. Cambia el pie del correo, que
+   * hasta ahora les decía «estás registrado en SEPEI UNIDO» sin ser verdad, y
+   * les da la vía de baja que no tenían.
+   */
+  esExterno?: boolean;
+  /** Credencial del enlace de baja. Solo la llevan los externos. */
+  unsubscribeToken?: string;
+}
+
+/**
+ * Pie del correo: quién eres y, si no estás registrado, cómo dejar de recibirlo.
+ *
+ * El enlace NO da de baja al abrirse: lleva a una página que pregunta. Gmail y
+ * Safe Links visitan los enlaces de los correos para escanearlos, y un GET que
+ * ejecutara la baja daría de baja a quien nunca lo pidió.
+ */
+function pieSegunDestinatario(recipient: EmailRecipient): { motivo: string; enlaceBaja?: string } {
+  if (!recipient.esExterno) {
+    return { motivo: 'Recibes este correo porque estás registrado en SEPEI UNIDO.' };
+  }
+  return {
+    motivo: 'Recibes este correo porque tu dirección figura en la lista de contactos de SEPEI UNIDO.',
+    enlaceBaja: recipient.unsubscribeToken
+      ? `https://www.sepeiunido.org/baja?token=${recipient.unsubscribeToken}`
+      : undefined,
+  };
 }
 
 export interface AnnouncementAttachmentFile {
@@ -266,7 +294,7 @@ export function generateAnnouncementEmailHTML(
     etiqueta: announcement.categoria || 'Anuncio',
     tono: 'anuncio',
     contenido,
-    motivo: 'Recibes este correo porque estás registrado en SEPEI UNIDO.',
+    ...pieSegunDestinatario(recipient),
   });
 }
 
@@ -394,7 +422,7 @@ export function generateVotingEmailHTML(
     etiqueta: copia.etiqueta,
     tono: 'votacion',
     contenido,
-    motivo: 'Recibes este correo porque estás registrado en SEPEI UNIDO.',
+    ...pieSegunDestinatario(recipient),
   });
 }
 
@@ -584,7 +612,7 @@ export function generateVotingResultsEmailHTML(
     etiqueta: `Resultados`,
     tono: 'resultados',
     contenido,
-    motivo: 'Recibes este correo porque estás registrado en SEPEI UNIDO.',
+    ...pieSegunDestinatario(recipient),
   });
 }
 

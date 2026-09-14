@@ -14,6 +14,10 @@ export interface ExternalEmail {
   activo: boolean;
   created_at: string;
   updated_at: string;
+  /** Credencial del enlace de baja que viaja en sus correos. */
+  unsubscribe_token?: string;
+  /** Cuándo se dio de baja por su propia petición. */
+  baja_at?: string | null;
 }
 
 export interface BulkImportContact {

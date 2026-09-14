@@ -114,7 +114,10 @@ export default function NotificationModal({ isOpen, onClose, onConfirm, title }:
         id: e.id,
         email: e.email,
         nombre: e.nombre,
-        apellidos: undefined
+        apellidos: undefined,
+        // Lo que hace que su correo lleve el pie correcto y el enlace de baja.
+        esExterno: true,
+        unsubscribeToken: e.unsubscribe_token
       }));
     
     onConfirm([...selectedUsers, ...selectedExternals]);
