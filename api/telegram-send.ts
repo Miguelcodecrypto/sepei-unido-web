@@ -48,7 +48,13 @@ export default async function handler(req: any, res: any) {
       }),
     });
 
-    const data = await response.json();
+    // `response.json()` devuelve `unknown`: se declara la forma que documenta Telegram
+    // en vez de dar por hecho que trae `ok`/`result`.
+    const data = (await response.json()) as {
+      ok?: boolean;
+      description?: string;
+      result?: { message_id?: number };
+    };
 
     if (!data.ok) {
       console.error('❌ Error de Telegram API:', data);

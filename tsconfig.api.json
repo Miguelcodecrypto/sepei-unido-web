@@ -1,0 +1,24 @@
+{
+  // Las funciones de api/ no las compila Vite: las ejecuta Node en Vercel, y por eso
+  // necesitan reglas propias. La que importa es `moduleResolution: "NodeNext"`, que
+  // aplica las reglas reales de ESM — entre ellas exigir la extensión en los imports
+  // relativos. Un import sin `.js` dejó `api/auth.ts` sin cargar 20 horas el
+  // 2026-09-13 con el CI en verde, porque tsconfig.json solo mira src/.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    // A propósito laxo de momento: el objetivo de este archivo es cazar módulos que
+    // no cargan, no tipar api/ entero (los handlers usan `req: any, res: any`).
+    // Endurecerlo es trabajo de la Fase 3 de la auditoría, junto con los tipos
+    // `Database` de Supabase.
+    "strict": false
+  },
+  "include": ["api"]
+}

@@ -24,10 +24,15 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      # tsconfig.json solo incluye src/. api/ no está tipado todavía
-      # (ver "generar tipos Database de Supabase" en la Fase 3 de la auditoría).
-      - name: Comprobar tipos
+      - name: Comprobar tipos (src)
         run: npx tsc --noEmit
+
+      # api/ va aparte porque no lo compila Vite, lo ejecuta Node: necesita
+      # `moduleResolution: NodeNext`, que aplica las reglas reales de ESM. Sin este
+      # paso, un import sin `.js` pasaba el CI y tumbaba la función en producción
+      # (incidente del 2026-09-13: 20 horas sin login).
+      - name: Comprobar tipos (api)
+        run: npx tsc -p tsconfig.api.json
 
       - name: Build
         run: npm run build

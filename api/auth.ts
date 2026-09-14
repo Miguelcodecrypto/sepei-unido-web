@@ -17,6 +17,10 @@ import {
 import { getClientIP } from './_lib/clientIp.js';
 import { checkLoginAllowed, recordLoginAttempt } from './_lib/adminSecurity.js';
 import { VERSION_TERMINOS } from './_lib/terminos.js';
+import type { Database } from './_lib/database.types.js';
+
+/** Ver la nota de `pickColumns` en api/admin.ts: el objeto se arma en runtime. */
+type UserInsert = Database['public']['Tables']['users']['Insert'];
 
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 const VERIFICATION_TOKEN_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
@@ -108,7 +112,20 @@ async function handleLogin(req: any, res: any, supabase: ReturnType<typeof getSu
     return res.status(500).json({ error: 'Error al crear sesión' });
   }
 
-  await supabase.from('users').update({ last_login: new Date().toISOString() }).eq('id', (user as any).id);
+  // La columna se llama `lastlogin`, sin guion bajo. Hasta el 2026-09-14 esto escribía
+  // `last_login`, una columna que no existe: PostgREST rechazaba el update y, como no se
+  // miraba el error, fallaba en silencio — la fecha de último acceso no se guardó nunca.
+  // Lo destapó tipar api/ con el esquema real (ver tsconfig.api.json).
+  const { error: lastLoginError } = await supabase
+    .from('users')
+    .update({ lastlogin: new Date().toISOString() })
+    .eq('id', (user as any).id);
+
+  // No corta el login —entrar importa más que la marca de tiempo—, pero deja rastro:
+  // el fallo anterior duró meses precisamente por no registrarlo.
+  if (lastLoginError) {
+    console.error('No se pudo actualizar lastlogin:', lastLoginError);
+  }
 
   return res.status(200).json({ sessionToken, user: toPublicUser(user) });
 }
@@ -256,7 +273,7 @@ async function handleRegister(req: any, res: any, supabase: ReturnType<typeof ge
   insertData.verification_token_expires_at = new Date(Date.now() + VERIFICATION_TOKEN_DURATION_MS).toISOString();
 
   const { data: user, error } = await supabase
-    .from('users').insert([insertData]).select('id, nombre, apellidos, dni, email, verified').single();
+    .from('users').insert([insertData as UserInsert]).select('id, nombre, apellidos, dni, email, verified').single();
 
   if (error) {
     console.error('Error al registrar usuario:', error);
