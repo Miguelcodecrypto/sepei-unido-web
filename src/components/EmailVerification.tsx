@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { jsonONada } from '../services/respuestaApi';
 import { CheckCircle, XCircle, Loader, Mail, Key, ArrowRight } from 'lucide-react';
 import type { UserData } from './TraditionalRegistration';
 
@@ -42,7 +43,10 @@ export const EmailVerification: React.FC<EmailVerificationProps> = ({ token, onS
         body: JSON.stringify({ token: verificationToken }),
       });
 
-      const data = await response.json();
+      // `jsonONada` en vez de `response.json()`: si la función no arranca, Vercel
+      // responde texto plano y el parseo lanzaría, saltando al catch como si fuera
+      // un fallo de red.
+      const data = (await jsonONada(response)) ?? {};
 
       if (data.status === 'expired') {
         setStatus('expired');

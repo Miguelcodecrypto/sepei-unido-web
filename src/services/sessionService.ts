@@ -2,6 +2,7 @@
  * Servicio de sesión de usuario. Todas las operaciones pasan por /api/auth
  * (el cliente ya no toca user_sessions ni users directamente).
  */
+import { jsonONada, mensajeDeFallo, MENSAJE_SIN_RED } from './respuestaApi';
 
 const SESSION_KEY = 'sepei_session_token';
 
@@ -42,17 +43,18 @@ export async function loginWithPassword(
       body: JSON.stringify({ dni, password }),
     });
 
-    const data = await response.json();
+    const data = await jsonONada(response);
 
-    if (!response.ok) {
-      return { ok: false, error: data.error || 'Error al iniciar sesión' };
+    if (!response.ok || data === null) {
+      return { ok: false, error: mensajeDeFallo(response.status, data, 'Error al iniciar sesión') };
     }
 
     localStorage.setItem(SESSION_KEY, data.sessionToken);
     return { ok: true, user: data.user };
   } catch (error) {
+    // Aquí el fetch ni llegó a responder: esto SÍ es la conexión del usuario.
     console.error('❌ [SESIÓN] Error al iniciar sesión:', error);
-    return { ok: false, error: 'Error de conexión' };
+    return { ok: false, error: MENSAJE_SIN_RED };
   }
 }
 
@@ -68,13 +70,23 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       headers: { Authorization: `Bearer ${sessionToken}` },
     });
 
-    if (!response.ok) {
+    // Solo se tira la sesión cuando el servidor dice que ya no vale. Un fallo suyo
+    // —un 5xx, o una respuesta que no es JSON porque la función no arrancó— no dice
+    // NADA sobre la sesión: borrarla ahí es lo que dejó fuera a los 63 usuarios el
+    // 2026-09-13, que además no podían volver a entrar porque el login también estaba
+    // caído. Conservando el token, al recuperarse el servidor la sesión sigue viva.
+    if (response.status === 401 || response.status === 403) {
       localStorage.removeItem(SESSION_KEY);
       return null;
     }
 
-    const { user } = await response.json();
-    return user;
+    const datos = await jsonONada(response);
+    if (!response.ok || datos === null) {
+      console.error('❌ [SESIÓN] El servidor no ha devuelto la sesión (HTTP %s). Se conserva el token.', response.status);
+      return null;
+    }
+
+    return datos.user;
   } catch (error) {
     console.error('❌ [SESIÓN] Error al obtener usuario actual:', error);
     return null;
@@ -135,12 +147,14 @@ export async function completeProfile(
       body: JSON.stringify(datos),
     });
 
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) return { ok: false, error: data.error || 'No se pudieron guardar los datos' };
+    const data = await jsonONada(response);
+    if (!response.ok || data === null) {
+      return { ok: false, error: mensajeDeFallo(response.status, data, 'No se pudieron guardar los datos') };
+    }
 
     return { ok: true, user: data.user };
   } catch (error) {
     console.error('❌ [SESIÓN] Error al completar el perfil:', error);
-    return { ok: false, error: 'Error de conexión' };
+    return { ok: false, error: MENSAJE_SIN_RED };
   }
 }

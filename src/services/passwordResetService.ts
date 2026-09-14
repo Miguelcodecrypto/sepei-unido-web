@@ -1,3 +1,5 @@
+import { jsonONada, mensajeDeFallo, MENSAJE_SIN_RED } from './respuestaApi';
+
 interface PasswordResetResult {
   success: boolean;
   message: string;
@@ -22,13 +24,21 @@ export async function requestPasswordResetByEmail(email: string): Promise<Passwo
       body: JSON.stringify({ email: normalizedEmail }),
     });
 
-    const data = await response.json();
+    const data = await jsonONada(response);
+
+    // Este es EL botón que se pulsa cuando algo va mal, así que es el peor sitio para
+    // devolver un mensaje que culpe al usuario: el 2026-09-13 decía «Error de conexión»
+    // mientras la función de auth no arrancaba.
+    if (!response.ok || data === null) {
+      return {
+        success: false,
+        message: mensajeDeFallo(response.status, data, 'No se ha podido procesar la solicitud.'),
+      };
+    }
+
     return { success: !!data.success, message: data.message };
   } catch (error) {
     console.error('❌ [RESET PASSWORD] Error al solicitar reseteo de contraseña:', error);
-    return {
-      success: false,
-      message: 'Error al procesar la solicitud. Inténtalo de nuevo más tarde.',
-    };
+    return { success: false, message: MENSAJE_SIN_RED };
   }
 }

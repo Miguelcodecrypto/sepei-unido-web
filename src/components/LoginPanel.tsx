@@ -28,7 +28,9 @@ export default function LoginPanel({ onLoginSuccess }: LoginProps) {
       }
     } catch (error) {
       console.error('Error en login:', error);
-      setError('Error de conexión. Inténtalo de nuevo.');
+      // `login()` ya devuelve un mensaje honesto en `result.error`; esto solo cubre
+      // un fallo imprevisto, así que tampoco culpa a la conexión del usuario.
+      setError('No se ha podido completar el inicio de sesión. Inténtalo de nuevo.');
     } finally {
       setIsLoading(false);
     }

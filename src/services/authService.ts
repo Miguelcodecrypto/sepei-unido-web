@@ -1,6 +1,8 @@
 // Autenticación del panel admin: la contraseña se verifica en el servidor (api/admin.ts, resource=login).
 // El token que se guarda aquí es un JWT-like firmado con HMAC server-side, no un valor local.
 
+import { jsonONada, mensajeDeFallo, MENSAJE_SIN_RED } from './respuestaApi';
+
 const AUTH_KEY = 'sepei_admin_token';
 
 // Verificar si está autenticado (comprobación local rápida; el servidor revalida el token en cada llamada admin-*)
@@ -21,17 +23,17 @@ export const login = async (password: string): Promise<{ ok: boolean; error?: st
       body: JSON.stringify({ password }),
     });
 
-    const data = await response.json();
+    const data = await jsonONada(response);
 
-    if (!response.ok) {
-      return { ok: false, error: data.error || 'Error al iniciar sesión' };
+    if (!response.ok || data === null) {
+      return { ok: false, error: mensajeDeFallo(response.status, data, 'Error al iniciar sesión') };
     }
 
     localStorage.setItem(AUTH_KEY, data.token);
     return { ok: true };
   } catch (error) {
     console.error('Error en login admin:', error);
-    return { ok: false, error: 'Error de conexión' };
+    return { ok: false, error: MENSAJE_SIN_RED };
   }
 };
 
