@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { jsonONada, mensajeDeFallo } from '../services/respuestaApi';
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle, X } from 'lucide-react';
 
 interface ChangePasswordModalProps {
@@ -116,13 +117,13 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
         }),
       });
 
-      const data = await response.json();
+      const data = await jsonONada(response);
 
-      if (!response.ok) {
+      if (!response.ok || data === null) {
         if (response.status === 401) {
-          setErrors({ currentPassword: data.error || 'Contraseña actual incorrecta' });
+          setErrors({ currentPassword: data?.error || 'Contraseña actual incorrecta' });
         } else {
-          setErrors({ general: data.error || 'Error al actualizar la contraseña' });
+          setErrors({ general: mensajeDeFallo(response.status, data, 'Error al actualizar la contraseña') });
         }
         setIsLoading(false);
         return;
