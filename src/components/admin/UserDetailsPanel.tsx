@@ -1,8 +1,11 @@
 // Ficha ampliada de un usuario: plantilla oficial, FNMT, Telegram y RGPD.
 import { CheckCircle, AlertTriangle, UserX, MessageCircle } from 'lucide-react';
+import { calcularActividad } from '../../utils/actividad';
 import { UserConEstado } from './types';
 
 export function UserDetailsPanel({ user }: { user: UserConEstado }) {
+  const actividad = calcularActividad(user.lastlogin);
+
   return (
     <div className="space-y-4">
       {/* Información de Plantilla Oficial */}
@@ -154,6 +157,23 @@ export function UserDetailsPanel({ user }: { user: UserConEstado }) {
         </div>
       </div>
     
+      {/* Acceso a la plataforma: aquí va la fecha exacta; la tabla solo da el "hace X" */}
+      <div className="border-t border-slate-700 pt-4 mt-4">
+        <h4 className="text-white font-semibold mb-3 text-sm">Acceso a la plataforma</h4>
+        <div className="space-y-2 text-sm">
+          <div>
+            <span className="text-gray-400">Último acceso: </span>
+            <span className="text-white">
+              {actividad.absoluto ? `${actividad.absoluto} (${actividad.texto.toLowerCase()})` : 'Sin registro de acceso'}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-400">Registrado el: </span>
+            <span className="text-white">{new Date(user.fecha_registro).toLocaleDateString('es-ES')}</span>
+          </div>
+        </div>
+      </div>
+
       {/* Información de Consentimiento RGPD */}
       <div className="border-t border-slate-700 pt-4 mt-4">
         <h4 className="text-white font-semibold mb-3 text-sm">Consentimiento RGPD</h4>

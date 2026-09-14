@@ -23,6 +23,8 @@ export interface AdminUser {
   telegram_chat_id?: string;
   telegram_username?: string;
   telegram_linked_at?: string;
+  /** Último acceso (login o entrada con sesión abierta). NULL = sin registro. */
+  lastlogin?: string | null;
   verified?: boolean;
   email_notifications?: boolean;
 }
