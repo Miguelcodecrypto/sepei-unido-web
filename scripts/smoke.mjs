@@ -62,14 +62,40 @@ const PORTADA = { nombre: 'portada (/)', ruta: '/', metodo: 'GET', espera: 200 }
 
 const TIMEOUT_MS = 15000;
 
+/**
+ * Las previews de Vercel están protegidas por SSO: sin credencial responden un 302
+ * a vercel.com/sso-api y jamás llegan a la función. Vercel ofrece para esto un
+ * secreto de "Protection Bypass for Automation" (Settings → Deployment Protection),
+ * que se manda en esta cabecera. Sin él solo se puede comprobar producción.
+ */
+const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '';
+
+/** Detecta que quien contesta es el muro de SSO y no la aplicación. */
+function esMuroSSO(res) {
+  const location = res.headers.get('location') || '';
+  return (res.status === 401 && (res.headers.get('set-cookie') || '').includes('_vercel_sso_nonce'))
+    || (res.status >= 300 && res.status < 400 && location.includes('vercel.com/sso-api'));
+}
+
 async function comprobar({ nombre, ruta, metodo, espera }) {
   const url = `${base}${ruta}`;
 
   let res;
   try {
-    res = await fetch(url, { method: metodo, signal: AbortSignal.timeout(TIMEOUT_MS) });
+    res = await fetch(url, {
+      method: metodo,
+      // Sin seguir redirecciones: si no, el 302 del SSO se convierte en un HTML 200
+      // y el fallo se disfraza de "content-type raro" en lugar de decir la verdad.
+      redirect: 'manual',
+      headers: BYPASS ? { 'x-vercel-protection-bypass': BYPASS } : {},
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
   } catch (error) {
     return { nombre, ok: false, detalle: `no responde (${error.name}: ${error.message})` };
+  }
+
+  if (esMuroSSO(res)) {
+    return { nombre, protegido: true, ok: false, detalle: 'protegido por el SSO de Vercel' };
   }
 
   const tipo = res.headers.get('content-type') || '(sin content-type)';
@@ -118,6 +144,21 @@ for (const r of resultados) {
 
 const fallos = resultados.filter((r) => !r.ok);
 console.log(`\n${resultados.length - fallos.length}/${resultados.length} correctos\n`);
+
+// Todo protegido = no se ha comprobado nada. No es un fallo del despliegue, pero
+// tampoco es un aprobado: se dice claramente para que nadie lea este check como
+// una garantía que no ha dado. Un check en verde sin haber probado nada es peor
+// que no tenerlo, igual que uno en rojo permanente que se acaba ignorando.
+if (fallos.length > 0 && fallos.every((r) => r.protegido)) {
+  console.error(
+    'SIN COMPROBAR: este despliegue está protegido por el SSO de Vercel.\n' +
+    'Para verificar también las previews, genera el secreto en Vercel\n' +
+    '(Settings → Deployment Protection → Protection Bypass for Automation) y\n' +
+    'guárdalo como secret de GitHub con el nombre VERCEL_AUTOMATION_BYPASS_SECRET.\n' +
+    'Producción no está protegida y sí se comprueba entera.'
+  );
+  process.exit(0);
+}
 
 if (fallos.length > 0) {
   console.error(`FALLO: ${fallos.map((f) => f.nombre).join(', ')} no responden como funciones vivas.`);

@@ -42,4 +42,9 @@ jobs:
       - name: Comprobar que las funciones responden
         env:
           URL: ${{ github.event.inputs.url || github.event.deployment_status.environment_url }}
+          # Las previews están tras el SSO de Vercel. Con este secreto configurado
+          # (Vercel → Settings → Deployment Protection → Protection Bypass for
+          # Automation) también se comprueban; sin él, el script lo dice y solo
+          # verifica producción, que no está protegida.
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: node scripts/smoke.mjs "$URL"
