@@ -1,0 +1,135 @@
+# Vigila producción cada 15 minutos y avisa si alguna función deja de arrancar.
+#
+# El typecheck de api/ y el smoke de cada despliegue solo actúan cuando se despliega.
+# Pero la web se puede caer sin tocar nada: una variable de entorno que caduca, un
+# cambio en Supabase, una migración aplicada a mano. El 2026-09-13 el fallo SÍ vino de
+# un despliegue y aun así tardó 20 horas en detectarse, porque nadie miraba.
+#
+# 🔑 El vigilante no depende de lo vigilado: el aviso NO sale por api/telegram-send.ts,
+# porque el día que `api/` se caiga tampoco avisaría. Sale de GitHub (un issue, que
+# llega por correo) y, si están los secretos, de una llamada directa a Telegram.
+name: Vigilancia
+
+on:
+  schedule:
+    # Cada 15 minutos. GitHub puede retrasar los cron con carga alta; para vigilancia
+    # da igual, lo que importa es el orden de magnitud: minutos en vez de un día.
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+# Para abrir, comentar y cerrar el issue de aviso.
+permissions:
+  issues: write
+
+concurrency:
+  # Si un ciclo se solapa con el anterior, que no se pisen abriendo dos issues.
+  group: vigilancia
+  cancel-in-progress: false
+
+env:
+  URL_PRODUCCION: https://www.sepeiunido.org
+  ETIQUETA: vigilancia
+
+jobs:
+  vigilar:
+    name: Producción responde
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Un fallo aislado de red no es una caída. Solo se avisa si falla dos veces
+      # separadas por un minuto: sin esto, el vigilante cría fama de exagerado y
+      # se acaba ignorando, que es la forma habitual de que estas cosas mueran.
+      - name: Comprobar (con un reintento)
+        id: smoke
+        run: |
+          set +e
+          salida=$(node scripts/smoke.mjs "$URL_PRODUCCION" 2>&1)
+          codigo=$?
+          if [ $codigo -ne 0 ]; then
+            echo "Primer intento fallido, reintentando en 60s..."
+            sleep 60
+            salida=$(node scripts/smoke.mjs "$URL_PRODUCCION" 2>&1)
+            codigo=$?
+          fi
+          echo "$salida"
+          {
+            echo 'informe<<INFORME_EOF'
+            echo "$salida"
+            echo 'INFORME_EOF'
+          } >> "$GITHUB_OUTPUT"
+          echo "codigo=$codigo" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      # ---- Producción caída ----
+
+      - name: Abrir o actualizar el aviso
+        if: steps.smoke.outputs.codigo != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INFORME: ${{ steps.smoke.outputs.informe }}
+          EJECUCION: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          # Un issue por incidencia, no uno cada 15 minutos: si ya hay uno abierto,
+          # se comenta en él. Así el aviso sigue siendo legible durante una caída larga.
+          abierto=$(gh issue list --label "$ETIQUETA" --state open --limit 1 --json number --jq '.[0].number // empty')
+
+          cuerpo=$(printf '%s\n\n```\n%s\n```\n\n[Ver la ejecución](%s)\n' \
+            "Una o más funciones de \`api/\` han dejado de arrancar en producción ($URL_PRODUCCION)." \
+            "$INFORME" "$EJECUCION")
+
+          if [ -n "$abierto" ]; then
+            gh issue comment "$abierto" --body "$cuerpo"
+            echo "Comentado en el issue #$abierto"
+          else
+            gh label create "$ETIQUETA" --color b60205 --description "Avisos automáticos de producción" 2>/dev/null || true
+            gh issue create \
+              --title "🔴 Producción: alguna función de api/ no arranca" \
+              --label "$ETIQUETA" \
+              --body "$cuerpo"
+          fi
+
+      - name: Avisar por Telegram
+        # Opcional: solo si están configurados los secretos. La llamada va directa a
+        # api.telegram.org, no a la web, para no depender de lo que se está vigilando.
+        # Se consulta `secrets` y no `env`: el `env` de un step no existe todavía
+        # cuando se evalúa el `if` de ese mismo step.
+        if: steps.smoke.outputs.codigo != '0' && secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != ''
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          EJECUCION: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=🔴 SEPEI UNIDO: alguna función de api/ no arranca en producción. ${EJECUCION}" \
+            > /dev/null
+
+      - name: Marcar el job como fallido
+        if: steps.smoke.outputs.codigo != '0'
+        run: |
+          echo "::error::Producción no responde correctamente. Ver el issue abierto."
+          exit 1
+
+      # ---- Producción sana otra vez ----
+
+      - name: Cerrar el aviso si se ha recuperado
+        if: steps.smoke.outputs.codigo == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EJECUCION: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          abierto=$(gh issue list --label "$ETIQUETA" --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$abierto" ]; then
+            gh issue comment "$abierto" --body "✅ Producción vuelve a responder correctamente: las 12 funciones arrancan. [Ver la comprobación]($EJECUCION)"
+            gh issue close "$abierto"
+            echo "Cerrado el issue #$abierto"
+          fi
