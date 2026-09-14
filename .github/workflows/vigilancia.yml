@@ -98,15 +98,20 @@ jobs:
       - name: Avisar por Telegram
         # Opcional: solo si están configurados los secretos. La llamada va directa a
         # api.telegram.org, no a la web, para no depender de lo que se está vigilando.
-        # Se consulta `secrets` y no `env`: el `env` de un step no existe todavía
-        # cuando se evalúa el `if` de ese mismo step.
-        if: steps.smoke.outputs.codigo != '0' && secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != ''
+        # La comprobación va DENTRO del run: en el `if` de un step no se puede
+        # consultar ni `secrets` (GitHub rechaza el workflow entero) ni el `env` del
+        # propio step, que todavía no existe cuando se evalúa la condición.
+        if: steps.smoke.outputs.codigo != '0'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           EJECUCION: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
+          if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
+            echo "Sin secretos de Telegram configurados: el aviso va solo por el issue."
+            exit 0
+          fi
           curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
             --data-urlencode "text=🔴 SEPEI UNIDO: alguna función de api/ no arranca en producción. ${EJECUCION}" \
