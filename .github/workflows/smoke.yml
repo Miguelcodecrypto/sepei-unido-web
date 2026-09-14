@@ -1,0 +1,50 @@
+# Comprueba que las funciones de api/ arrancan en el despliegue REAL.
+#
+# El CI de ci.yml no puede ver este tipo de fallo: `tsconfig.json` solo incluye
+# `src/`, así que `api/` no pasa por el compilador. El 2026-09-13 un import sin
+# extensión dejó `api/auth.ts` sin cargar y la web estuvo 20 horas sin login con
+# todos los checks en verde. Lo único que lo detecta es llamar al artefacto
+# desplegado, que es lo que hace scripts/smoke.mjs.
+#
+# Se dispara con `deployment_status` porque es el evento que publica la integración
+# de Vercel cuando un despliegue —preview de un PR o producción— queda listo, y trae
+# su URL. Así cada PR se verifica en su preview antes de llegar a `main`.
+name: Smoke
+
+on:
+  deployment_status:
+  # Permite lanzarlo a mano contra cualquier URL (por ejemplo, para comprobar
+  # producción después de un incidente sin tener que desplegar nada).
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL base a comprobar'
+        required: false
+        default: 'https://www.sepeiunido.org'
+
+jobs:
+  smoke:
+    name: Las funciones arrancan
+    # En `deployment_status` el workflow se dispara en cada cambio de estado
+    # (pending, error, success). Solo interesa cuando el despliegue está listo.
+    if: github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Sin `npm ci`: el script usa solo el fetch nativo de Node, a propósito.
+      # Un vigilante con dependencias es un vigilante que también se puede romper.
+      - name: Comprobar que las funciones responden
+        env:
+          URL: ${{ github.event.inputs.url || github.event.deployment_status.environment_url }}
+          # Las previews están tras el SSO de Vercel. Con este secreto configurado
+          # (Vercel → Settings → Deployment Protection → Protection Bypass for
+          # Automation) también se comprueban; sin él, el script lo dice y solo
+          # verifica producción, que no está protegida.
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: node scripts/smoke.mjs "$URL"
