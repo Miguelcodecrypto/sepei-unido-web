@@ -13,10 +13,10 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Flame, ArrowLeft, LogIn, UserCheck } from 'lucide-react';
+import { Flame, ArrowLeft, LogIn, UserCheck, LogOut } from 'lucide-react';
 import VotingBoard from '../components/VotingBoard';
 import { UserLogin } from '../components/UserLogin';
-import { getCurrentUser, type SessionUser } from '../services/sessionService';
+import { getCurrentUser, invalidateSession, type SessionUser } from '../services/sessionService';
 
 const VotacionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,6 +42,22 @@ const VotacionPage: React.FC = () => {
     setSesionKey(k => k + 1);
   };
 
+  /**
+   * El enlace del correo no lleva identidad a propósito (reenviarlo no debe ceder
+   * el voto), así que quien contesta es la sesión guardada en el navegador, que
+   * dura 7 días. Si alguien abre su aviso en un móvil o un ordenador donde había
+   * otra sesión, la papeleta le habla de esa otra persona: puede decirle "ya
+   * votaste" sin que él haya votado. Pasó el 2026-09-15. Por eso la identidad se
+   * ve entera arriba y se puede cambiar desde aquí, sin ir a buscar el menú de la
+   * portada.
+   */
+  const handleCambiarCuenta = async () => {
+    await invalidateSession();
+    setUsuario(null);
+    setSesionKey(k => k + 1);
+    setShowLogin(true);
+  };
+
   return (
     <div className="min-h-screen bg-slate-950">
       <header className="border-b border-slate-800 bg-slate-900/80">
@@ -55,10 +71,25 @@ const VotacionPage: React.FC = () => {
           </a>
 
           {usuario ? (
-            <span className="flex items-center gap-2 text-sm text-green-400 font-semibold">
-              <UserCheck className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate max-w-[10rem]">{usuario.nombre}</span>
-            </span>
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="min-w-0 text-right">
+                <p className="flex items-center justify-end gap-1.5 text-sm text-green-400 font-semibold">
+                  <UserCheck className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate max-w-[9rem] sm:max-w-[14rem]">
+                    {[usuario.nombre, usuario.apellidos].filter(Boolean).join(' ')}
+                  </span>
+                </p>
+                <p className="text-xs text-gray-400 truncate max-w-[9rem] sm:max-w-[14rem]">{usuario.email}</p>
+              </div>
+              <button
+                onClick={handleCambiarCuenta}
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg transition-colors flex-shrink-0"
+                title="Cerrar esta sesión y entrar con otra cuenta"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">No soy yo</span>
+              </button>
+            </div>
           ) : (
             <button
               onClick={() => setShowLogin(true)}
@@ -74,7 +105,15 @@ const VotacionPage: React.FC = () => {
       <main className="max-w-4xl mx-auto px-4 py-8 md:py-12">
         {/* Quien llega sin sesión puede leer la papeleta entera; identificarse solo
             hace falta para emitir el voto. */}
-        {!usuario && (
+        {usuario ? (
+          <p className="mb-6 text-sm text-gray-400 text-center">
+            Estás votando como <span className="text-gray-200 font-semibold">{[usuario.nombre, usuario.apellidos].filter(Boolean).join(' ')}</span>.
+            {' '}Si este aviso era para otra persona,{' '}
+            <button onClick={handleCambiarCuenta} className="text-orange-400 hover:text-orange-300 underline font-semibold">
+              entra con su cuenta
+            </button>.
+          </p>
+        ) : (
           <p className="mb-6 text-sm text-gray-400 text-center">
             Para votar tendrás que iniciar sesión con tu DNI.
           </p>

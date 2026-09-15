@@ -8,7 +8,7 @@
  * que mande el cliente en el body.
  *
  * Acciones públicas (sin autenticación):
- *   GET  ?action=active            — votaciones activas + opciones + usuario_ya_voto si hay sesión
+ *   GET  ?action=active            — votaciones activas + opciones + usuario_ya_voto/usuario_voto_fecha si hay sesión
  *   GET  ?action=published         — votaciones publicadas (todas, con estado) + resultados si son públicos
  *   GET  ?action=summary           — resumen simple: ¿hay alguna activa? ¿cuánto falta?
  *
@@ -115,14 +115,27 @@ async function obtenerResultados(supabase: Supa, votacionId: string) {
   return data || [];
 }
 
-async function haVotado(supabase: Supa, votacionId: string, userId: string): Promise<boolean> {
+/**
+ * Recibo de participación del propio usuario de la sesión: si votó y cuándo.
+ *
+ * La fecha es dato suyo y solo se le devuelve a él; el sentido del voto sigue sin
+ * poder cruzarse (`votos` no guarda a quién pertenece). Sirve para que el "Ya
+ * votaste" de la pantalla pueda decir cuándo fue: si el enlace de un correo se
+ * abre con la sesión de otra persona, la fecha es la primera pista de que quien
+ * está mirando no es quien recibió el aviso.
+ */
+async function reciboDeVoto(
+  supabase: Supa,
+  votacionId: string,
+  userId: string
+): Promise<{ fecha_voto: string } | null> {
   const { data } = await supabase
     .from('voto_participaciones')
-    .select('id')
+    .select('fecha_voto')
     .eq('votacion_id', votacionId)
     .eq('user_id', userId)
     .maybeSingle();
-  return !!data;
+  return (data as any) || null;
 }
 
 async function withOpciones(supabase: Supa, votaciones: any[]) {
@@ -154,11 +167,15 @@ async function handleActive(req: any, res: any, supabase: Supa) {
   const sessionUser = await getSessionUser(req);
 
   const completas = await Promise.all(
-    conOpciones.map(async (v: any) => ({
-      ...v,
-      total_votos: await contarParticipantes(supabase, v.id),
-      usuario_ya_voto: sessionUser ? await haVotado(supabase, v.id, sessionUser.dni.toUpperCase()) : false,
-    }))
+    conOpciones.map(async (v: any) => {
+      const recibo = sessionUser ? await reciboDeVoto(supabase, v.id, sessionUser.dni.toUpperCase()) : null;
+      return {
+        ...v,
+        total_votos: await contarParticipantes(supabase, v.id),
+        usuario_ya_voto: !!recibo,
+        usuario_voto_fecha: recibo?.fecha_voto || null,
+      };
+    })
   );
 
   return res.status(200).json({ votaciones: completas });
@@ -181,11 +198,13 @@ async function handlePublished(req: any, res: any, supabase: Supa) {
     conOpciones.map(async (v: any) => {
       const estado = calcularEstado(v.fecha_inicio, v.fecha_fin);
       const resultados = v.resultados_publicos ? await obtenerResultados(supabase, v.id) : [];
+      const recibo = sessionUser ? await reciboDeVoto(supabase, v.id, sessionUser.dni.toUpperCase()) : null;
       return {
         ...v,
         estado,
         total_votos: await contarParticipantes(supabase, v.id),
-        usuario_ya_voto: sessionUser ? await haVotado(supabase, v.id, sessionUser.dni.toUpperCase()) : false,
+        usuario_ya_voto: !!recibo,
+        usuario_voto_fecha: recibo?.fecha_voto || null,
         votos: resultados.map((r: any) => ({ opcion: r.texto, votos: r.total_votos })),
       };
     })
@@ -231,8 +250,8 @@ async function handleHasVoted(req: any, res: any, supabase: Supa) {
   const votacionId = req.query?.votacion_id;
   if (!votacionId) return res.status(400).json({ error: 'Falta votacion_id' });
 
-  const yaVoto = await haVotado(supabase, votacionId, sessionUser.dni.toUpperCase());
-  return res.status(200).json({ yaVoto });
+  const recibo = await reciboDeVoto(supabase, votacionId, sessionUser.dni.toUpperCase());
+  return res.status(200).json({ yaVoto: !!recibo, fechaVoto: recibo?.fecha_voto || null });
 }
 
 // ---- action=vote ----
