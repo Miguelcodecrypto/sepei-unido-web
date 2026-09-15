@@ -19,7 +19,9 @@
  * Acciones de admin (Authorization: Bearer <adminToken>):
  *   GET  ?action=admin-list
  *   POST ?action=admin-create      — { votacion, opciones }
- *   POST ?action=admin-update      — { id, votacion, opciones? }
+ *   POST ?action=admin-update      — { id, votacion, opciones?, confirmar_reinicio? }
+ *                                    409 si cambiar las opciones anularía votos ya emitidos
+ *                                    y no se ha confirmado
  *   POST ?action=admin-delete      — { id }
  *   POST ?action=admin-toggle      — { id, field: 'publicado'|'resultados_publicos', value }
  */
@@ -44,6 +46,64 @@ async function contarParticipantes(supabase: Supa, votacionId: string): Promise<
     .select('id', { count: 'exact', head: true })
     .eq('votacion_id', votacionId);
   return count || 0;
+}
+
+/**
+ * Recibos de participación que se quedaron sin ningún voto detrás.
+ *
+ * No debería existir ninguno: la única forma de crearlos era editar una votación
+ * ya votada, porque al borrar y recrear las opciones el `ON DELETE CASCADE` de
+ * `votos.opcion_id` se llevaba el detalle mientras el recibo (que cuelga de la
+ * votación, no de la opción) sobrevivía. Resultado: el votante quedaba bloqueado
+ * ("ya has votado") y su voto no se contaba en ningún sitio. Pasó de verdad el
+ * 2026-09-15 con la votación de prueba.
+ *
+ * Se cuentan en dos consultas globales en vez de dos por votación porque
+ * `admin-list` ya hacía una por votación solo para el total.
+ */
+async function contarPorVotacion(supabase: Supa) {
+  const [{ data: participaciones }, { data: detalle }] = await Promise.all([
+    supabase.from('voto_participaciones').select('id, votacion_id'),
+    supabase.from('votos').select('participacion_id'),
+  ]);
+
+  const conVoto = new Set((detalle || []).map((v: any) => v.participacion_id));
+  const totales = new Map<string, number>();
+  const huerfanos = new Map<string, number>();
+
+  for (const p of (participaciones || []) as any[]) {
+    totales.set(p.votacion_id, (totales.get(p.votacion_id) || 0) + 1);
+    if (!conVoto.has(p.id)) huerfanos.set(p.votacion_id, (huerfanos.get(p.votacion_id) || 0) + 1);
+  }
+
+  return { totales, huerfanos };
+}
+
+/**
+ * Compara las opciones que manda el panel con las que ya hay guardadas. Si son
+ * las mismas, editar la votación no debe tocarlas: borrarlas y recrearlas
+ * destruye los votos emitidos aunque el admin solo haya cambiado una fecha.
+ */
+function mismasOpciones(actuales: any[], entrantes: any[]): boolean {
+  if (actuales.length !== entrantes.length) return false;
+  return actuales.every((o: any, i: number) => String(o.texto).trim() === String(entrantes[i]?.texto ?? '').trim());
+}
+
+/**
+ * Las mismas opciones en otro orden. Reordenar la papeleta no cambia lo que votó
+ * nadie, así que no puede costar la anulación de los votos: basta con reescribir
+ * la columna `orden` de las opciones que ya existen.
+ *
+ * Con textos repetidos no se puede emparejar cuál es cuál, así que ahí se
+ * responde que no y el cambio pasa por el camino normal (reinicio confirmado).
+ */
+function soloReordenadas(actuales: any[], entrantes: any[]): boolean {
+  if (actuales.length !== entrantes.length) return false;
+  const norm = (v: any) => String(v ?? '').trim();
+  const a = actuales.map((o: any) => norm(o.texto)).sort();
+  const b = entrantes.map((o: any) => norm(o.texto)).sort();
+  if (new Set(a).size !== a.length) return false;
+  return a.every((texto, i) => texto === b[i]);
 }
 
 async function obtenerResultados(supabase: Supa, votacionId: string) {
@@ -261,9 +321,14 @@ async function handleAdminList(req: any, res: any, supabase: Supa) {
   if (error) return res.status(500).json({ error: 'Error al consultar votaciones' });
 
   const conOpciones = await withOpciones(supabase, votaciones || []);
-  const completas = await Promise.all(
-    conOpciones.map(async (v: any) => ({ ...v, total_votos: await contarParticipantes(supabase, v.id) }))
-  );
+  const { totales, huerfanos } = await contarPorVotacion(supabase);
+  const completas = conOpciones.map((v: any) => ({
+    ...v,
+    total_votos: totales.get(v.id) || 0,
+    // El panel lo enseña en rojo: es la señal de que una edición anuló votos sin
+    // liberar a quien los emitió. Con el flujo nuevo debería ser siempre 0.
+    participaciones_sin_voto: huerfanos.get(v.id) || 0,
+  }));
 
   return res.status(200).json({ votaciones: completas });
 }
@@ -310,9 +375,61 @@ async function handleAdminCreate(req: any, res: any, supabase: Supa) {
 }
 
 // ---- admin: update ----
+//
+// Editar una votación NO puede destruir votos por sorpresa. Antes esta función
+// borraba y recreaba las opciones en cada guardado, así que cambiar solo el
+// título o la fecha borraba el detalle de los votos ya emitidos (CASCADE desde
+// `opciones_votacion`) y dejaba vivos los recibos de `voto_participaciones`: la
+// gente que ya había votado quedaba bloqueada y su voto no contaba en ninguna
+// parte. Ahora:
+//   1. Si las opciones no han cambiado, no se tocan.
+//   2. Si cambian y ya hay participaciones, hace falta `confirmar_reinicio` (el
+//      panel lo pide por pantalla). Sin confirmar, 409 y no se escribe nada.
+//   3. Al confirmar se borran también los recibos, no solo el detalle: o hay
+//      recibo con voto, o no hay recibo. El estado intermedio no vuelve a existir.
 async function handleAdminUpdate(req: any, res: any, supabase: Supa) {
-  const { id, votacion, opciones } = req.body || {};
+  const { id, votacion, opciones, confirmar_reinicio } = req.body || {};
   if (!id || !votacion) return res.status(400).json({ error: 'Faltan datos' });
+
+  const cambiarOpciones = Array.isArray(opciones);
+  let opcionesCambian = false;
+  let reordenar = false;
+
+  if (cambiarOpciones) {
+    const { data: actuales, error: actualesError } = await supabase
+      .from('opciones_votacion')
+      .select('texto, orden')
+      .eq('votacion_id', id)
+      .order('orden');
+
+    if (actualesError) {
+      console.error('[voting] Error al leer las opciones actuales:', actualesError);
+      return res.status(500).json({ error: 'Error al actualizar la votación' });
+    }
+
+    opcionesCambian = !mismasOpciones(actuales || [], opciones);
+
+    // Caso intermedio: las mismas opciones en otro orden. Se reordenan en sitio
+    // (mismos ids, mismos votos) en vez de borrarlas y recrearlas.
+    if (opcionesCambian && soloReordenadas(actuales || [], opciones)) {
+      opcionesCambian = false;
+      reordenar = true;
+    }
+  }
+
+  // La comprobación va antes de cualquier escritura: si hace falta confirmar, el
+  // guardado se aborta entero y el título no queda cambiado a medias.
+  let participaciones = 0;
+  if (opcionesCambian) {
+    participaciones = await contarParticipantes(supabase, id);
+    if (participaciones > 0 && confirmar_reinicio !== true) {
+      return res.status(409).json({
+        error: 'Cambiar las opciones anularía los votos ya emitidos',
+        requiere_confirmacion: true,
+        participaciones,
+      });
+    }
+  }
 
   // La autoría la fija el servidor al crear; editar no la reescribe (el
   // formulario llegó a mandarla vacía y borraba el valor bueno).
@@ -324,7 +441,31 @@ async function handleAdminUpdate(req: any, res: any, supabase: Supa) {
     return res.status(500).json({ error: 'Error al actualizar la votación' });
   }
 
-  if (Array.isArray(opciones)) {
+  if (reordenar) {
+    for (const [index, o] of opciones.entries()) {
+      const { error: ordenError } = await (supabase.from('opciones_votacion') as any)
+        .update({ orden: index })
+        .eq('votacion_id', id)
+        .eq('texto', o.texto);
+      if (ordenError) {
+        console.error('[voting] Error al reordenar las opciones:', ordenError);
+        return res.status(500).json({ error: 'Error al actualizar las opciones' });
+      }
+    }
+  }
+
+  if (opcionesCambian) {
+    if (participaciones > 0) {
+      // Primero los recibos: su CASCADE se lleva el detalle asociado. Si esto
+      // fallara y siguiéramos, volveríamos a dejar recibos sin voto.
+      const { error: reinicioError } = await supabase.from('voto_participaciones').delete().eq('votacion_id', id);
+      if (reinicioError) {
+        console.error('[voting] Error al reiniciar la participación:', reinicioError);
+        return res.status(500).json({ error: 'Error al reiniciar los votos de la votación' });
+      }
+      console.warn(`[voting] Votación ${id}: opciones cambiadas, ${participaciones} participaciones anuladas a petición del admin`);
+    }
+
     await supabase.from('opciones_votacion').delete().eq('votacion_id', id);
     const opcionesData = opciones.map((o: any, index: number) => ({
       votacion_id: id,
@@ -333,12 +474,12 @@ async function handleAdminUpdate(req: any, res: any, supabase: Supa) {
     }));
     const { error: opcionesError } = await supabase.from('opciones_votacion').insert(opcionesData as any);
     if (opcionesError) {
-      console.error('[voting] Error al actualizar opciones:', opcionesError);
+      console.error('[voting] Error al actualizar las opciones:', opcionesError);
       return res.status(500).json({ error: 'Error al actualizar las opciones' });
     }
   }
 
-  return res.status(200).json({ success: true });
+  return res.status(200).json({ success: true, votos_anulados: opcionesCambian ? participaciones : 0 });
 }
 
 // ---- admin: delete ----
