@@ -59,6 +59,13 @@ export interface VotacionCompleta extends Votacion {
   opciones: OpcionVotacion[];
   total_votos?: number;
   usuario_ya_voto?: boolean;
+  /**
+   * Cuándo votó el usuario de la sesión actual (solo su propio recibo; el sentido
+   * del voto no se puede cruzar con nadie). La pantalla lo enseña junto al "Ya
+   * votaste" para que se vea de un vistazo si quien está mirando es quien recibió
+   * el aviso por correo.
+   */
+  usuario_voto_fecha?: string | null;
   votos?: Array<{
     opcion: string;
     votos: number;

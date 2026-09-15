@@ -9,9 +9,25 @@ import {
   VotacionCompleta,
   ResultadoVotacion
 } from '../services/votingDatabase';
-import { getCurrentUser } from '../services/sessionService';
+import { getCurrentUser, type SessionUser } from '../services/sessionService';
 import { calcularTiempoRestante } from '../utils/tiempoRestante';
 import { trackInteraction, createSectionTimeTracker } from '../services/analyticsService';
+
+/**
+ * Cuándo votó quien está mirando. Va junto al "Ya votaste" porque el enlace de los
+ * correos no lleva identidad: si alguien abre el aviso en un navegador donde hay
+ * otra sesión abierta, ve el estado de ESA cuenta. Una fecha de hace tres días es
+ * la pista más rápida de que la papeleta no está contestando por él.
+ */
+function fechaVotoLegible(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function nombreCompleto(u: SessionUser): string {
+  return [u.nombre, u.apellidos].filter(Boolean).join(' ').trim();
+}
 
 interface VotingBoardProps {
   onLoginRequired?: () => void;
@@ -35,8 +51,12 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired, soloVotacion
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string[] }>({});
   const [showResults, setShowResults] = useState<{ [key: string]: boolean }>({});
   const [resultados, setResultados] = useState<{ [key: string]: ResultadoVotacion[] }>({});
+  // Quién está mirando la papeleta. Solo para poder decirlo en pantalla: la
+  // identidad que cuenta para votar la deriva el servidor de la sesión.
+  const [usuario, setUsuario] = useState<SessionUser | null>(null);
 
   useEffect(() => {
+    getCurrentUser().then(setUsuario);
     loadVotaciones();
     
     // Rastrear visita a la sección de votaciones
@@ -250,9 +270,18 @@ const VotingBoard: React.FC<VotingBoardProps> = ({ onLoginRequired, soloVotacion
                   </div>
                   
                   {yaVoto && (
-                    <div className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1 md:py-2 bg-green-500/20 border border-green-500/50 rounded-full">
-                      <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
-                      <span className="text-xs md:text-base text-green-400 font-semibold">Ya votaste</span>
+                    <div className="flex items-start gap-2 px-3 py-2 bg-green-500/20 border border-green-500/50 rounded-2xl max-w-full">
+                      <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-xs md:text-base text-green-400 font-semibold leading-tight">
+                          Ya votaste{usuario ? ` como ${nombreCompleto(usuario)}` : ''}
+                        </p>
+                        {votacion.usuario_voto_fecha && (
+                          <p className="text-[11px] md:text-xs text-green-300/80 leading-tight mt-0.5">
+                            {fechaVotoLegible(votacion.usuario_voto_fecha)}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
