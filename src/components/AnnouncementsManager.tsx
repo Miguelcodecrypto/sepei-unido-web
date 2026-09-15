@@ -18,6 +18,7 @@ import { sendAnnouncementTelegram, type TelegramRecipient } from '../services/te
 import { getAllUsers } from '../services/adminUsersService';
 import NotificationModal from './NotificationModal';
 import DOMPurify from 'dompurify';
+import { formatearFecha } from '../utils/fechas';
 
 export default function AnnouncementsManager() {
   const { notify, confirm, alert } = useNotifications();
@@ -727,7 +728,7 @@ export default function AnnouncementsManager() {
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
                     <span>Por: {announcement.autor}</span>
                     <span>Vistas: {announcement.vistas}</span>
-                    <span>{new Date(announcement.fecha_publicacion).toLocaleDateString()}</span>
+                    <span>{formatearFecha(announcement.fecha_publicacion)}</span>
                   </div>
                   {announcement.imagen_url && (
                     <img src={announcement.imagen_url} alt={announcement.titulo} className="mt-3 w-full h-48 object-cover rounded-lg" />

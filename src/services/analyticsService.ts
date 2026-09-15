@@ -96,10 +96,7 @@ export async function trackInteraction(
   }
 }
 
-/**
- * Obtener estadísticas generales para el dashboard
- */
-export async function getAnalyticsSummary(days: number = 30): Promise<{
+export interface AnalyticsSummary {
   totalVisits: number;
   uniqueUsers: number;
   authenticatedVisits: number;
@@ -107,9 +104,14 @@ export async function getAnalyticsSummary(days: number = 30): Promise<{
   uniqueSessions: number;
   pageViews: number;
   visitsByDay: Array<{ date: string; visits: number }>;
-}> {
+}
+
+/**
+ * Obtener estadísticas generales para el dashboard
+ */
+export async function getAnalyticsSummary(days: number = 30): Promise<AnalyticsSummary> {
   try {
-    const { summary } = await adminFetch(`/api/admin?resource=analytics&detail=summary&days=${days}`);
+    const { summary } = await adminFetch<{ summary: AnalyticsSummary }>(`/api/admin?resource=analytics&detail=summary&days=${days}`);
     return summary;
   } catch (error) {
     console.error('❌ [ANALYTICS] Error al obtener resumen:', error);
@@ -125,18 +127,20 @@ export async function getAnalyticsSummary(days: number = 30): Promise<{
   }
 }
 
-/**
- * Obtener interacciones por sección
- */
-export async function getSectionInteractions(days: number = 30): Promise<{
+export interface SectionInteractions {
   announcements: number;
   voting: number;
   suggestions: number;
   admin: number;
   interinos: number;
-}> {
+}
+
+/**
+ * Obtener interacciones por sección
+ */
+export async function getSectionInteractions(days: number = 30): Promise<SectionInteractions> {
   try {
-    const { sections } = await adminFetch(`/api/admin?resource=analytics&detail=sections&days=${days}`);
+    const { sections } = await adminFetch<{ sections: SectionInteractions }>(`/api/admin?resource=analytics&detail=sections&days=${days}`);
     return sections;
   } catch (error) {
     console.error('❌ [ANALYTICS] Error al obtener interacciones por sección:', error);
@@ -150,18 +154,20 @@ export async function getSectionInteractions(days: number = 30): Promise<{
   }
 }
 
-/**
- * Obtener usuarios más activos
- */
-export async function getTopActiveUsers(limit: number = 10): Promise<Array<{
+export interface TopActiveUser {
   user_id: string;
   user_name: string;
   user_email: string;
   total_interactions: number;
   last_interaction: string;
-}>> {
+}
+
+/**
+ * Obtener usuarios más activos
+ */
+export async function getTopActiveUsers(limit: number = 10): Promise<TopActiveUser[]> {
   try {
-    const { users } = await adminFetch(`/api/admin?resource=analytics&detail=top_users&limit=${limit}`);
+    const { users } = await adminFetch<{ users: TopActiveUser[] }>(`/api/admin?resource=analytics&detail=top_users&limit=${limit}`);
     return users || [];
   } catch (error) {
     console.error('❌ [ANALYTICS] Error al obtener usuarios activos:', error);
@@ -190,10 +196,7 @@ export function createSectionTimeTracker(section: 'announcements' | 'voting' | '
 // Alias para compatibilidad (deprecado, usar createSectionTimeTracker)
 export const useTrackSectionTime = createSectionTimeTracker;
 
-/**
- * Obtener métricas específicas de la sección Interinos
- */
-export async function getInterinosAnalytics(days: number = 30): Promise<{
+export interface InterinosAnalytics {
   totalVisits: number;
   uniqueUsers: number;
   totalInteractions: number;
@@ -204,9 +207,14 @@ export async function getInterinosAnalytics(days: number = 30): Promise<{
   documentDownloads: number;
   linkClicks: number;
   courseViews: number;
-}> {
+}
+
+/**
+ * Obtener métricas específicas de la sección Interinos
+ */
+export async function getInterinosAnalytics(days: number = 30): Promise<InterinosAnalytics> {
   try {
-    const { interinos } = await adminFetch(`/api/admin?resource=analytics&detail=interinos&days=${days}`);
+    const { interinos } = await adminFetch<{ interinos: InterinosAnalytics }>(`/api/admin?resource=analytics&detail=interinos&days=${days}`);
     return interinos;
   } catch (error) {
     console.error('❌ [ANALYTICS] Error al obtener métricas de Interinos:', error);
@@ -225,19 +233,21 @@ export async function getInterinosAnalytics(days: number = 30): Promise<{
   }
 }
 
-/**
- * Obtener estadísticas de contenido de Interinos
- */
-export async function getInterinosContentStats(): Promise<{
+export interface InterinosContentStats {
   totalDocuments: number;
   totalCourses: number;
   totalLinks: number;
   totalNews: number;
   totalOposiciones: number;
   documentsByCategory: Record<string, number>;
-}> {
+}
+
+/**
+ * Obtener estadísticas de contenido de Interinos
+ */
+export async function getInterinosContentStats(): Promise<InterinosContentStats> {
   try {
-    const { stats } = await adminFetch('/api/admin?resource=analytics&detail=interinos_content');
+    const { stats } = await adminFetch<{ stats: InterinosContentStats }>('/api/admin?resource=analytics&detail=interinos_content');
     return stats;
   } catch (error) {
     console.error('❌ [ANALYTICS] Error al obtener estadísticas de contenido:', error);

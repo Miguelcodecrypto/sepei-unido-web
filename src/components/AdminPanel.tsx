@@ -140,46 +140,13 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
   }, []);
 
   const loadUsers = async () => {
-    console.log('📥 Cargando usuarios desde Supabase...');
-    const data = await getAllUsers();
-    console.log('👥 Usuarios obtenidos:', data.length);
-    
-    // Mapear datos de Supabase (snake_case) a formato del componente
-    const mappedData = data.map((user: any) => {
-      console.log(`Usuario ${user.nombre}: autorizado_votar =`, user.autorizado_votar);
-      return {
-        id: user.id,
-        nombre: user.nombre,
-        apellidos: user.apellidos,
-        dni: user.dni,
-        email: user.email,
-        telefono: user.telefono,
-        parque_sepei: user.parque_sepei,
-        fecha_registro: user.fecha_registro,
-        terminos_aceptados: user.terminos_aceptados,
-        fecha_aceptacion_terminos: user.fecha_aceptacion_terminos,
-        version_terminos: user.version_terminos,
-        certificado_nif: user.certificado_nif,
-        certificado_thumbprint: user.certificado_thumbprint,
-        certificado_fecha_validacion: user.certificado_fecha_validacion,
-        certificado_valido: user.certificado_valido,
-        autorizado_votar: user.autorizado_votar,
-        telegram_chat_id: user.telegram_chat_id,
-        telegram_username: user.telegram_username,
-        telegram_linked_at: user.telegram_linked_at,
-        // Este mapeo es una lista blanca manual: un campo que no esté aquí se pierde
-        // aunque la API lo devuelva. `lastlogin` se añadió a la API y a los tipos en
-        // el PR #50 pero no aquí, y la columna «Último acceso» salió vacía en los 63
-        // usuarios con el dato correcto en la base. El `user: any` impide que el
-        // compilador lo vea, así que el descuido no da ningún aviso.
-        lastlogin: user.lastlogin,
-      };
-    });
-    
-    console.log('✅ Usuarios mapeados, actualizando estado...');
-    setUsers(mappedData);
-    setTotalUsers(mappedData.length);
-    console.log('✅ Estado actualizado');
+    // Sin traducción de por medio: lo que devuelve la API ES el tipo que usa el panel.
+    // El mapeo campo a campo que había aquí descartaba en silencio cualquier campo que
+    // se olvidara de añadir a la lista (le pasó a `lastlogin` el 2026-09-15), y como
+    // estaba tipado `(user: any)` el compilador no podía avisar. Ver `admin/types.ts`.
+    const usuarios = await getAllUsers();
+    setUsers(usuarios);
+    setTotalUsers(usuarios.length);
   };
 
   const loadSuggestions = async () => {

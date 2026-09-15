@@ -25,7 +25,7 @@ export const uploadPublicFile = async (
   contentType?: string
 ): Promise<string | null> => {
   try {
-    const { path, token, publicUrl } = await adminFetch('/api/admin?resource=storage_upload', {
+    const { path, token, publicUrl } = await adminFetch<{ path?: string; token?: string; publicUrl?: string }>('/api/admin?resource=storage_upload', {
       method: 'POST',
       body: JSON.stringify({ folder, fileName: file.name, contentType }),
     });

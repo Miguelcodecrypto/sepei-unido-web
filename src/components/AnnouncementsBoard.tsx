@@ -3,6 +3,7 @@ import { Calendar, Eye, FileText, Download, X, Star, ChevronRight, Shield, LogIn
 import { getPublishedAnnouncements, incrementViews, getViewableFileUrl, type Announcement } from '../services/announcementDatabase';
 import { trackInteraction, createSectionTimeTracker } from '../services/analyticsService';
 import DOMPurify from 'dompurify';
+import { formatearFecha } from '../utils/fechas';
 
 interface AnnouncementsBoardProps {
   loggedUser?: { nombre: string; dni: string } | null;
@@ -203,7 +204,7 @@ export default function AnnouncementsBoard({ loggedUser, onLoginRequired }: Anno
                     <div className="flex items-center gap-3">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        {new Date(announcement.fecha_publicacion).toLocaleDateString()}
+                        {formatearFecha(announcement.fecha_publicacion)}
                       </span>
                       <span className="flex items-center gap-1">
                         <Eye className="w-4 h-4" />
@@ -265,7 +266,7 @@ export default function AnnouncementsBoard({ loggedUser, onLoginRequired }: Anno
                 <div className="flex items-center gap-4 mt-3 text-sm text-gray-400">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
-                    {new Date(selectedAnnouncement.fecha_publicacion).toLocaleDateString('es-ES', {
+                    {formatearFecha(selectedAnnouncement.fecha_publicacion, {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric'

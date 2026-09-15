@@ -31,7 +31,7 @@ export interface LoginAttemptRecord {
 
 export async function getSecurityStats(): Promise<SecurityStats | null> {
   try {
-    const { stats } = await adminFetch('/api/admin?resource=security&detail=stats');
+    const { stats } = await adminFetch<{ stats: SecurityStats }>('/api/admin?resource=security&detail=stats');
     return stats;
   } catch (error) {
     console.error('Error en getSecurityStats:', error);
@@ -41,7 +41,7 @@ export async function getSecurityStats(): Promise<SecurityStats | null> {
 
 export async function getRecentLoginAttempts(_limit: number = 50): Promise<LoginAttemptRecord[]> {
   try {
-    const { attempts } = await adminFetch('/api/admin?resource=security&detail=attempts');
+    const { attempts } = await adminFetch<{ attempts: LoginAttemptRecord[] }>('/api/admin?resource=security&detail=attempts');
     return attempts || [];
   } catch (error) {
     console.error('Error en getRecentLoginAttempts:', error);
@@ -49,15 +49,17 @@ export async function getRecentLoginAttempts(_limit: number = 50): Promise<Login
   }
 }
 
-export async function getBlockedIPs(): Promise<Array<{
+export interface BlockedIP {
   id: string;
   ip_address: string;
   reason: string;
   blocked_at: string;
   blocked_until: string | null;
-}>> {
+}
+
+export async function getBlockedIPs(): Promise<BlockedIP[]> {
   try {
-    const { blocked } = await adminFetch('/api/admin?resource=security&detail=blocked');
+    const { blocked } = await adminFetch<{ blocked: BlockedIP[] }>('/api/admin?resource=security&detail=blocked');
     return blocked || [];
   } catch (error) {
     console.error('Error en getBlockedIPs:', error);

@@ -1,4 +1,8 @@
 import { supabase } from '../lib/supabase';
+// Los tipos del esquema real los genera `npm run types:db` (⚠️ se generan, no se editan).
+// Se importan con `import type`, así que desaparecen al compilar: no entra nada de `api/`
+// en el bundle del navegador.
+import type { Database } from '../../api/_lib/database.types';
 import { adminFetch } from './adminFetch';
 import { uploadPublicFile } from './storageUpload';
 
@@ -25,32 +29,77 @@ export const getShareableFileUrl = (supabaseUrl: string): string => {
   return `https://www.sepeiunido.org/api/view-file?url=${encodeURIComponent(supabaseUrl)}`;
 };
 
+/**
+ * Las categorías que el front sabe pintar (cada una tiene su icono y su color).
+ *
+ * ⚠️ En la base `announcements.categoria` es **texto libre**: nada impide que llegue
+ * cualquier otra cosa. Por eso lo que entra desde Supabase pasa por `aCategoria()`
+ * en vez de afirmarse con un `as`. Hoy los datos están limpios (comunicado, noticia,
+ * evento, urgente), pero eso es una coincidencia afortunada, no una garantía.
+ */
+export const CATEGORIAS_ANUNCIO = ['noticia', 'comunicado', 'evento', 'urgente'] as const;
+export type CategoriaAnuncio = (typeof CATEGORIAS_ANUNCIO)[number];
+
+/**
+ * Convierte el texto de la base en una categoría conocida. Una desconocida se muestra
+ * como «noticia» (la neutra) y se avisa por consola: preferimos un anuncio con el icono
+ * genérico a un anuncio que no se pinta, y preferimos enterarnos a no enterarnos.
+ */
+export function aCategoria(valor: string | null | undefined): CategoriaAnuncio {
+  if ((CATEGORIAS_ANUNCIO as readonly string[]).includes(valor ?? '')) {
+    return valor as CategoriaAnuncio;
+  }
+  if (valor) console.warn(`Categoría de anuncio desconocida: ${valor}`);
+  return 'noticia';
+}
+
 export interface Announcement {
   id: string;
   titulo: string;
   contenido: string;
-  categoria: 'noticia' | 'comunicado' | 'evento' | 'urgente';
-  imagen_url?: string;
-  archivo_url?: string;
-  archivo_nombre?: string;
-  archivo_tipo?: string;
+  categoria: CategoriaAnuncio;
+  // ⚠️ `| null` no es adorno: Postgres devuelve NULL, no `undefined`. Declararlos solo
+  // como opcionales era una tercera forma de que el tipo dijera algo que el dato no
+  // cumple — la misma clase de mentira que dejó pasar los fallos de `lastlogin`.
+  imagen_url?: string | null;
+  archivo_url?: string | null;
+  archivo_nombre?: string | null;
+  archivo_tipo?: string | null;
   publicado: boolean;
   destacado: boolean;
   es_html: boolean;
-  fecha_publicacion: string;
-  fecha_creacion: string;
+  // Nullables en Postgres (ninguna de las dos es NOT NULL), así que el tipo lo dice.
+  fecha_publicacion: string | null;
+  fecha_creacion: string | null;
   autor: string;
   vistas: number;
   attachments?: AnnouncementAttachment[];
 }
 
+export const CATEGORIAS_ADJUNTO = ['documento', 'video', 'audio', 'link'] as const;
+export type CategoriaAdjunto = (typeof CATEGORIAS_ADJUNTO)[number];
+
+/** Igual que `aCategoria`, para los adjuntos. Lo desconocido se trata como documento. */
+export function aCategoriaAdjunto(valor: string | null | undefined): CategoriaAdjunto {
+  if ((CATEGORIAS_ADJUNTO as readonly string[]).includes(valor ?? '')) {
+    return valor as CategoriaAdjunto;
+  }
+  if (valor) console.warn(`Categoría de adjunto desconocida: ${valor}`);
+  return 'documento';
+}
+
+/** Las filas tal y como las devuelve Supabase, antes de normalizarlas. */
+type AnnouncementRow = Database['public']['Tables']['announcements']['Row'] & {
+  attachments?: Database['public']['Tables']['announcements_attachments']['Row'][] | null;
+};
+
 export interface AnnouncementAttachment {
   id: string;
-  announcement_id: string;
+  announcement_id: string | null;
   url: string;
   nombre: string;
   tipo: string;
-  categoria: 'documento' | 'video' | 'audio' | 'link';
+  categoria: CategoriaAdjunto;
   created_at: string;
 }
 
@@ -58,13 +107,42 @@ export interface AnnouncementAttachment {
 // pública de RLS no deja leer — por eso pasa por el backend con service_role).
 export const getAllAnnouncements = async (): Promise<Announcement[]> => {
   try {
-    const { announcements } = await adminFetch('/api/admin?resource=announcements');
-    return announcements || [];
+    // El endpoint del panel hace el MISMO select que la vista pública, así que devuelve
+    // filas igual de crudas: `categoria` como texto libre y los flags nullables. Se
+    // normalizan por el mismo sitio, o el panel y la web pública verían tipos distintos
+    // del mismo dato.
+    const { announcements } = await adminFetch<{ announcements: AnnouncementRow[] }>('/api/admin?resource=announcements');
+    return (announcements ?? []).map(normalizarAnuncio);
   } catch (error) {
     console.error('Error en getAllAnnouncements:', error);
     return [];
   }
 };
+
+/**
+ * Frontera entre la base y el front: aquí es donde una fila de Supabase se convierte
+ * en un `Announcement` de verdad.
+ *
+ * Las tres columnas de flags son NULLABLE en Postgres (tienen DEFAULT, que no es lo
+ * mismo que NOT NULL), así que pueden llegar como `null`. En vez de arrastrar ese
+ * `boolean | null` por los veinte componentes que los leen, se resuelve una sola vez
+ * aquí: NULL se trata como `false`, que es lo que ya hacía el código sin saberlo —
+ * `null` es falsy—, pero ahora está escrito y el tipo deja de mentir.
+ */
+function normalizarAnuncio(fila: AnnouncementRow): Announcement {
+  return {
+    ...fila,
+    categoria: aCategoria(fila.categoria),
+    publicado: fila.publicado ?? false,
+    destacado: fila.destacado ?? false,
+    es_html: fila.es_html ?? false,
+    vistas: fila.vistas ?? 0,
+    attachments: (fila.attachments ?? []).map((adjunto) => ({
+      ...adjunto,
+      categoria: aCategoriaAdjunto(adjunto.categoria),
+    })),
+  };
+}
 
 // Obtener anuncios publicados (para la vista pública)
 export const getPublishedAnnouncements = async (): Promise<Announcement[]> => {
@@ -81,7 +159,7 @@ export const getPublishedAnnouncements = async (): Promise<Announcement[]> => {
       return [];
     }
 
-    return data || [];
+    return (data ?? []).map(normalizarAnuncio);
   } catch (error) {
     console.error('Error en getPublishedAnnouncements:', error);
     return [];
@@ -93,7 +171,7 @@ export const createAnnouncement = async (
   announcementData: Omit<Announcement, 'id' | 'fecha_creacion' | 'vistas'>
 ): Promise<Announcement | null> => {
   try {
-    const { announcement } = await adminFetch('/api/admin?resource=announcements', {
+    const { announcement } = await adminFetch<{ announcement: Announcement | null }>('/api/admin?resource=announcements', {
       method: 'POST',
       body: JSON.stringify({ action: 'create', announcement: announcementData }),
     });
@@ -194,7 +272,7 @@ export const uploadAnnouncementFile = async (file: File): Promise<string | null>
 // Adjuntos múltiples (solo admin, vía backend)
 export const addAnnouncementAttachment = async (attachment: Omit<AnnouncementAttachment, 'id' | 'created_at'>): Promise<AnnouncementAttachment | null> => {
   try {
-    const { attachment: created } = await adminFetch('/api/admin?resource=announcements', {
+    const { attachment: created } = await adminFetch<{ attachment: AnnouncementAttachment | null }>('/api/admin?resource=announcements', {
       method: 'POST',
       body: JSON.stringify({ action: 'add_attachment', attachment }),
     });
