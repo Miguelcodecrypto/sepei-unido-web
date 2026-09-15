@@ -167,6 +167,12 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
         telegram_chat_id: user.telegram_chat_id,
         telegram_username: user.telegram_username,
         telegram_linked_at: user.telegram_linked_at,
+        // Este mapeo es una lista blanca manual: un campo que no esté aquí se pierde
+        // aunque la API lo devuelva. `lastlogin` se añadió a la API y a los tipos en
+        // el PR #50 pero no aquí, y la columna «Último acceso» salió vacía en los 63
+        // usuarios con el dato correcto en la base. El `user: any` impide que el
+        // compilador lo vea, así que el descuido no da ningún aviso.
+        lastlogin: user.lastlogin,
       };
     });
     
