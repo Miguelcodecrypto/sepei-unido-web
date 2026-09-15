@@ -23,6 +23,11 @@ import type { Database } from './_lib/database.types.js';
 type UserInsert = Database['public']['Tables']['users']['Insert'];
 
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
+
+// Cada cuánto, como mucho, se refresca `users.lastlogin` de quien ya está dentro.
+// Sin margen se escribiría en cada carga de la web; con 15 minutos la fecha sigue
+// siendo exacta a efectos de "último acceso" y la escritura es esporádica.
+const ACTIVIDAD_REFRESCO_MS = 15 * 60 * 1000; // 15 minutos
 const VERIFICATION_TOKEN_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 const GENERIC_RESET_MESSAGE = 'Si el email está registrado, recibirás un correo con una nueva contraseña temporal.';
 const APP_URL = process.env.VITE_APP_URL || process.env.APP_URL || 'https://www.sepeiunido.org';
@@ -147,13 +152,29 @@ async function handleSession(req: any, res: any, supabase: ReturnType<typeof get
 
   const { data: user, error: userError } = await supabase
     .from('users')
-    .select('id, dni, nombre, apellidos, email, telefono, parque_sepei, verified, autorizado_votar, requires_password_change')
+    .select('id, dni, nombre, apellidos, email, telefono, parque_sepei, verified, autorizado_votar, requires_password_change, lastlogin')
     .eq('id', (session as any).user_id)
     .single();
 
   if (userError || !user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-  await supabase.from('user_sessions').update({ last_activity: new Date().toISOString() }).eq('session_token', token);
+  const ahora = new Date();
+  await supabase.from('user_sessions').update({ last_activity: ahora.toISOString() }).eq('session_token', token);
+
+  // `lastlogin` es el último ACCESO, no el último login: las sesiones duran 7 días,
+  // así que quien entra a diario solo se autentica una vez por semana y con la fecha
+  // del login parecería inactivo. Se refresca también aquí, que es por donde pasa
+  // todo el que abre la web con la sesión viva.
+  const ultimoAcceso = (user as any).lastlogin ? new Date((user as any).lastlogin).getTime() : 0;
+  if (!Number.isFinite(ultimoAcceso) || ahora.getTime() - ultimoAcceso > ACTIVIDAD_REFRESCO_MS) {
+    const { error: accesoError } = await supabase
+      .from('users')
+      .update({ lastlogin: ahora.toISOString() })
+      .eq('id', (session as any).user_id);
+    // No corta la sesión, pero se registra: el fallo anterior de esta misma columna
+    // duró meses justamente por no mirar el error.
+    if (accesoError) console.error('No se pudo refrescar lastlogin:', accesoError);
+  }
 
   return res.status(200).json({ user: toPublicUser(user) });
 }

@@ -11,6 +11,7 @@ import {
   Download, Search, MessageCircle, Info,
 } from 'lucide-react';
 import { EstadoPlantilla } from '../../data/plantillaOficialSEPEI';
+import { calcularActividad, esActivo, TramoActividad, DIAS_DORMIDO } from '../../utils/actividad';
 import { UserConEstado } from './types';
 import { UserDetailsPanel } from './UserDetailsPanel';
 import { RowActionsMenu } from './RowActionsMenu';
@@ -40,25 +41,59 @@ const ESTADO_META: Record<EstadoPlantilla, { Icon: React.ComponentType<{ classNa
   no_en_plantilla: { Icon: UserX, color: 'text-red-400', barra: 'bg-red-500', texto: 'No aparece en la plantilla oficial' },
 };
 
+// Rampa de un solo eje (verde → amarillo-verde → ámbar → rojo): se lee como un
+// gradiente de "recién entrado" a "lleva meses". Va desaturada y siempre con el
+// texto al lado ("6 d") porque el color por sí solo ni es accesible ni distingue
+// nada: en esta misma fila ya hay un verde/ámbar/rojo, el del estado en plantilla.
+// Lo que separa los dos sistemas es la forma —barra e icono a la izquierda contra
+// chip en su columna—, no el tono.
+const TRAMO_META: Record<TramoActividad, { label: string; chip: string }> = {
+  hoy: { label: 'Hoy', chip: 'bg-emerald-500/15 text-emerald-300' },
+  semana: { label: 'Esta semana', chip: 'bg-lime-500/15 text-lime-300' },
+  mes: { label: 'Este mes', chip: 'bg-amber-500/15 text-amber-300' },
+  dormido: { label: `Más de ${DIAS_DORMIDO} días`, chip: 'bg-rose-500/15 text-rose-300' },
+  sin_datos: { label: 'Sin registro', chip: 'bg-slate-700/50 text-slate-400' },
+};
+
+const TRAMOS: TramoActividad[] = ['hoy', 'semana', 'mes', 'dormido', 'sin_datos'];
+
 export function UsersSection({
   usuarios, conteoEstados, usuariosConTelegram, filtroPlantilla,
   onFiltroChange, onExport, onToggleVoto, onResetPassword, onDelete,
 }: Props) {
   const [busqueda, setBusqueda] = useState('');
+  const [filtroActividad, setFiltroActividad] = useState<'todos' | TramoActividad>('todos');
   const [detalleAbierto, setDetalleAbierto] = useState<string | null>(null);
+
+  // El tramo se calcula una vez por usuario y lo usan a la vez la celda, el filtro
+  // y el recuento de activos: si cada uno lo calculase por su cuenta acabarían
+  // discrepando en el borde de cada umbral.
+  const conActividad = useMemo(
+    () => usuarios.map((u) => ({ ...u, actividad: calcularActividad(u.lastlogin) })),
+    [usuarios]
+  );
 
   const visibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    if (!q) return usuarios;
-    return usuarios.filter((u) =>
-      [u.nombre, u.apellidos, u.email, u.dni, u.telefono, u.parque_sepei]
+    return conActividad.filter((u) => {
+      if (filtroActividad !== 'todos' && u.actividad.tramo !== filtroActividad) return false;
+      if (!q) return true;
+      return [u.nombre, u.apellidos, u.email, u.dni, u.telefono, u.parque_sepei]
         .filter(Boolean)
-        .some((campo) => String(campo).toLowerCase().includes(q))
-    );
-  }, [usuarios, busqueda]);
+        .some((campo) => String(campo).toLowerCase().includes(q));
+    });
+  }, [conActividad, busqueda, filtroActividad]);
+
+  const conteoActividad = useMemo(() => {
+    const conteo: Record<TramoActividad, number> = { hoy: 0, semana: 0, mes: 0, dormido: 0, sin_datos: 0 };
+    conActividad.forEach((u) => { conteo[u.actividad.tramo]++; });
+    return conteo;
+  }, [conActividad]);
 
   const total = usuarios.length;
   const porcentajeTelegram = total > 0 ? Math.round((usuariosConTelegram / total) * 100) : 0;
+  const activos = conActividad.filter((u) => esActivo(u.actividad.tramo)).length;
+  const porcentajeActivos = total > 0 ? Math.round((activos / total) * 100) : 0;
 
   const contarFiltro = (id: 'todos' | EstadoPlantilla) => (id === 'todos' ? total : conteoEstados[id]);
 
@@ -106,6 +141,20 @@ export function UsersSection({
           ))}
         </div>
 
+        {/* Filtro por último acceso: desplegable en todos los tamaños, porque cinco
+            tramos en botones no caben junto a los de plantilla sin romper la línea. */}
+        <select
+          value={filtroActividad}
+          onChange={(e) => setFiltroActividad(e.target.value as 'todos' | TramoActividad)}
+          aria-label="Filtrar por último acceso"
+          className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-orange-500/60"
+        >
+          <option value="todos">{`Cualquier acceso (${total})`}</option>
+          {TRAMOS.map((t) => (
+            <option key={t} value={t}>{`${TRAMO_META[t].label} (${conteoActividad[t]})`}</option>
+          ))}
+        </select>
+
         <button
           onClick={onExport}
           className="flex items-center gap-2 px-3 py-2 bg-slate-900 border border-slate-700 hover:border-slate-600 hover:text-white text-slate-300 rounded-lg text-sm font-semibold transition"
@@ -120,6 +169,8 @@ export function UsersSection({
         <span className="text-white font-semibold tabular-nums">{total}</span> usuarios registrados
         <span className="text-slate-600">·</span>
         <span className="text-[#0088cc] font-semibold tabular-nums">{usuariosConTelegram}</span> con Telegram ({porcentajeTelegram}%)
+        <span className="text-slate-600">·</span>
+        <span className="text-white font-semibold tabular-nums">{activos}</span> han entrado este mes ({porcentajeActivos}%)
         {busqueda && (
           <>
             <span className="text-slate-600">·</span>
@@ -128,7 +179,7 @@ export function UsersSection({
         )}
         <span
           className="inline-flex items-center gap-1 text-slate-500"
-          title="El color de cada fila indica si el usuario aparece en la plantilla oficial del SEPEI: verde, en plantilla; ámbar, con cambios; rojo, no aparece."
+          title="La barra y el icono de la izquierda de cada fila indican si el usuario aparece en la plantilla oficial del SEPEI: verde, en plantilla; ámbar, con cambios; rojo, no aparece. El color de «Último acceso» es independiente."
         >
           <Info className="w-3.5 h-3.5" />
           <span className="sr-only">Significado de los colores de estado</span>
@@ -139,7 +190,7 @@ export function UsersSection({
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         {visibles.length === 0 ? (
           <p className="p-10 text-center text-slate-400">
-            {busqueda ? `Ningún usuario coincide con «${busqueda}»` : 'No hay usuarios con este filtro'}
+            {busqueda ? `Ningún usuario coincide con «${busqueda}»` : 'No hay usuarios con estos filtros'}
           </p>
         ) : (
           <div className="overflow-auto lg:max-h-[calc(100vh-13rem)]">
@@ -148,6 +199,7 @@ export function UsersSection({
                 <tr className="text-left text-slate-300">
                   <th scope="col" className="sticky left-0 z-30 bg-slate-800 px-3 py-2.5 font-semibold whitespace-nowrap">Usuario</th>
                   <th scope="col" className="px-3 py-2.5 font-semibold whitespace-nowrap">Parque</th>
+                  <th scope="col" className="px-3 py-2.5 font-semibold whitespace-nowrap">Último acceso</th>
                   <th scope="col" className="hidden xl:table-cell px-3 py-2.5 font-semibold whitespace-nowrap">DNI</th>
                   <th scope="col" className="hidden xl:table-cell px-3 py-2.5 font-semibold whitespace-nowrap">Teléfono</th>
                   <th scope="col" className="hidden md:table-cell px-3 py-2.5 font-semibold whitespace-nowrap">Registro</th>
@@ -186,6 +238,15 @@ export function UsersSection({
                           ) : (
                             <span className="text-slate-600">—</span>
                           )}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded text-xs font-medium tabular-nums ${TRAMO_META[user.actividad.tramo].chip}`}
+                            title={user.actividad.absoluto ? `${user.actividad.texto} · ${user.actividad.absoluto}` : user.actividad.texto}
+                          >
+                            <span aria-hidden="true">{user.actividad.corto}</span>
+                            <span className="sr-only">{`Último acceso: ${user.actividad.texto}`}</span>
+                          </span>
                         </td>
                         <td className="hidden xl:table-cell px-3 py-2 text-slate-300 whitespace-nowrap tabular-nums">{user.dni || '—'}</td>
                         <td className="hidden xl:table-cell px-3 py-2 text-slate-300 whitespace-nowrap tabular-nums">{user.telefono || '—'}</td>
@@ -238,7 +299,7 @@ export function UsersSection({
 
                       {abierto && (
                         <tr className="bg-slate-950/60">
-                          <td colSpan={8} className="px-3 sm:px-4 py-4">
+                          <td colSpan={9} className="px-3 sm:px-4 py-4">
                             <UserDetailsPanel user={user} />
                           </td>
                         </tr>
