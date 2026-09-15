@@ -208,10 +208,11 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
           {/* Row 1: Nombre y Apellidos */}
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-white font-semibold text-sm mb-2">Nombre *</label>
+              <label htmlFor="sugerencia-nombre" className="block text-white font-semibold text-sm mb-2">Nombre *</label>
               <input
                 type="text"
                 name="nombre"
+                id="sugerencia-nombre"
                 value={formData.nombre}
                 onChange={handleChange}
                 placeholder="Tu nombre"
@@ -219,10 +220,11 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
               />
             </div>
             <div>
-              <label className="block text-white font-semibold text-sm mb-2">Apellidos *</label>
+              <label htmlFor="sugerencia-apellidos" className="block text-white font-semibold text-sm mb-2">Apellidos *</label>
               <input
                 type="text"
                 name="apellidos"
+                id="sugerencia-apellidos"
                 value={formData.apellidos}
                 onChange={handleChange}
                 placeholder="Tus apellidos"
@@ -234,10 +236,11 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
           {/* Row 2: Email y Teléfono */}
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-white font-semibold text-sm mb-2">Email *</label>
+              <label htmlFor="sugerencia-email" className="block text-white font-semibold text-sm mb-2">Email *</label>
               <input
                 type="email"
                 name="email"
+                id="sugerencia-email"
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="tu@email.com"
@@ -245,10 +248,11 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
               />
             </div>
             <div>
-              <label className="block text-white font-semibold text-sm mb-2">Teléfono *</label>
+              <label htmlFor="sugerencia-telefono" className="block text-white font-semibold text-sm mb-2">Teléfono *</label>
               <input
                 type="tel"
                 name="telefono"
+                id="sugerencia-telefono"
                 value={formData.telefono}
                 onChange={handleChange}
                 placeholder="600 123 456"
@@ -260,9 +264,10 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
           {/* Row 3: Categoría y Lugar de Trabajo */}
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-white font-semibold text-sm mb-2">Categoría *</label>
+              <label htmlFor="sugerencia-categoria" className="block text-white font-semibold text-sm mb-2">Categoría *</label>
               <select
                 name="categoria"
+                id="sugerencia-categoria"
                 value={formData.categoria}
                 onChange={handleChange}
                 className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-orange-500 transition"
@@ -275,9 +280,10 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
               </select>
             </div>
             <div>
-              <label className="block text-white font-semibold text-sm mb-2">Lugar de Trabajo *</label>
+              <label htmlFor="sugerencia-lugarTrabajo" className="block text-white font-semibold text-sm mb-2">Lugar de Trabajo *</label>
               <select
                 name="lugarTrabajo"
+                id="sugerencia-lugarTrabajo"
                 value={formData.lugarTrabajo}
                 onChange={handleChange}
                 className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-orange-500 transition"
@@ -293,10 +299,11 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
 
           {/* Asunto */}
           <div>
-            <label className="block text-white font-semibold text-sm mb-2">Asunto *</label>
+            <label htmlFor="sugerencia-asunto" className="block text-white font-semibold text-sm mb-2">Asunto *</label>
             <input
               type="text"
               name="asunto"
+              id="sugerencia-asunto"
               value={formData.asunto}
               onChange={handleChange}
               placeholder="Título de tu propuesta"
@@ -308,9 +315,10 @@ export default function SuggestionsForm({ onClose, onSuccess, certificateData, u
 
           {/* Descripción */}
           <div>
-            <label className="block text-white font-semibold text-sm mb-2">Descripción *</label>
+            <label htmlFor="sugerencia-descripcion" className="block text-white font-semibold text-sm mb-2">Descripción *</label>
             <textarea
               name="descripcion"
+              id="sugerencia-descripcion"
               value={formData.descripcion}
               onChange={handleChange}
               placeholder="Cuéntanos tu idea, inquietud o propuesta con todos los detalles que consideres necesarios..."

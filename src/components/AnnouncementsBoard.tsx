@@ -83,13 +83,16 @@ export default function AnnouncementsBoard({ loggedUser, onLoginRequired }: Anno
   };
 
   const getCategoryColor = (categoria: string) => {
+    // Tonos -700 y no -500: con texto blanco encima, los -500 daban entre 2.28 y 3.68
+    // de contraste y el mínimo para texto pequeño es 4.5 (WCAG 1.4.3). Medido en la web
+    // real, no estimado. El color de cada categoría se mantiene, solo baja de tono.
     const colors = {
-      noticia: 'bg-blue-500',
-      comunicado: 'bg-green-500',
-      evento: 'bg-purple-500',
-      urgente: 'bg-red-500',
+      noticia: 'bg-blue-700',
+      comunicado: 'bg-green-700',
+      evento: 'bg-purple-700',
+      urgente: 'bg-red-700',
     };
-    return colors[categoria as keyof typeof colors] || 'bg-gray-500';
+    return colors[categoria as keyof typeof colors] || 'bg-gray-600';
   };
 
   const getCategoryIcon = (categoria: string) => {
@@ -200,7 +203,7 @@ export default function AnnouncementsBoard({ loggedUser, onLoginRequired }: Anno
                   )}
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between text-xs text-gray-500 pt-4 border-t border-slate-700">
+                  <div className="flex items-center justify-between text-xs text-gray-400 pt-4 border-t border-slate-700">
                     <div className="flex items-center gap-3">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />

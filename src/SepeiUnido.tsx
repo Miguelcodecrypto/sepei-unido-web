@@ -479,6 +479,16 @@ export default function SepeiUnido() {
 
   return (
     <div className="min-h-screen bg-slate-950 overflow-x-hidden">
+      {/* Saltar al contenido: la barra tiene 8 enlaces, y sin esto quien navega con
+          teclado o lector de pantalla los recorre enteros en CADA carga de la página.
+          Solo se ve al recibir el foco (`sr-only` + `focus:not-sr-only`). */}
+      <a
+        href="#inicio"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-[60] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-orange-500 focus:text-white focus:font-semibold"
+      >
+        Saltar al contenido
+      </a>
+      <header>
       <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${scrolled ? 'bg-slate-900/98 backdrop-blur-xl shadow-2xl' : 'bg-transparent'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
@@ -488,7 +498,9 @@ export default function SepeiUnido() {
                 <Flame className="relative w-11 h-11 text-orange-500" />
               </div>
               <div>
-                <h1 className="text-2xl font-black text-white">SEPEI UNIDO</h1>
+                {/* El logotipo NO es el encabezado de la página: el <h1> es el del hero. Dos <h1>
+                    dejaban la jerarquía ambigua para quien navega por encabezados. */}
+                <p className="text-2xl font-black text-white">SEPEI UNIDO</p>
                 <p className="text-xs text-orange-400 font-semibold">Diputación de Albacete</p>
               </div>
             </div>
@@ -576,6 +588,8 @@ export default function SepeiUnido() {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden text-white p-2 hover:bg-white/10 rounded-lg"
+              aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -666,7 +680,9 @@ export default function SepeiUnido() {
           </div>
         )}
       </nav>
+      </header>
 
+      <main>
       <section id="inicio" className="relative min-h-screen pt-20 pb-8 md:pt-28 md:pb-16 px-4 overflow-hidden flex flex-col justify-center">
         {/* Fondo con imágenes HD de bomberos con transiciones */}
         <HeroBackground 
@@ -1428,9 +1444,12 @@ export default function SepeiUnido() {
         onClick={handleOpenSuggestionsForm}
         className="fixed bottom-20 md:bottom-24 right-4 md:right-8 z-40 p-3 md:p-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-full shadow-2xl hover:shadow-blue-500/50 transform hover:scale-110 transition-all flex items-center gap-2"
         title="Enviar sugerencia o propuesta"
+        aria-label="Enviar sugerencia o propuesta"
       >
         <HardHat className="w-5 h-5 md:w-6 md:h-6" />
       </button>
+
+      </main>
 
       <footer className="bg-slate-900 py-6 md:py-8 px-3 md:px-4">
         <div className="max-w-7xl mx-auto text-center">

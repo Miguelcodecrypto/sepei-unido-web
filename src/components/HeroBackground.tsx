@@ -150,20 +150,37 @@ export default function HeroBackground({
         }}
       >
         {imageEntries.map((_, index) => (
+          // El punto sigue midiendo 8 px, pero el BOTÓN mide 24x24: un objetivo táctil de
+          // 8 px es imposible de acertar con el dedo y está por debajo del mínimo de
+          // 24x24 (WCAG 2.5.8). El aspecto no cambia; lo que crece es la zona pulsable.
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
             style={{
-              width: index === currentIndex ? '24px' : '8px',
-              height: '8px',
-              borderRadius: '4px',
-              backgroundColor: index === currentIndex ? '#f97316' : 'rgba(255,255,255,0.3)',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'none',
               border: 'none',
+              padding: 0,
               cursor: 'pointer',
-              transition: 'all 0.3s ease',
             }}
-            aria-label={`Imagen ${index + 1}`}
-          />
+            aria-label={`Ver imagen ${index + 1}`}
+            aria-current={index === currentIndex ? 'true' : undefined}
+          >
+            <span
+              style={{
+                display: 'block',
+                width: index === currentIndex ? '24px' : '8px',
+                height: '8px',
+                borderRadius: '4px',
+                backgroundColor: index === currentIndex ? '#f97316' : 'rgba(255,255,255,0.45)',
+                transition: 'all 0.3s ease',
+              }}
+            />
+          </button>
         ))}
       </div>
     </div>
