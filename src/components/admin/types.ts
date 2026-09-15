@@ -1,29 +1,17 @@
+import type { AdminUser } from '../../services/adminUsersService';
 // Tipos compartidos por el panel de administración.
 import { EstadoPlantilla, TrabajadorOficial } from '../../data/plantillaOficialSEPEI';
 
-export interface User {
-  id: string;
-  nombre: string;
-  apellidos?: string;
-  dni?: string;
-  email: string;
-  telefono?: string;
-  parque_sepei?: string;
-  fecha_registro: string;
-  terminos_aceptados: boolean;
-  fecha_aceptacion_terminos: string;
-  version_terminos: string;
-  certificado_nif?: string;
-  certificado_thumbprint?: string;
-  certificado_fecha_validacion?: string;
-  certificado_valido?: boolean;
-  autorizado_votar?: boolean;
-  telegram_chat_id?: string;
-  telegram_username?: string;
-  telegram_linked_at?: string;
-  /** Último acceso (login o entrada con sesión abierta). NULL = sin registro. */
-  lastlogin?: string | null;
-}
+/**
+ * El usuario tal y como lo devuelve `/api/admin?resource=users`.
+ *
+ * ⚠️ Antes esto era una copia literal de `AdminUser` y `AdminPanel.loadUsers()` traducía
+ * de una a otra campo a campo. Esa lista blanca escrita a mano es la que se comió
+ * `lastlogin` el 2026-09-15: la columna «Último acceso» salió vacía en los 63 usuarios
+ * con el dato correcto en la base, y el compilador no podía verlo porque el mapeo era
+ * `(user: any)`. Con un único tipo no hay nada que traducir y no hay campo que olvidar.
+ */
+export type User = AdminUser;
 
 export interface Suggestion {
   id: string;

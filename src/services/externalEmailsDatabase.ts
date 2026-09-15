@@ -37,7 +37,7 @@ export interface BulkImportResult {
  */
 export async function getAllExternalEmails(): Promise<ExternalEmail[]> {
   try {
-    const { externalEmails } = await adminFetch('/api/admin?resource=external_emails');
+    const { externalEmails } = await adminFetch<{ externalEmails: ExternalEmail[] }>('/api/admin?resource=external_emails');
     return externalEmails || [];
   } catch (error) {
     console.error('Error obteniendo emails externos:', error);

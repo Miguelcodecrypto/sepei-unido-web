@@ -31,7 +31,7 @@ export interface AdminUser {
 
 export const getAllUsers = async (): Promise<AdminUser[]> => {
   try {
-    const { users } = await adminFetch('/api/admin?resource=users');
+    const { users } = await adminFetch<{ users: AdminUser[] }>('/api/admin?resource=users');
     return users || [];
   } catch (error) {
     console.error('Error al obtener usuarios:', error);
@@ -64,7 +64,7 @@ export const toggleVotingAuthorization = async (userId: string, autorizado: bool
 
 export const resetTempPassword = async (userId: string): Promise<{ success: boolean; tempPassword?: string }> => {
   try {
-    const data = await adminFetch('/api/admin?resource=users', {
+    const data = await adminFetch<{ tempPassword?: string }>('/api/admin?resource=users', {
       method: 'PATCH',
       body: JSON.stringify({ action: 'reset_password', userId }),
     });

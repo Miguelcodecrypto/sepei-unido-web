@@ -72,7 +72,7 @@ export const createInterinosContenidoRecord = async (params: {
   created_by?: string | null;
 }): Promise<InterinosBibliografiaItem | null> => {
   try {
-    const { item } = await adminFetch('/api/admin?resource=interinos', {
+    const { item } = await adminFetch<{ item: InterinosBibliografiaItem | null }>('/api/admin?resource=interinos', {
       method: 'POST',
       body: JSON.stringify({
         item: {
