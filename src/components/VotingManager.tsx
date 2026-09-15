@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNotifications } from './ui/NotificationProvider';
-import { BarChart3, Plus, Edit2, Trash2, Eye, EyeOff, CheckCircle, XCircle, Calendar, Users, Mail } from 'lucide-react';
+import { BarChart3, Plus, Edit2, Trash2, Eye, EyeOff, CheckCircle, XCircle, Calendar, Users, Mail, Copy, AlertTriangle } from 'lucide-react';
 import {
   getAllVotaciones,
   createVotacion,
@@ -122,18 +122,38 @@ const VotingManager: React.FC = () => {
         orden: index
       }));
 
-      const success = await updateVotacion(
-        editingVotacion.id,
-        datos,
-        opcionesData
-      );
+      // Si las opciones no han cambiado, el servidor ni las toca y los votos
+      // emitidos siguen ahí. Si han cambiado y ya había gente votando, contesta
+      // 409 sin escribir nada y hay que preguntar antes de seguir: el reinicio
+      // anula esos votos (y libera a quien los emitió, que si no se quedaba
+      // bloqueado sin voto — el fallo del 2026-09-15).
+      let resultado = await updateVotacion(editingVotacion.id, datos, opcionesData);
 
-      if (success) {
-        notify.success('Votación actualizada correctamente');
+      if (!resultado.ok && resultado.requiereConfirmacion) {
+        const personas = resultado.participaciones ?? 0;
+        const confirmado = await confirm({
+          title: 'Esta votación ya tiene votos emitidos',
+          message: `Has cambiado las opciones y ${personas === 1 ? 'una persona ya ha votado' : `${personas} personas ya han votado`}.\n\n`
+            + 'Si continúas se anulan esos votos y esas personas podrán volver a votar con las opciones nuevas.\n\n'
+            + 'Si lo que quieres es una ronda nueva sin tocar esta, cancela y usa el botón de duplicar.',
+          confirmLabel: 'Cambiar las opciones y anular los votos',
+          variant: 'danger',
+        });
+        if (!confirmado) return;
+
+        resultado = await updateVotacion(editingVotacion.id, datos, opcionesData, true);
+      }
+
+      if (resultado.ok) {
+        notify.success(
+          resultado.votosAnulados
+            ? `Votación actualizada. Se han anulado ${resultado.votosAnulados} votos.`
+            : 'Votación actualizada correctamente'
+        );
         resetForm();
         loadVotaciones();
       } else {
-        notify.error('Error al actualizar la votación');
+        notify.error(resultado.motivo || 'Error al actualizar la votación');
       }
     } else {
       const id = await createVotacion(datos, opcionesFiltradas);
@@ -173,6 +193,33 @@ const VotingManager: React.FC = () => {
       multiple_respuestas: votacion.multiple_respuestas,
     });
     setOpciones(votacion.opciones.map(o => o.texto));
+    setShowForm(true);
+  };
+
+  /**
+   * Duplicar es lo que casi siempre se quiere cuando se reabre una votación:
+   * una ronda nueva, con su propio recuento y sin bloquear a quien ya votó en la
+   * anterior. Editar una votación cerrada para reutilizarla es lo que provocó el
+   * incidente del 2026-09-15.
+   *
+   * Abre el formulario en modo creación con los mismos datos y opciones, pero
+   * sin fechas (hay que ponerlas a propósito) y sin publicar. Al ser una
+   * creación, vuelve a estar disponible la casilla de notificar por email.
+   */
+  const handleDuplicate = (votacion: VotacionCompleta) => {
+    setEditingVotacion(null);
+    setFormData({
+      titulo: `${votacion.titulo} (copia)`,
+      descripcion: votacion.descripcion || '',
+      tipo: votacion.tipo,
+      fecha_inicio: '',
+      fecha_fin: '',
+      publicado: false,
+      resultados_publicos: votacion.resultados_publicos,
+      multiple_respuestas: votacion.multiple_respuestas,
+    });
+    setOpciones(votacion.opciones.map(o => o.texto));
+    setSendNotification(false);
     setShowForm(true);
   };
 
@@ -467,6 +514,26 @@ const VotingManager: React.FC = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              {/* Editar una votación que ya tiene votos es la trampa que costó el
+                  incidente del 2026-09-15: cambiar las opciones los anula. El
+                  servidor lo frena y pide confirmación, pero avisarlo antes de
+                  escribir nada evita llegar hasta ahí. */}
+              {editingVotacion && !!editingVotacion.total_votos && (
+                <div className="flex gap-3 p-4 bg-amber-500/10 border border-amber-500/40 rounded-xl">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-200">
+                    <span className="font-semibold">
+                      {editingVotacion.total_votos === 1
+                        ? 'Una persona ya ha votado'
+                        : `${editingVotacion.total_votos} personas ya han votado`}
+                    </span>{' '}
+                    en esta votación. Cambiar el título, las fechas o los ajustes no les afecta, pero
+                    <span className="font-semibold"> si cambias las opciones se anularán sus votos</span> y
+                    tendrán que volver a votar. Para una ronda nueva, cancela y usa el botón de duplicar.
+                  </p>
+                </div>
+              )}
+
               {/* Título */}
               <div>
                 <label className="block text-white font-semibold mb-2">Título *</label>
@@ -709,6 +776,18 @@ const VotingManager: React.FC = () => {
                         <Users className="w-4 h-4" />
                         {votacion.total_votos} votos
                       </span>
+                      {/* Señal del fallo del 2026-09-15: gente que consta como
+                          votante y cuyo voto no se cuenta en ninguna parte.
+                          Con el flujo actual no debería aparecer nunca. */}
+                      {!!votacion.participaciones_sin_voto && (
+                        <span
+                          className="flex items-center gap-1 px-2 py-1 bg-red-600/20 border border-red-500/50 text-red-300 rounded text-xs font-semibold"
+                          title="Estas personas constan como votantes pero su voto no está registrado: no pueden volver a votar y su voto no se cuenta. Suele venir de haber cambiado las opciones de una votación ya votada."
+                        >
+                          <AlertTriangle className="w-4 h-4" />
+                          {votacion.participaciones_sin_voto} sin voto registrado
+                        </span>
+                      )}
                       <span className="px-2 py-1 bg-slate-700 rounded text-xs">
                         {votacion.tipo.toUpperCase()}
                       </span>
@@ -767,6 +846,14 @@ const VotingManager: React.FC = () => {
                       title="Ver resultados"
                     >
                       <BarChart3 className="w-5 h-5" />
+                    </button>
+
+                    <button
+                      onClick={() => handleDuplicate(votacion)}
+                      className="p-2 bg-slate-600 hover:bg-slate-700 rounded-lg transition-colors"
+                      title="Duplicar para una ronda nueva"
+                    >
+                      <Copy className="w-5 h-5" />
                     </button>
 
                     <button

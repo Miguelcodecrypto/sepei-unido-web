@@ -7,10 +7,10 @@
  *
  * La interfaz pública (nombres de función y tipos) se mantiene igual a propósito,
  * para no tener que tocar VotingBoard/VotingManager/VotingResultsPanel/
- * FloatingVotingButton — solo cambia la implementación de detrás. Las dos únicas
- * excepciones son `getResultadosVotacionAdmin` y `emitirVoto`: ahí el error del
- * servidor es información que el usuario necesita ver, y tragárselo para
- * mantener la firma salía más caro que cambiarla.
+ * FloatingVotingButton — solo cambia la implementación de detrás. Las tres
+ * excepciones son `getResultadosVotacionAdmin`, `emitirVoto` y `updateVotacion`:
+ * ahí el error del servidor es información que el usuario necesita ver, y
+ * tragárselo para mantener la firma salía más caro que cambiarla.
  */
 import { getSessionToken } from './sessionService';
 import { getAdminToken } from './authService';
@@ -58,6 +58,12 @@ export interface ResultadoVotacion {
 export interface VotacionCompleta extends Votacion {
   opciones: OpcionVotacion[];
   total_votos?: number;
+  /**
+   * Recibos de participación sin ningún voto detrás: gente bloqueada ("ya has
+   * votado") cuyo voto no se cuenta en ninguna parte. Solo lo manda `admin-list`.
+   * Debería ser siempre 0; si no lo es, el panel lo avisa en rojo.
+   */
+  participaciones_sin_voto?: number;
   usuario_ya_voto?: boolean;
   votos?: Array<{
     opcion: string;
@@ -87,6 +93,9 @@ async function votingFetch(
   if (!resp.ok) {
     const error = new Error(data.error || `Error en ${action}`) as any;
     error.status = resp.status;
+    // El cuerpo entero, no solo el texto: algunas respuestas traen datos que
+    // quien llama necesita (p. ej. cuántas participaciones hay que anular).
+    error.datos = data;
     throw error;
   }
   return data;
@@ -161,22 +170,54 @@ export async function createVotacion(
   }
 }
 
-// Actualizar votación
+export interface ResultadoActualizacion {
+  ok: boolean;
+  /** El servidor pide confirmación: cambiar las opciones anularía votos emitidos. */
+  requiereConfirmacion?: boolean;
+  /** Cuánta gente había votado ya, para poder decirlo por pantalla. */
+  participaciones?: number;
+  /** Votos anulados al confirmar el reinicio. */
+  votosAnulados?: number;
+  motivo?: string;
+}
+
+/**
+ * Actualizar votación.
+ *
+ * Tercera excepción a la convención de este archivo (tras
+ * `getResultadosVotacionAdmin` y `emitirVoto`): devolver `boolean` aquí
+ * escondía el caso importante — que el servidor haya frenado el guardado con un
+ * 409 porque cambiar las opciones anularía los votos ya emitidos. Con un
+ * booleano, el panel solo podía decir "error al actualizar" y el admin no tenía
+ * forma de saber qué estaba a punto de romper.
+ *
+ * `confirmarReinicio` se manda únicamente cuando el admin ha dicho que sí a ese
+ * aviso; entonces el servidor borra votos Y recibos, sin dejar a nadie bloqueado.
+ */
 export async function updateVotacion(
   id: string,
   votacion: Partial<Votacion>,
-  opciones?: { id?: string; texto: string; orden: number }[]
-): Promise<boolean> {
+  opciones?: { id?: string; texto: string; orden: number }[],
+  confirmarReinicio = false
+): Promise<ResultadoActualizacion> {
   try {
-    await votingFetch('admin-update', {
+    const data = await votingFetch('admin-update', {
       method: 'POST',
       auth: 'admin',
-      body: JSON.stringify({ id, votacion, opciones }),
+      body: JSON.stringify({ id, votacion, opciones, confirmar_reinicio: confirmarReinicio }),
     });
-    return true;
-  } catch (error) {
+    return { ok: true, votosAnulados: data?.votos_anulados || 0 };
+  } catch (error: any) {
+    if (error?.status === 409 && error?.datos?.requiere_confirmacion) {
+      return {
+        ok: false,
+        requiereConfirmacion: true,
+        participaciones: error.datos.participaciones,
+        motivo: error.message,
+      };
+    }
     console.error('Error al actualizar votación:', error);
-    return false;
+    return { ok: false, motivo: error?.message };
   }
 }
 
